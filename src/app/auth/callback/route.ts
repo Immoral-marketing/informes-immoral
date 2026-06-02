@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Build the success redirect first — cookies will be attached to this response
-  let response = NextResponse.redirect(`${siteUrl}/`);
+  let response = NextResponse.redirect(`${siteUrl}/clientes`);
 
   // Create the Supabase client with setAll writing directly onto the response object.
   // This is the correct pattern for Route Handlers: cookies must be set on the
