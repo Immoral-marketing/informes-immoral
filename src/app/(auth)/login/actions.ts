@@ -4,10 +4,16 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { headers } from "next/headers";
 
+function getSiteUrl() {
+  // NEXT_PUBLIC_SITE_URL set in Vercel for production.
+  // Falls back to the request origin for local dev.
+  return process.env["NEXT_PUBLIC_SITE_URL"] ?? null;
+}
+
 export async function signInWithGoogle() {
   const supabase = await createClient();
   const headersList = await headers();
-  const origin = headersList.get("origin") ?? "";
+  const origin = getSiteUrl() ?? headersList.get("origin") ?? "";
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
@@ -49,7 +55,7 @@ export async function signInWithMagicLink(email: string) {
 
   const supabase = await createClient();
   const headersList = await headers();
-  const origin = headersList.get("origin") ?? "";
+  const origin = getSiteUrl() ?? headersList.get("origin") ?? "";
 
   await supabase.auth.signInWithOtp({
     email,
