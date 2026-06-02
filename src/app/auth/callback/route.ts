@@ -19,6 +19,7 @@ export async function GET(request: Request) {
   const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
   if (exchangeError) {
+    console.error("[callback] exchangeCodeForSession error:", exchangeError.message);
     return NextResponse.redirect(`${origin}/login?error=exchange_failed`);
   }
 
@@ -26,22 +27,26 @@ export async function GET(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user?.email) {
+    console.error("[callback] no user after exchange");
     await supabase.auth.signOut();
     return NextResponse.redirect(`${origin}/login?error=unauthorized`);
   }
+
+  console.log("[callback] user email:", user.email);
 
   // Verify domain using admin client (bypasses RLS — user may not be admin yet)
   const domain = user.email.split("@")[1] ?? "";
   const supabaseAdmin = createAdminClient();
 
-  const { data: domainRecord } = await supabaseAdmin
+  const { data: domainRecord, error: domainError } = await supabaseAdmin
     .from("authorized_domains")
     .select("id")
     .eq("domain", domain)
     .single();
 
+  console.log("[callback] domain:", domain, "| found:", !!domainRecord, "| error:", domainError?.message);
+
   if (!domainRecord) {
-    // Domain not authorized: delete user from auth.users and redirect
     await supabaseAdmin.auth.admin.deleteUser(user.id);
     await supabase.auth.signOut();
     return NextResponse.redirect(
