@@ -33,6 +33,19 @@ async function assertCanManageClient(clientId: string) {
   return { error: null, user: auth.user, supabaseAdmin };
 }
 
+// ─── Quick-select helpers (QuickCreateModal) ────────────────────────────────
+
+export async function getClientsForSelect() {
+  const auth = await getAuthenticatedUser();
+  if (auth.error || !auth.user) return [];
+  const supabaseAdmin = createAdminClient();
+  const { data } = await supabaseAdmin
+    .from("clients")
+    .select("id, name")
+    .order("name");
+  return (data as Array<{ id: string; name: string }>) ?? [];
+}
+
 // ─── Clients ───────────────────────────────────────────────────────────────
 
 export async function createClient_(formData: FormData) {

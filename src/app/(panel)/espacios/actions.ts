@@ -74,6 +74,19 @@ export async function getSlugPreview(clientName: string): Promise<{ slug: string
   return resolveSlug(clientName);
 }
 
+export async function getSpacesForSelect(clientId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  const supabaseAdmin = createAdminClient();
+  const { data } = await supabaseAdmin
+    .from("client_spaces")
+    .select("id, slug, verticals(name)")
+    .eq("client_id", clientId)
+    .order("created_at");
+  return (data as unknown as Array<{ id: string; slug: string; verticals: { name: string } | null }>) ?? [];
+}
+
 export async function createSpace(clientId: string, verticalId: string, clientName: string) {
   const perm = await assertCanManageClient(clientId);
   if (perm.error || !perm.supabaseAdmin) return { error: perm.error ?? "No autorizado" };

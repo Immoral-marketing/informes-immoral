@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { updateClient, deleteClient, addRecipient, updateRecipient, deleteRecipient } from "../actions";
 
@@ -35,6 +35,9 @@ export default function ClientDetailClient({
 }) {
   const [recipients, setRecipients] = useState(initial);
   const [editingClient, setEditingClient] = useState(false);
+
+  // Sync local state when server re-renders via router.refresh()
+  useEffect(() => { setRecipients(initial); }, [initial]);
   const [showRecipientForm, setShowRecipientForm] = useState(false);
   const [editRecipient, setEditRecipient] = useState<Recipient | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +66,7 @@ export default function ClientDetailClient({
           alert("Nota: Este destinatario había recibido magic links. Las sesiones activas seguirán válidas hasta que expiren.");
         }
         setRecipients((prev) => prev.filter((x) => x.id !== r.id));
+        router.refresh();
       }
     });
   }

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createSpace, deleteSpace, getSlugPreview } from "../../espacios/actions";
 
 interface Vertical {
@@ -37,6 +37,12 @@ export default function SpacesSection({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Auto-open from QuickCreateModal (?openSpace=1)
+  useEffect(() => {
+    if (searchParams.get("openSpace") === "1" && canEdit) setShowForm(true);
+  }, [searchParams, canEdit]);
 
   // Verticals already used
   const usedVerticalIds = new Set(spaces.map((s) => s.vertical_id));

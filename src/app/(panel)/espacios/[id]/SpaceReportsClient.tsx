@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createReport, checkReportSlug, checkReportName } from "../../informes/actions";
 import { slugify } from "@/lib/utils/slugify";
 
@@ -30,6 +30,12 @@ export default function SpaceReportsClient({
   const [showForm, setShowForm] = useState(false);
   const [pinModal, setPinModal] = useState<{ pin: string; warning: string | undefined } | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Auto-open from QuickCreateModal (?openReport=1)
+  useEffect(() => {
+    if (searchParams.get("openReport") === "1" && canEdit) setShowForm(true);
+  }, [searchParams, canEdit]);
 
   function handleCreated(reportId: string, pin: string, warning?: string) {
     setShowForm(false);

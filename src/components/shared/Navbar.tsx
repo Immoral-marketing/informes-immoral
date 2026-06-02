@@ -3,7 +3,9 @@
 import { useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { signOut } from "@/app/(auth)/login/actions";
+import QuickCreateModal from "./QuickCreateModal";
 
 interface NavbarProps {
   userEmail: string;
@@ -13,6 +15,7 @@ interface NavbarProps {
 
 export default function Navbar({ userEmail, userName, userRole }: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [quickCreate, setQuickCreate] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   function handleSignOut() {
@@ -33,6 +36,8 @@ export default function Navbar({ userEmail, userName, userRole }: NavbarProps) {
         <Image src="/immoral-logo-blanco.png" alt="Immoral" width={90} height={26} className="object-contain" />
         <span className="text-xs font-medium hidden sm:block" style={{ color: "#3a3a3a" }}>Informes</span>
       </Link>
+
+      {quickCreate && <QuickCreateModal onClose={() => setQuickCreate(false)} />}
 
       <div className="flex items-center gap-4">
         {/* Nav links */}
@@ -69,6 +74,16 @@ export default function Navbar({ userEmail, userName, userRole }: NavbarProps) {
             </>
           )}
         </div>
+
+        {/* Quick create */}
+        <button
+          onClick={() => setQuickCreate(true)}
+          className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
+          style={{ backgroundColor: "#3980E4", color: "#ffffff" }}
+          title="Crear nuevo"
+        >
+          <Plus className="w-4 h-4" />
+        </button>
 
         {/* User menu */}
         <div className="relative">

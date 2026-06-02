@@ -155,6 +155,7 @@ informes-immoral/
 | [05-reports](specs/05-reports.md) | Informes: principal + adjuntos + versiones | 1 | implementada |
 | [06-report-viewer](specs/06-report-viewer.md) | Viewer cliente cookie-first (PDF/HTML) | 1 | implementada |
 | [07-magic-link-access](specs/07-magic-link-access.md) | Flujo magic link al destinatario | 1 | implementada |
+| [12-ux-polish](specs/12-ux-polish.md) | Fixes post-producción: botones, navbar +, dashboard, refresh listas | 1 | pendiente |
 | 08-client-feedback | Comentarios anclados cliente↔empleado | 2 | pendiente |
 | 09-presentation-mode | Modo presentación sincronizado | 3 | pendiente |
 | 10-notifications | Notificaciones in-app + email | 2 | pendiente |
