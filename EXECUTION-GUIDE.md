@@ -247,6 +247,22 @@ Antes de lanzar el prompt de implementación, confirma:
 
 ---
 
+## Checklist al CERRAR una implementación (evita los gaps recurrentes)
+
+Aprendido en las sesiones de las specs 16–22 (ver `specs/22-post-implementation-fixes.md`). Antes de dar por terminada una spec, confirma:
+
+- [ ] **Migraciones APLICADAS a la BD remota**, no solo creado el `.sql`. Crear el archivo no basta: aplicarlo (CLI `supabase db push` o MCP `apply_migration`) y verificar con `information_schema.columns`. El código que usa columnas inexistentes compila pero **falla en runtime**.
+- [ ] **Tipos regenerados** tras la migración: `npx supabase gen types typescript --project-id yyjfsoobgvotquhjkcmc > src/types/supabase.ts`.
+- [ ] **Antes de alterar un CHECK existente**, consultar el valor vivo (`pg_get_constraintdef`); no asumir los valores permitidos.
+- [ ] **Variables de entorno** nuevas añadidas a `.env.local` y a Vercel (p. ej. `PIN_ENCRYPTION_KEY` = base64 de 32 bytes). Reiniciar `pnpm dev` / redeploy para que se apliquen.
+- [ ] **Realtime habilitado** en Supabase si la spec usa canales (presentación).
+- [ ] **Contenido HTML** servido por endpoint con `Content-Type: text/html`, nunca por signed URL cruda (se vería el código fuente).
+- [ ] **Server actions con admin client** re-verifican autorización en código (RLS no aplica al service_role).
+- [ ] Ningún secreto sensible (PIN cifrado/hash, tokens) viaja al cliente ni aparece en el payload RSC.
+- [ ] `pnpm build` en verde.
+
+---
+
 ## Señales de que el modelo está haciendo bien su trabajo
 
 **Implementación bien hecha:**

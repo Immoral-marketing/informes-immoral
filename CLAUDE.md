@@ -34,6 +34,19 @@
 | Email | Resend |
 | Hosting | Vercel |
 
+### Variables de entorno requeridas
+
+| Variable | Uso |
+|----------|-----|
+| `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto Supabase (cliente + servidor) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clave anónima (cliente + servidor con RLS) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Clave service_role (admin client server-side; bypassa RLS) |
+| `NEXT_PUBLIC_SITE_URL` | URL pública del sitio (redirect OAuth en producción) |
+| `PIN_ENCRYPTION_KEY` | Cifrado AES-256-GCM del PIN visible. **base64 de exactamente 32 bytes** (`openssl rand -base64 32`). Consistente por entorno. Requerida en `.env.local` y Vercel |
+| `RESEND_API_KEY` | Envío de magic links por email |
+
+> Realtime debe estar **habilitado** en el proyecto Supabase para el modo presentación (SPEC-19).
+
 ---
 
 ## Patrones Técnicos Establecidos (leer antes de implementar)
@@ -92,6 +105,21 @@ Los checks de slug (para evitar colisiones ocultas por RLS) deben hacerse con `c
 
 ### Leer el rol del perfil SIEMPRE con admin client (RLS recursiva en `profiles`)
 Las políticas RLS de `profiles` son recursivas: `profiles_select_admin` contiene `EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin')`, lo que al consultar `profiles` con el cliente RLS provoca recursión y la query devuelve `null`. Esto **bloquea silenciosamente a admins legítimos** (p. ej. "Solo los administradores pueden..."). Solución estándar: leer el rol con `createAdminClient()` (la identidad sigue derivándose de la sesión server-side, no del cliente). Aplica a layouts, server actions y guards. Ya corregido en `(panel)/layout.tsx` y `admin/verticales/actions.ts`; replicar el patrón en cualquier lectura de rol nueva.
+
+### Server actions con admin client: re-verificar autorización en código (RLS no aplica al service_role)
+`createAdminClient()` usa la `service_role` key y **bypasea RLS**. Por tanto, una server action que escribe con admin client debe **re-verificar permisos en código** (p. ej. que el usuario es creador del recurso o admin), igual que hacen `assertCanManageReport` y `managesVersion`. No basta con que exista una política RLS: el admin client la ignora. (Ver SPEC-22.3.)
+
+### Servir contenido HTML de informes SIEMPRE por endpoint con `text/html`, nunca por signed URL cruda
+Las signed URLs de Supabase Storage no garantizan `Content-Type: text/html`; el navegador puede mostrar el **código fuente** del informe en lugar de renderizarlo. El HTML se sirve por endpoint server-side que fija `Content-Type: text/html` (p. ej. `/api/reports/[id]/preview` para el empleado, `/api/presentation/[token]/content` para el espectador). Los PDF sí se pueden servir por signed URL (el navegador los renderiza nativamente). (Ver SPEC-22.5.)
+
+### `PIN_ENCRYPTION_KEY` y cifrado tolerante a fallos
+El "PIN visible" del empleado usa cifrado reversible AES-256-GCM (`src/lib/crypto/pin-cipher.ts`) con la env var **`PIN_ENCRYPTION_KEY`** (base64 de **exactamente 32 bytes**, `openssl rand -base64 32`), requerida en `.env.local` y en Vercel, consistente por entorno. El cifrado es una feature **opcional** que no debe romper el flujo principal: usar `safeEncryptPin()` (devuelve `null` si la clave falta o es inválida) al crear/regenerar PIN, de modo que crear un informe nunca falle por esto (el PIN sigue siendo válido vía `pin_hash`). Nunca enviar `pin_encrypted` ni `pin_hash` al cliente. (Ver SPEC-22.4.)
+
+### Migraciones: aplicarlas a la BD remota y regenerar tipos (crear el archivo NO basta)
+Gap recurrente de los agentes ejecutores: crean el `.sql` en `supabase/migrations/` pero **no lo aplican** al proyecto remoto, dejando el código apuntando a columnas/tablas inexistentes (falla en runtime, no en build). Tras crear una migración hay que **aplicarla** (CLI `supabase db push`, o MCP `apply_migration`) y **regenerar tipos** (`npx supabase gen types typescript --project-id yyjfsoobgvotquhjkcmc > src/types/supabase.ts`). Verificar con una query a `information_schema.columns`.
+
+### Antes de alterar un CHECK constraint existente, consultar el valor vivo
+No asumir los valores permitidos de un `CHECK` (p. ej. `report_sessions.session_type`). Consultar `pg_get_constraintdef` primero: una migración que recreaba el constraint asumió valores incorrectos y habría eliminado `'magic_link'` (en uso), rompiendo los magic links. (Ver SPEC-22.2.)
 
 ---
 
@@ -168,6 +196,7 @@ informes-immoral/
 | [19-presentation-mode](specs/19-presentation-mode.md) | Modo presentación sincronizado (Realtime) — implementa la intención de 09 | 4 | aprobada |
 | [20-presenter-notes](specs/20-presenter-notes.md) | Notas de orador internas ancladas ("Anotar") — distinto de la 08 | 5 | aprobada |
 | [21-employee-master-pin](specs/21-employee-master-pin.md) | PIN maestro de empleado (setup primer login + cambiar + override) | 4 | aprobada |
+| [22-post-implementation-fixes](specs/22-post-implementation-fixes.md) | Trazabilidad de fixes post-impl 16-21 (seguridad, preview HTML, PIN cifrado/difuminado, UX) | 1 | implementada |
 | 08-client-feedback | Comentarios anclados cliente↔empleado (NO implementado por 20; sigue futuro) | 2 | pendiente |
 | 09-presentation-mode | Modo presentación sincronizado (implementado por la spec 19) | 3 | reemplazada por 19 |
 | 10-notifications | Notificaciones in-app + email | 2 | pendiente |
