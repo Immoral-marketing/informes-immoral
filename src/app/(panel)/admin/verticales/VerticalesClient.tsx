@@ -277,13 +277,16 @@ function VerticalFormModal({
               Logo {isEdit ? "(opcional — reemplaza el actual)" : "*"} — PNG o SVG, máx 2MB
             </Label>
             <div
-              className="border-2 border-dashed border-border rounded-xl p-4 flex flex-col items-center gap-2 cursor-pointer hover:border-primary transition-colors bg-muted/50"
+              className="border-2 border-dashed border-border rounded-xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-primary transition-colors bg-muted/50 min-h-[140px]"
               onClick={() => fileRef.current?.click()}
             >
               {logoPreview ? (
-                <Image src={logoPreview} alt="preview" width={48} height={48} className="object-contain" />
+                <Image src={logoPreview} alt="preview" width={96} height={96} className="object-contain max-h-24" />
               ) : (
-                <span className="text-muted-foreground text-sm">Arrastra o haz clic para subir</span>
+                <>
+                  <span className="text-muted-foreground text-sm">Arrastra o haz clic para subir</span>
+                  <span className="text-muted-foreground text-xs">PNG o SVG, máx 2MB</span>
+                </>
               )}
             </div>
             <input

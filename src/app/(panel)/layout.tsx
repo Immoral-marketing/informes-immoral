@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import Navbar from "@/components/shared/Navbar";
 
 export default async function PanelLayout({
@@ -12,7 +13,9 @@ export default async function PanelLayout({
 
   if (!user) redirect("/login");
 
-  const { data: rawProfile } = await supabase
+  // Admin client bypasses RLS — garantiza lectura correcta del rol
+  const supabaseAdmin = createAdminClient();
+  const { data: rawProfile } = await supabaseAdmin
     .from("profiles")
     .select("full_name, role")
     .eq("id", user.id)
