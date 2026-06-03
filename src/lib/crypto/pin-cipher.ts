@@ -22,6 +22,17 @@ export function encryptPin(pin: string): string {
   return `${iv.toString("base64")}.${tag.toString("base64")}.${enc.toString("base64")}`;
 }
 
+// Cifrado tolerante a fallos: si la clave falta o es inválida, no rompe el flujo
+// (el PIN sigue siendo válido vía pin_hash; solo no se podrá "revelar" hasta regenerar).
+export function safeEncryptPin(pin: string): string | null {
+  try {
+    return encryptPin(pin);
+  } catch (e) {
+    console.error("[pin-cipher] No se pudo cifrar el PIN:", (e as Error).message);
+    return null;
+  }
+}
+
 export function decryptPin(payload: string): string {
   const key = getKey();
   const parts = payload.split(".");

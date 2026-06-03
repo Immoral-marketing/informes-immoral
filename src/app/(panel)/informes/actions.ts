@@ -6,7 +6,7 @@ import { slugify } from "@/lib/utils/slugify";
 import { generateSessionToken } from "@/lib/tokens/generate";
 import { generateAndSendMagicLink } from "@/lib/magic-link/send";
 import bcrypt from "bcryptjs";
-import { encryptPin, decryptPin } from "@/lib/crypto/pin-cipher";
+import { safeEncryptPin, decryptPin } from "@/lib/crypto/pin-cipher";
 
 const DOC_BUCKET = "report-documents";
 const ATT_BUCKET = "report-attachments";
@@ -130,7 +130,7 @@ export async function createReport(spaceId: string, formData: FormData) {
       name,
       slug,
       pin_hash: pinHash,
-      pin_encrypted: encryptPin(pin),
+      pin_encrypted: safeEncryptPin(pin),
       auto_send_on_publish: autoSend,
       current_version: 1,
       created_by: user.id,
@@ -291,7 +291,7 @@ export async function regeneratePin(reportId: string) {
     .from("reports")
     .update({ 
       pin_hash: pinHash, 
-      pin_encrypted: encryptPin(pin),
+      pin_encrypted: safeEncryptPin(pin),
       pin_updated_at: new Date().toISOString() 
     })
     .eq("id", reportId);
