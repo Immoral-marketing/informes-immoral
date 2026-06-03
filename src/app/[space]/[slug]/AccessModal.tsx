@@ -136,7 +136,7 @@ export default function AccessModal({
                   onKeyDown={(e) => handlePinKeyDown(idx, e)}
                   className="w-14 h-14 text-center text-2xl font-bold text-white rounded-xl outline-none transition-all"
                   style={{ backgroundColor: "#242424", border: "1px solid #3a3a3a" }}
-                  onFocus={(e) => { e.currentTarget.style.borderColor = "#3980E4"; }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = "var(--brand)"; }}
                   onBlur={(e) => { e.currentTarget.style.borderColor = "#3a3a3a"; }}
                   autoFocus={idx === 0}
                 />
@@ -146,7 +146,7 @@ export default function AccessModal({
               onClick={submitPin}
               disabled={isPending || pin.join("").length < 4}
               className="w-full text-white font-semibold rounded-xl py-3 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ backgroundColor: "#3980E4" }}
+              style={{ backgroundColor: "var(--brand)" }}
             >
               {isPending ? "Verificando…" : "Acceder"}
             </button>
@@ -163,7 +163,7 @@ export default function AccessModal({
               required
               className="w-full rounded-xl px-4 py-3 text-white text-sm outline-none transition-all"
               style={{ backgroundColor: "#242424", border: "1px solid #3a3a3a" }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = "#3980E4"; }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = "var(--brand)"; }}
               onBlur={(e) => { e.currentTarget.style.borderColor = "#3a3a3a"; }}
             />
             <button

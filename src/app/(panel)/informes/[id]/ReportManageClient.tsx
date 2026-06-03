@@ -117,22 +117,22 @@ export default function ReportManageClient({
 
   return (
     <>
-      {error && <p className="text-sm text-red-500 bg-red-50 rounded-xl px-4 py-3 border border-red-200">{error}</p>}
+      {error && <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-4 py-3 border border-destructive/20">{error}</p>}
 
       {/* Header */}
-      <section className="bg-white rounded-2xl border border-[--color-gray-light] p-6 flex flex-col gap-3">
+      <section className="bg-card rounded-2xl border border-border p-6 flex flex-col gap-3">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-xl font-extrabold text-[--color-black]">{report.name}</h1>
+            <h1 className="text-xl font-extrabold text-foreground">{report.name}</h1>
             <div className="flex items-center gap-2 mt-1">
-              <span className="font-mono text-xs text-[--color-gray-mid]">{fullUrl}</span>
-              <button onClick={copyUrl} className="text-xs text-[--color-brand] hover:underline shrink-0">
+              <span className="font-mono text-xs text-muted-foreground">{fullUrl}</span>
+              <button onClick={copyUrl} className="text-xs text-primary hover:underline shrink-0">
                 {copied ? "✓ Copiado" : "Copiar"}
               </button>
             </div>
           </div>
           <div className="flex gap-2 shrink-0">
-            <span className="text-xs bg-[--color-gray-light] text-[--color-gray-mid] rounded-full px-3 py-1">
+            <span className="text-xs bg-muted text-muted-foreground rounded-full px-3 py-1">
               v{report.current_version} · {activeVersion?.format?.toUpperCase()}
             </span>
           </div>
@@ -140,14 +140,14 @@ export default function ReportManageClient({
       </section>
 
       {/* Version history */}
-      <section className="bg-white rounded-2xl border border-[--color-gray-light] p-6 flex flex-col gap-4">
+      <section className="bg-card rounded-2xl border border-border p-6 flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-bold text-[--color-black]">Versiones</h2>
+          <h2 className="font-bold text-foreground">Versiones</h2>
           {canEdit && (
             <button
               onClick={() => docFileRef.current?.click()}
               disabled={isPending}
-              className="text-sm text-[--color-brand] hover:underline disabled:opacity-40"
+              className="text-sm text-primary hover:underline disabled:opacity-40"
             >
               + Subir nueva versión
             </button>
@@ -164,22 +164,22 @@ export default function ReportManageClient({
                 onClick={() => handleVersionClick(v)}
                 className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
                   previewVersion?.id === v.id
-                    ? "bg-[--color-brand]/10 border border-[--color-brand]/30"
-                    : "hover:bg-[--color-gray-light] border border-transparent"
+                    ? "bg-primary/10 border border-primary/30"
+                    : "hover:bg-muted border border-transparent"
                 }`}
               >
-                <div className="w-8 h-8 rounded-lg bg-[--color-gray-light] flex items-center justify-center text-xs font-bold text-[--color-gray-mid]">
+                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">
                   v{v.version_number}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-[--color-black]">Versión {v.version_number}</span>
+                    <span className="text-sm font-medium text-foreground">Versión {v.version_number}</span>
                     {v.version_number === report.current_version && (
-                      <span className="text-[10px] bg-[--color-brand] text-white px-2 py-0.5 rounded-full">Activa</span>
+                      <span className="text-[10px] bg-primary text-white px-2 py-0.5 rounded-full">Activa</span>
                     )}
-                    <span className="text-xs text-[--color-gray-mid] uppercase">{v.format}</span>
+                    <span className="text-xs text-muted-foreground uppercase">{v.format}</span>
                   </div>
-                  <p className="text-xs text-[--color-gray-mid]">
+                  <p className="text-xs text-muted-foreground">
                     {v.profiles?.full_name ?? "—"} · {new Date(v.created_at).toLocaleDateString("es-ES")}
                   </p>
                 </div>
@@ -189,7 +189,7 @@ export default function ReportManageClient({
 
           {/* Preview pane */}
           {activeVersionUrl && (
-            <div className="border border-[--color-gray-light] rounded-xl overflow-hidden h-64 lg:h-full min-h-48">
+            <div className="border border-border rounded-xl overflow-hidden h-64 lg:h-full min-h-48">
               <iframe
                 src={previewUrl ?? activeVersionUrl}
                 className="w-full h-full"
@@ -202,14 +202,14 @@ export default function ReportManageClient({
       </section>
 
       {/* Attachments */}
-      <section className="bg-white rounded-2xl border border-[--color-gray-light] p-6 flex flex-col gap-4">
+      <section className="bg-card rounded-2xl border border-border p-6 flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-bold text-[--color-black]">Adjuntos</h2>
+          <h2 className="font-bold text-foreground">Adjuntos</h2>
           {canEdit && (
             <button
               onClick={() => attFileRef.current?.click()}
               disabled={isPending}
-              className="text-sm text-[--color-brand] hover:underline disabled:opacity-40"
+              className="text-sm text-primary hover:underline disabled:opacity-40"
             >
               + Añadir adjunto
             </button>
@@ -218,18 +218,18 @@ export default function ReportManageClient({
         <input ref={attFileRef} type="file" className="hidden" onChange={handleAddAttachment} />
 
         {atts.length === 0 ? (
-          <p className="text-sm text-[--color-gray-mid]">No hay adjuntos.</p>
+          <p className="text-sm text-muted-foreground">No hay adjuntos.</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {atts.map((a) => (
-              <li key={a.id} className="flex items-center gap-3 py-2 border-b border-[--color-gray-light] last:border-0">
+              <li key={a.id} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[--color-black] truncate">{a.filename}</p>
-                  <p className="text-xs text-[--color-gray-mid]">{(a.size_bytes / 1024).toFixed(0)} KB</p>
+                  <p className="text-sm font-medium text-foreground truncate">{a.filename}</p>
+                  <p className="text-xs text-muted-foreground">{(a.size_bytes / 1024).toFixed(0)} KB</p>
                 </div>
                 <div className="flex gap-2 shrink-0">
                   {a.signed_url && (
-                    <a href={a.signed_url} download={a.filename} className="text-xs text-[--color-brand] hover:underline">
+                    <a href={a.signed_url} download={a.filename} className="text-xs text-primary hover:underline">
                       Descargar
                     </a>
                   )}
@@ -237,7 +237,7 @@ export default function ReportManageClient({
                     <button
                       onClick={() => handleDeleteAttachment(a)}
                       disabled={isPending}
-                      className="text-xs text-red-400 hover:text-red-600 disabled:opacity-40"
+                      className="text-xs text-destructive/80 hover:text-destructive disabled:opacity-40"
                     >
                       Eliminar
                     </button>
@@ -251,26 +251,26 @@ export default function ReportManageClient({
 
       {/* Access section */}
       {canEdit && (
-        <section className="bg-white rounded-2xl border border-[--color-gray-light] p-6 flex flex-col gap-4">
-          <h2 className="font-bold text-[--color-black]">Acceso</h2>
+        <section className="bg-card rounded-2xl border border-border p-6 flex flex-col gap-4">
+          <h2 className="font-bold text-foreground">Acceso</h2>
           <div className="flex flex-wrap gap-3">
             <button
               onClick={handleRegeneratePin}
               disabled={isPending}
-              className="text-sm border border-[--color-gray-light] rounded-xl px-4 py-2 hover:border-[--color-brand] hover:text-[--color-brand] transition-colors disabled:opacity-40"
+              className="text-sm border border-border rounded-xl px-4 py-2 hover:border-primary hover:text-primary transition-colors disabled:opacity-40"
             >
               🔑 Regenerar PIN
             </button>
             <button
               onClick={() => setShowSendModal(true)}
-              className="text-sm border border-[--color-gray-light] rounded-xl px-4 py-2 hover:border-[--color-brand] hover:text-[--color-brand] transition-colors"
+              className="text-sm border border-border rounded-xl px-4 py-2 hover:border-primary hover:text-primary transition-colors"
             >
               📨 Enviar al cliente
             </button>
             <button
               onClick={handleDeleteReport}
               disabled={isPending}
-              className="text-sm border border-red-200 text-red-500 rounded-xl px-4 py-2 hover:bg-red-50 transition-colors disabled:opacity-40 ml-auto"
+              className="text-sm border border-destructive/20 text-destructive rounded-xl px-4 py-2 hover:bg-destructive/10 transition-colors disabled:opacity-40 ml-auto"
             >
               Eliminar informe
             </button>
@@ -285,16 +285,16 @@ export default function ReportManageClient({
       {/* PIN Modal */}
       {pinModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-8 flex flex-col items-center gap-6">
+          <div className="bg-card rounded-2xl w-full max-w-sm p-8 flex flex-col items-center gap-6">
             <div className="text-center">
               <h2 className="font-bold text-lg">Nuevo PIN generado</h2>
-              <p className="text-xs text-[--color-gray-mid] mt-1">Comparte este PIN con tu cliente. No volverá a mostrarse.</p>
+              <p className="text-xs text-muted-foreground mt-1">Comparte este PIN con tu cliente. No volverá a mostrarse.</p>
             </div>
-            <div className="text-5xl font-bold tracking-[0.4em] bg-[--color-gray-light] rounded-2xl px-8 py-5 select-all cursor-pointer"
+            <div className="text-5xl font-bold tracking-[0.4em] bg-muted rounded-2xl px-8 py-5 select-all cursor-pointer"
               onClick={() => { navigator.clipboard.writeText(pinModal); }}>
               {pinModal}
             </div>
-            <button onClick={() => setPinModal(null)} className="w-full bg-[--color-brand] text-white font-semibold rounded-xl py-3 hover:bg-blue-600">
+            <button onClick={() => setPinModal(null)} className="w-full bg-primary text-white font-semibold rounded-xl py-3 hover:bg-primary/90">
               Entendido — he guardado el PIN
             </button>
           </div>

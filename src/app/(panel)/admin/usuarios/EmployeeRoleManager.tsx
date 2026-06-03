@@ -35,24 +35,24 @@ export default function EmployeeRoleManager({ employees: initial, currentUserId 
   }
 
   return (
-    <section className="bg-white rounded-2xl border border-[--color-gray-light] p-6 flex flex-col gap-4">
-      <h2 className="font-bold text-[--color-black]">Empleados</h2>
+    <section className="bg-card rounded-2xl border border-border p-6 flex flex-col gap-4">
+      <h2 className="font-bold text-foreground">Empleados</h2>
 
       {feedback && (
-        <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">{feedback}</p>
+        <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{feedback}</p>
       )}
 
       <ul className="flex flex-col gap-2">
         {employees.map((emp) => (
-          <li key={emp.id} className="flex items-center justify-between py-2 border-b border-[--color-gray-light] last:border-0">
-            <span className="text-sm font-medium text-[--color-black]">
+          <li key={emp.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+            <span className="text-sm font-medium text-foreground">
               {emp.full_name ?? "—"}
             </span>
             <select
               value={emp.role}
               disabled={emp.id === currentUserId || updatingId === emp.id}
               onChange={(e) => handleRoleChange(emp.id, e.target.value as "admin" | "employee")}
-              className="text-sm border border-[--color-gray-light] rounded-lg px-2 py-1 focus:outline-none focus:border-[--color-brand] disabled:opacity-40 disabled:cursor-not-allowed"
+              className="text-sm border border-border rounded-lg px-2 py-1 bg-background focus:outline-none focus:border-primary disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <option value="employee">employee</option>
               <option value="admin">admin</option>

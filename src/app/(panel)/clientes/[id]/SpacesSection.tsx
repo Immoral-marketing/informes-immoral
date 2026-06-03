@@ -62,13 +62,13 @@ export default function SpacesSection({
   }
 
   return (
-    <section className="bg-white rounded-2xl border border-[--color-gray-light] p-6 flex flex-col gap-4">
+    <section className="bg-card rounded-2xl border border-border p-6 flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-bold text-[--color-black]">Espacios</h2>
+        <h2 className="font-bold text-foreground">Espacios</h2>
         {canEdit && availableVerticals.length > 0 && (
           <button
             onClick={() => setShowForm(true)}
-            className="text-sm text-[--color-brand] hover:underline"
+            className="text-sm text-primary hover:underline"
           >
             + Nuevo espacio
           </button>
@@ -76,15 +76,15 @@ export default function SpacesSection({
       </div>
 
       {error && (
-        <p className="text-sm text-red-500 bg-red-50 rounded-xl px-3 py-2">{error}</p>
+        <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-3 py-2">{error}</p>
       )}
 
       {spaces.length === 0 ? (
-        <p className="text-sm text-[--color-gray-mid]">No hay espacios creados todavía.</p>
+        <p className="text-sm text-muted-foreground">No hay espacios creados todavía.</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {spaces.map((s) => (
-            <li key={s.id} className="flex items-center gap-3 py-2 border-b border-[--color-gray-light] last:border-0">
+            <li key={s.id} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
               <div
                 className="w-2 h-2 rounded-full shrink-0"
                 style={{ backgroundColor: s.verticals?.color_hex ?? "#ccc" }}
@@ -92,16 +92,16 @@ export default function SpacesSection({
               <div className="flex-1 min-w-0">
                 <Link
                   href={`/espacios/${s.id}`}
-                  className="text-sm font-medium text-[--color-black] hover:text-[--color-brand] truncate block"
+                  className="text-sm font-medium text-foreground hover:text-primary truncate block"
                 >
-                  {s.verticals?.name ?? "—"} · <span className="font-mono text-xs text-[--color-gray-mid]">/{s.slug}</span>
+                  {s.verticals?.name ?? "—"} · <span className="font-mono text-xs text-muted-foreground">/{s.slug}</span>
                 </Link>
               </div>
               {canEdit && (
                 <button
                   onClick={() => handleDelete(s)}
                   disabled={isPending}
-                  className="text-xs text-red-400 hover:text-red-600 disabled:opacity-40 shrink-0"
+                  className="text-xs text-destructive/80 hover:text-destructive disabled:opacity-40 shrink-0"
                 >
                   Eliminar
                 </button>
@@ -179,25 +179,25 @@ function NewSpaceModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md p-6 flex flex-col gap-5">
+      <div className="bg-card rounded-2xl w-full max-w-md p-6 flex flex-col gap-5">
         <div className="flex items-center justify-between">
-          <h2 className="font-bold text-[--color-black]">Nuevo espacio</h2>
-          <button onClick={onClose} className="text-[--color-gray-mid] text-xl">×</button>
+          <h2 className="font-bold text-foreground">Nuevo espacio</h2>
+          <button onClick={onClose} className="text-muted-foreground text-xl">×</button>
         </div>
 
         {(error ?? slugError) && (
-          <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">{error ?? slugError}</p>
+          <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error ?? slugError}</p>
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Vertical selector */}
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-[--color-gray-mid]">Vertical *</label>
+            <label className="text-xs font-medium text-muted-foreground">Vertical *</label>
             <select
               value={verticalId}
               onChange={(e) => setVerticalId(e.target.value)}
               required
-              className="border border-[--color-gray-light] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[--color-brand]"
+              className="border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary"
             >
               {verticals.map((v) => (
                 <option key={v.id} value={v.id}>{v.name}</option>
@@ -206,21 +206,21 @@ function NewSpaceModal({
           </div>
 
           {/* Slug preview */}
-          <div className="bg-[--color-gray-light]/50 rounded-xl px-4 py-3 text-sm">
-            <p className="text-xs text-[--color-gray-mid] mb-1">⚠️ El slug no podrá modificarse. La URL de los informes comenzará por:</p>
-            <p className="font-mono text-[--color-black]">
+          <div className="bg-muted/50 rounded-xl px-4 py-3 text-sm">
+            <p className="text-xs text-muted-foreground mb-1">⚠️ El slug no podrá modificarse. La URL de los informes comenzará por:</p>
+            <p className="font-mono text-foreground">
               informes.immoral.es/<strong>{slugPreview ?? "…"}</strong>/
             </p>
           </div>
 
           <div className="flex gap-2 justify-end pt-2">
-            <button type="button" onClick={onClose} className="text-sm text-[--color-gray-mid] px-4 py-2 rounded-xl hover:bg-[--color-gray-light]">
+            <button type="button" onClick={onClose} className="text-sm text-muted-foreground px-4 py-2 rounded-xl hover:bg-muted">
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isPending || !!slugError || !slugPreview}
-              className="bg-[--color-brand] text-white font-semibold text-sm rounded-xl px-4 py-2 hover:bg-blue-600 disabled:opacity-50"
+              className="bg-primary text-white font-semibold text-sm rounded-xl px-4 py-2 hover:bg-primary/90 disabled:opacity-50"
             >
               {isPending ? "Creando…" : "Crear espacio"}
             </button>

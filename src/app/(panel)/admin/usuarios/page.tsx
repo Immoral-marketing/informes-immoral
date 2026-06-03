@@ -26,7 +26,7 @@ export default async function AdminUsuariosPage() {
 
   return (
     <div className="flex flex-col gap-8 max-w-3xl">
-      <h1 className="text-2xl font-extrabold text-[--color-black]">Administración de usuarios</h1>
+      <h1 className="text-2xl font-extrabold text-foreground">Administración de usuarios</h1>
 
       <DomainManager
         domains={domains ?? []}

@@ -39,20 +39,20 @@ export default function ClientesClient({
   return (
     <div className="flex flex-col gap-4">
       {error && (
-        <p className="text-sm text-red-500 bg-red-50 rounded-xl px-4 py-3 border border-red-200">{error}</p>
+        <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-4 py-3 border border-destructive/20">{error}</p>
       )}
 
       <div className="flex justify-end">
         <button
           onClick={() => setShowForm(true)}
-          className="bg-[--color-brand] text-white font-semibold text-sm rounded-xl px-4 py-2 hover:bg-blue-600 transition-colors"
+          className="bg-primary text-white font-semibold text-sm rounded-xl px-4 py-2 hover:bg-primary/90 transition-colors"
         >
           + Nuevo cliente
         </button>
       </div>
 
       {clients.length === 0 ? (
-        <p className="text-sm text-[--color-gray-mid] text-center py-12">
+        <p className="text-sm text-muted-foreground text-center py-12">
           {isAdmin ? "No hay clientes creados todavía." : "No has creado ningún cliente todavía."}
         </p>
       ) : (
@@ -61,23 +61,23 @@ export default function ClientesClient({
             <Link
               key={c.id}
               href={`/clientes/${c.id}`}
-              className="bg-white rounded-2xl border border-[--color-gray-light] p-4 flex items-center gap-4 hover:border-[--color-brand] transition-colors"
+              className="bg-card rounded-2xl border border-border p-4 flex items-center gap-4 hover:border-primary transition-colors"
             >
-              <div className="w-10 h-10 rounded-xl bg-[--color-brand]/10 flex items-center justify-center shrink-0">
-                <span className="text-lg font-bold text-[--color-brand]">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <span className="text-lg font-bold text-primary">
                   {c.name.charAt(0).toUpperCase()}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm text-[--color-black] truncate">{c.name}</p>
+                <p className="font-semibold text-sm text-foreground truncate">{c.name}</p>
                 {c.contact_name && (
-                  <p className="text-xs text-[--color-gray-mid] truncate">{c.contact_name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{c.contact_name}</p>
                 )}
                 {isAdmin && c.profiles?.full_name && (
-                  <p className="text-xs text-[--color-gray-mid] truncate">por {c.profiles.full_name}</p>
+                  <p className="text-xs text-muted-foreground truncate">por {c.profiles.full_name}</p>
                 )}
               </div>
-              <div className="flex gap-4 text-xs text-[--color-gray-mid] shrink-0">
+              <div className="flex gap-4 text-xs text-muted-foreground shrink-0">
                 <span>{c.client_recipients[0]?.count ?? 0} dest.</span>
                 <span>{c.client_spaces[0]?.count ?? 0} espacios</span>
               </div>
@@ -123,18 +123,18 @@ function ClientFormModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md p-6 flex flex-col gap-5">
+      <div className="bg-card rounded-2xl w-full max-w-md p-6 flex flex-col gap-5">
         <div className="flex items-center justify-between">
-          <h2 className="font-bold text-[--color-black]">{client ? "Editar cliente" : "Nuevo cliente"}</h2>
-          <button onClick={onClose} className="text-[--color-gray-mid] hover:text-[--color-black] text-xl">×</button>
+          <h2 className="font-bold text-foreground">{client ? "Editar cliente" : "Nuevo cliente"}</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xl">×</button>
         </div>
 
-        {error && <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
+        {error && <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {(["name", "contact_name", "contact_phone", "contact_whatsapp"] as const).map((field) => (
             <div key={field} className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-[--color-gray-mid]">
+              <label className="text-xs font-medium text-muted-foreground">
                 {field === "name" ? "Nombre *" :
                   field === "contact_name" ? "Persona de contacto" :
                   field === "contact_phone" ? "Teléfono" : "WhatsApp"}
@@ -144,19 +144,19 @@ function ClientFormModal({
                 name={field}
                 defaultValue={client?.[field] ?? ""}
                 required={field === "name"}
-                className="border border-[--color-gray-light] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[--color-brand]"
+                className="border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary"
               />
             </div>
           ))}
 
           <div className="flex gap-2 justify-end pt-2">
-            <button type="button" onClick={onClose} className="text-sm text-[--color-gray-mid] px-4 py-2 rounded-xl hover:bg-[--color-gray-light]">
+            <button type="button" onClick={onClose} className="text-sm text-muted-foreground px-4 py-2 rounded-xl hover:bg-muted">
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isPending}
-              className="bg-[--color-brand] text-white font-semibold text-sm rounded-xl px-4 py-2 hover:bg-blue-600 disabled:opacity-50"
+              className="bg-primary text-white font-semibold text-sm rounded-xl px-4 py-2 hover:bg-primary/90 disabled:opacity-50"
             >
               {isPending ? "Guardando…" : client ? "Guardar cambios" : "Crear cliente"}
             </button>

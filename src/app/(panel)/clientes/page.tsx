@@ -42,7 +42,7 @@ export default async function ClientesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-extrabold text-[--color-black]">Clientes</h1>
+      <h1 className="text-2xl font-extrabold text-foreground">Clientes</h1>
       <ClientesClient clients={clients} isAdmin={isAdmin} />
     </div>
   );

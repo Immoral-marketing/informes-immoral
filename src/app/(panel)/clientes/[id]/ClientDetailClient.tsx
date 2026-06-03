@@ -96,30 +96,30 @@ export default function ClientDetailClient({
   return (
     <>
       {error && (
-        <p className="text-sm text-red-500 bg-red-50 rounded-xl px-4 py-3 border border-red-200">{error}</p>
+        <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-4 py-3 border border-destructive/20">{error}</p>
       )}
 
       {/* Client header */}
-      <section className="bg-white rounded-2xl border border-[--color-gray-light] p-6">
+      <section className="bg-card rounded-2xl border border-border p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-extrabold text-[--color-black]">{client.name}</h1>
-            {client.contact_name && <p className="text-sm text-[--color-gray-mid] mt-1">{client.contact_name}</p>}
-            {client.contact_phone && <p className="text-sm text-[--color-gray-mid]">📞 {client.contact_phone}</p>}
-            {client.contact_whatsapp && <p className="text-sm text-[--color-gray-mid]">💬 {client.contact_whatsapp}</p>}
+            <h1 className="text-2xl font-extrabold text-foreground">{client.name}</h1>
+            {client.contact_name && <p className="text-sm text-muted-foreground mt-1">{client.contact_name}</p>}
+            {client.contact_phone && <p className="text-sm text-muted-foreground">📞 {client.contact_phone}</p>}
+            {client.contact_whatsapp && <p className="text-sm text-muted-foreground">💬 {client.contact_whatsapp}</p>}
           </div>
           {canEdit && (
             <div className="flex gap-2 shrink-0">
               <button
                 onClick={() => setEditingClient(true)}
-                className="text-sm text-[--color-brand] hover:underline"
+                className="text-sm text-primary hover:underline"
               >
                 Editar
               </button>
               <button
                 onClick={handleDeleteClient}
                 disabled={isPending}
-                className="text-sm text-red-500 hover:text-red-700 disabled:opacity-40"
+                className="text-sm text-destructive hover:text-destructive disabled:opacity-40"
               >
                 Eliminar
               </button>
@@ -129,13 +129,13 @@ export default function ClientDetailClient({
       </section>
 
       {/* Recipients */}
-      <section className="bg-white rounded-2xl border border-[--color-gray-light] p-6 flex flex-col gap-4">
+      <section className="bg-card rounded-2xl border border-border p-6 flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-bold text-[--color-black]">Destinatarios</h2>
+          <h2 className="font-bold text-foreground">Destinatarios</h2>
           {canEdit && (
             <button
               onClick={() => setShowRecipientForm(true)}
-              className="text-sm text-[--color-brand] hover:underline"
+              className="text-sm text-primary hover:underline"
             >
               + Añadir
             </button>
@@ -143,35 +143,35 @@ export default function ClientDetailClient({
         </div>
 
         {recipients.length === 0 ? (
-          <p className="text-sm text-[--color-gray-mid]">No hay destinatarios todavía.</p>
+          <p className="text-sm text-muted-foreground">No hay destinatarios todavía.</p>
         ) : (
           <ul className="flex flex-col gap-3">
             {recipients.map((r) => (
-              <li key={r.id} className="flex items-center gap-3 py-2 border-b border-[--color-gray-light] last:border-0">
+              <li key={r.id} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-[--color-black] truncate">{r.email}</p>
+                    <p className="text-sm font-medium text-foreground truncate">{r.email}</p>
                     {r.is_primary && (
-                      <span className="text-[10px] bg-[--color-brand]/10 text-[--color-brand] px-2 py-0.5 rounded-full font-medium shrink-0">
+                      <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium shrink-0">
                         primario
                       </span>
                     )}
                   </div>
-                  {r.full_name && <p className="text-xs text-[--color-gray-mid]">{r.full_name}</p>}
-                  {r.role_label && <p className="text-xs text-[--color-gray-mid]">{r.role_label}</p>}
+                  {r.full_name && <p className="text-xs text-muted-foreground">{r.full_name}</p>}
+                  {r.role_label && <p className="text-xs text-muted-foreground">{r.role_label}</p>}
                 </div>
                 {canEdit && (
                   <div className="flex gap-2 shrink-0">
                     <button
                       onClick={() => setEditRecipient(r)}
-                      className="text-xs text-[--color-gray-mid] hover:text-[--color-brand]"
+                      className="text-xs text-muted-foreground hover:text-primary"
                     >
                       Editar
                     </button>
                     <button
                       onClick={() => handleDeleteRecipient(r)}
                       disabled={isPending}
-                      className="text-xs text-red-400 hover:text-red-600 disabled:opacity-40"
+                      className="text-xs text-destructive/80 hover:text-destructive disabled:opacity-40"
                     >
                       Eliminar
                     </button>
@@ -241,28 +241,28 @@ function FormModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md p-6 flex flex-col gap-5">
+      <div className="bg-card rounded-2xl w-full max-w-md p-6 flex flex-col gap-5">
         <div className="flex items-center justify-between">
-          <h2 className="font-bold text-[--color-black]">{title}</h2>
-          <button onClick={onClose} className="text-[--color-gray-mid] text-xl">×</button>
+          <h2 className="font-bold text-foreground">{title}</h2>
+          <button onClick={onClose} className="text-muted-foreground text-xl">×</button>
         </div>
-        {error && <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
+        {error && <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {fields.map((f) => (
             <div key={f.name} className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-[--color-gray-mid]">{f.label}</label>
+              <label className="text-xs font-medium text-muted-foreground">{f.label}</label>
               <input
                 type="text"
                 name={f.name}
                 defaultValue={f.defaultValue}
                 required={f.required}
-                className="border border-[--color-gray-light] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[--color-brand]"
+                className="border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary"
               />
             </div>
           ))}
           <div className="flex gap-2 justify-end pt-2">
-            <button type="button" onClick={onClose} className="text-sm text-[--color-gray-mid] px-4 py-2 rounded-xl hover:bg-[--color-gray-light]">Cancelar</button>
-            <button type="submit" disabled={isPending} className="bg-[--color-brand] text-white font-semibold text-sm rounded-xl px-4 py-2 hover:bg-blue-600 disabled:opacity-50">
+            <button type="button" onClick={onClose} className="text-sm text-muted-foreground px-4 py-2 rounded-xl hover:bg-muted">Cancelar</button>
+            <button type="submit" disabled={isPending} className="bg-primary text-white font-semibold text-sm rounded-xl px-4 py-2 hover:bg-primary/90 disabled:opacity-50">
               {isPending ? "Guardando…" : "Guardar"}
             </button>
           </div>
@@ -297,12 +297,12 @@ function RecipientFormModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md p-6 flex flex-col gap-5">
+      <div className="bg-card rounded-2xl w-full max-w-md p-6 flex flex-col gap-5">
         <div className="flex items-center justify-between">
-          <h2 className="font-bold text-[--color-black]">{recipient ? "Editar destinatario" : "Añadir destinatario"}</h2>
-          <button onClick={onClose} className="text-[--color-gray-mid] text-xl">×</button>
+          <h2 className="font-bold text-foreground">{recipient ? "Editar destinatario" : "Añadir destinatario"}</h2>
+          <button onClick={onClose} className="text-muted-foreground text-xl">×</button>
         </div>
-        {error && <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
+        {error && <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {[
             { name: "email", label: "Email *", type: "email", required: true, defaultValue: recipient?.email },
@@ -310,13 +310,13 @@ function RecipientFormModal({
             { name: "role_label", label: "Cargo", defaultValue: recipient?.role_label ?? "" },
           ].map((f) => (
             <div key={f.name} className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-[--color-gray-mid]">{f.label}</label>
+              <label className="text-xs font-medium text-muted-foreground">{f.label}</label>
               <input
                 type={f.type ?? "text"}
                 name={f.name}
                 defaultValue={f.defaultValue}
                 required={f.required}
-                className="border border-[--color-gray-light] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[--color-brand]"
+                className="border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary"
               />
             </div>
           ))}
@@ -325,13 +325,13 @@ function RecipientFormModal({
               type="checkbox"
               checked={isPrimary}
               onChange={(e) => setIsPrimary(e.target.checked)}
-              className="w-4 h-4 accent-[--color-brand]"
+              className="w-4 h-4 accent-primary"
             />
-            <span className="text-sm text-[--color-black]">Destinatario primario (recibe el magic link por defecto)</span>
+            <span className="text-sm text-foreground">Destinatario primario (recibe el magic link por defecto)</span>
           </label>
           <div className="flex gap-2 justify-end pt-2">
-            <button type="button" onClick={onClose} className="text-sm text-[--color-gray-mid] px-4 py-2 rounded-xl hover:bg-[--color-gray-light]">Cancelar</button>
-            <button type="submit" disabled={isPending} className="bg-[--color-brand] text-white font-semibold text-sm rounded-xl px-4 py-2 hover:bg-blue-600 disabled:opacity-50">
+            <button type="button" onClick={onClose} className="text-sm text-muted-foreground px-4 py-2 rounded-xl hover:bg-muted">Cancelar</button>
+            <button type="submit" disabled={isPending} className="bg-primary text-white font-semibold text-sm rounded-xl px-4 py-2 hover:bg-primary/90 disabled:opacity-50">
               {isPending ? "Guardando…" : recipient ? "Guardar cambios" : "Añadir"}
             </button>
           </div>

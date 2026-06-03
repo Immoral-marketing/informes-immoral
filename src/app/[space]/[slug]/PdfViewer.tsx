@@ -86,7 +86,7 @@ export default function PdfViewer({ url, filename }: { url: string; filename: st
         <a
           href={url}
           download={filename}
-          className="text-xs text-[--color-brand] border border-[--color-brand]/30 rounded-lg px-3 py-1.5 hover:bg-[--color-brand]/10 transition-colors sm:hidden"
+          className="text-xs text-primary border border-primary/30 rounded-lg px-3 py-1.5 hover:bg-primary/10 transition-colors sm:hidden"
         >
           Descargar PDF
         </a>

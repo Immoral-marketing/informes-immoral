@@ -3,9 +3,18 @@
 import { useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Users, LayoutGrid, UserCog } from "lucide-react";
 import { signOut } from "@/app/(auth)/login/actions";
 import QuickCreateModal from "./QuickCreateModal";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface NavbarProps {
   userEmail: string;
@@ -14,7 +23,6 @@ interface NavbarProps {
 }
 
 export default function Navbar({ userEmail, userName, userRole }: NavbarProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
   const [quickCreate, setQuickCreate] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -28,106 +36,84 @@ export default function Navbar({ userEmail, userName, userRole }: NavbarProps) {
   const initial = (userName || userEmail).charAt(0).toUpperCase();
 
   return (
-    <header
-      className="px-4 h-14 flex items-center justify-between"
-      style={{ backgroundColor: "#111111", borderBottom: "1px solid #2e2e2e" }}
-    >
-      <Link href="/" className="flex items-center gap-2">
-        <Image src="/immoral-logo-blanco.png" alt="Immoral" width={90} height={26} className="object-contain" />
-        <span className="text-xs font-medium hidden sm:block" style={{ color: "#3a3a3a" }}>Informes</span>
-      </Link>
+    <header className="border-b border-border bg-card">
+      <div className="container mx-auto max-w-[1400px] px-4 sm:px-8 h-16 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-2">
+          <Image src="/immoral-logo-negro.png" alt="Immoral" width={140} height={38} className="dark:invert object-contain" />
+          <span className="text-xs font-medium hidden sm:block text-muted-foreground">Informes</span>
+        </Link>
 
-      {quickCreate && <QuickCreateModal onClose={() => setQuickCreate(false)} />}
+        {quickCreate && <QuickCreateModal onClose={() => setQuickCreate(false)} />}
 
-      <div className="flex items-center gap-4">
-        {/* Nav links */}
-        <div className="hidden sm:flex items-center gap-4">
-          <Link
-            href="/clientes"
-            className="text-sm transition-colors"
-            style={{ color: "#5E5E5E" }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = "#ffffff"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = "#5E5E5E"; }}
-          >
-            Clientes
-          </Link>
-          {userRole === "admin" && (
-            <>
-              <Link
-                href="/admin/verticales"
-                className="text-sm transition-colors"
-                style={{ color: "#5E5E5E" }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = "#ffffff"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = "#5E5E5E"; }}
-              >
-                Verticales
-              </Link>
-              <Link
-                href="/admin/usuarios"
-                className="text-sm transition-colors"
-                style={{ color: "#5E5E5E" }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = "#ffffff"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = "#5E5E5E"; }}
-              >
-                Usuarios
-              </Link>
-            </>
-          )}
-        </div>
-
-        {/* Quick create */}
-        <button
-          onClick={() => setQuickCreate(true)}
-          className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
-          style={{ backgroundColor: "#3980E4", color: "#ffffff" }}
-          title="Crear nuevo"
-        >
-          <Plus className="w-4 h-4" />
-        </button>
-
-        {/* User menu */}
-        <div className="relative">
-          <button
-            onClick={() => setMenuOpen((o) => !o)}
-            className="flex items-center gap-2 text-sm transition-colors"
-            style={{ color: "#D8D8D8" }}
-          >
-            <div
-              className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold"
-              style={{ backgroundColor: "#3980E4" }}
+        <div className="flex items-center gap-4">
+          {/* Nav links */}
+          <div className="hidden sm:flex items-center gap-4">
+            <Link
+              href="/clientes"
+              className="flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-primary transition-colors"
             >
-              {initial}
-            </div>
-            <span className="hidden sm:block max-w-[140px] truncate">{userName || userEmail}</span>
-          </button>
-
-          {menuOpen && (
-            <div
-              className="absolute right-0 top-10 rounded-xl shadow-xl w-48 py-1 z-50"
-              style={{ backgroundColor: "#1c1c1c", border: "1px solid #2e2e2e" }}
-            >
-              <div className="px-4 py-2" style={{ borderBottom: "1px solid #2e2e2e" }}>
-                <p className="text-white text-xs font-medium truncate">{userName}</p>
-                <p className="text-xs truncate" style={{ color: "#5E5E5E" }}>{userEmail}</p>
-                <span
-                  className="inline-block mt-1 text-[10px] px-2 py-0.5 rounded-full font-medium"
-                  style={{ backgroundColor: "rgba(57,128,228,0.15)", color: "#3980E4" }}
+              <Users className="w-4 h-4" />
+              Clientes
+            </Link>
+            {userRole === "admin" && (
+              <>
+                <Link
+                  href="/admin/verticales"
+                  className="flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-primary transition-colors"
                 >
-                  {userRole}
-                </span>
+                  <LayoutGrid className="w-4 h-4" />
+                  Verticales
+                </Link>
+                <Link
+                  href="/admin/usuarios"
+                  className="flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-primary transition-colors"
+                >
+                  <UserCog className="w-4 h-4" />
+                  Usuarios
+                </Link>
+              </>
+            )}
+          </div>
+
+          {/* Quick create */}
+          <Button size="icon" onClick={() => setQuickCreate(true)} title="Crear nuevo">
+            <Plus className="w-4 h-4" />
+          </Button>
+
+          {/* User menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger className="outline-none">
+              <Avatar className="w-8 h-8 cursor-pointer">
+                <AvatarFallback className="bg-primary text-primary-foreground font-bold text-xs">
+                  {initial}
+                </AvatarFallback>
+              </Avatar>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <div className="flex flex-col space-y-1 px-4 py-2">
+                <p className="text-sm font-medium leading-none truncate">{userName}</p>
+                <p className="text-xs leading-none text-muted-foreground truncate">{userEmail}</p>
+                {userRole === "admin" && (
+                  <div className="mt-2">
+                    <span className="bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded px-2 py-1 text-xs font-semibold inline-block">
+                      {userRole}
+                    </span>
+                  </div>
+                )}
               </div>
-              <button
-                onClick={handleSignOut}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
                 disabled={isPending}
-                className="w-full text-left px-4 py-2 text-sm transition-colors disabled:opacity-50"
-                style={{ color: "#5E5E5E" }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = "#ffffff"; e.currentTarget.style.backgroundColor = "#242424"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = "#5E5E5E"; e.currentTarget.style.backgroundColor = "transparent"; }}
+                onSelect={(e) => {
+                  e.preventDefault();
+                  handleSignOut();
+                }}
+                className="text-destructive focus:bg-destructive/10 cursor-pointer"
               >
                 {isPending ? "Cerrando sesión…" : "Cerrar sesión"}
-              </button>
-            </div>
-          )}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>

@@ -150,7 +150,7 @@ export default function ViewerShell({
             <button
               onClick={loadDocument}
               className="text-sm rounded-xl px-4 py-2 transition-colors"
-              style={{ color: "#3980E4", border: "1px solid #3980E4" }}
+              style={{ color: "var(--brand)", border: "1px solid var(--brand)" }}
               onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(57,128,228,0.1)"; }}
               onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
             >

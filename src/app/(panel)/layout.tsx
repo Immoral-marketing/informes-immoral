@@ -20,7 +20,7 @@ export default async function PanelLayout({
   const profile = rawProfile as { full_name: string | null; role: "admin" | "employee" } | null;
 
   return (
-    <div className="min-h-screen bg-[--color-gray-light] flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar
         userEmail={user.email ?? ""}
         userName={profile?.full_name ?? ""}

@@ -52,23 +52,23 @@ export default async function EspacioDetailPage({
   return (
     <div className="flex flex-col gap-6 max-w-4xl">
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-[--color-gray-mid]">
-        <Link href="/clientes" className="hover:text-[--color-brand]">Clientes</Link>
+      <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link href="/clientes" className="hover:text-primary">Clientes</Link>
         <span>›</span>
-        <Link href={`/clientes/${space.client_id}`} className="hover:text-[--color-brand]">
+        <Link href={`/clientes/${space.client_id}`} className="hover:text-primary">
           {space.clients?.name ?? "Cliente"}
         </Link>
         <span>›</span>
-        <span className="text-[--color-black] font-medium">{space.verticals?.name ?? "Espacio"}</span>
+        <span className="text-foreground font-medium">{space.verticals?.name ?? "Espacio"}</span>
       </nav>
 
       {/* Space header */}
       <div className="flex items-center gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-[--color-black]">
+          <h1 className="text-2xl font-extrabold text-foreground">
             {space.clients?.name} · {space.verticals?.name}
           </h1>
-          <p className="text-sm font-mono text-[--color-gray-mid]">
+          <p className="text-sm font-mono text-muted-foreground">
             informes.immoral.es/<strong>{space.slug}</strong>/...
           </p>
         </div>

@@ -3,6 +3,9 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSignedLogoUrl } from "./admin/verticales/actions";
+import DashboardQuickActions from "./DashboardQuickActions";
+import { Card } from "@/components/ui/card";
+import { Layers, FileText } from "lucide-react";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -13,6 +16,8 @@ export default async function DashboardPage() {
   const { data: rawProfile } = await supabaseAdmin.from("profiles").select("role").eq("id", user.id).single();
   const profile = rawProfile as { role: "admin" | "employee" } | null;
   const isAdmin = profile?.role === "admin";
+
+  const nombre = user.user_metadata["full_name"] ?? user.email?.split("@")[0] ?? "Usuario";
 
   // ── Verticals con conteo de clientes ────────────────────────────────────────
   const { data: rawVerticals } = await supabaseAdmin
@@ -71,61 +76,75 @@ export default async function DashboardPage() {
   }>) ?? [];
 
   return (
-    <div className="flex flex-col gap-8">
-      <h1 className="text-2xl font-extrabold" style={{ color: "#111111" }}>Dashboard</h1>
+    <div className="flex flex-col gap-8 pb-8">
+      {/* ── Hero Banner ────────────────────────────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 p-8 text-white shadow-lg">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] opacity-20" />
+        <div className="relative z-10 max-w-3xl space-y-3">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/20 px-3 py-1 text-xs font-medium text-primary border border-primary/30">
+            Informes Immoral
+          </span>
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Bienvenido, {nombre}</h1>
+          <p className="text-slate-400 text-sm sm:text-base">Gestiona verticales, clientes e informes.</p>
+        </div>
+      </div>
+
+      {/* ── Quick Actions ──────────────────────────────────────────────────── */}
+      <DashboardQuickActions />
 
       {/* ── Verticales ─────────────────────────────────────────────────────── */}
       <section className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-bold text-base" style={{ color: "#111111" }}>Verticales</h2>
+          <h2 className="font-bold text-base text-foreground">Verticales</h2>
           {isAdmin && (
-            <Link href="/admin/verticales" className="text-xs font-medium hover:underline" style={{ color: "#3980E4" }}>
+            <Link href="/admin/verticales" className="text-xs font-medium text-primary hover:underline">
               Gestionar →
             </Link>
           )}
         </div>
 
         {verticals.length === 0 ? (
-          <div className="bg-white rounded-2xl border p-8 text-center" style={{ borderColor: "#D8D8D8" }}>
-            <p className="text-sm mb-3" style={{ color: "#5E5E5E" }}>No hay verticales creados todavía.</p>
+          <Card className="border-dashed py-12 flex flex-col items-center justify-center text-center gap-4">
+            <Layers className="h-12 w-12 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">No hay verticales creados todavía.</p>
             {isAdmin && (
-              <Link href="/admin/verticales" className="text-sm font-semibold" style={{ color: "#3980E4" }}>
+              <Link href="/admin/verticales" className="text-sm font-semibold text-primary hover:underline">
                 Crear primera vertical →
               </Link>
             )}
-          </div>
+          </Card>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {verticals.map((v) => (
-              <Link
-                key={v.id}
-                href={`/clientes?vertical=${v.slug}`}
-                className="bg-white rounded-2xl border p-5 flex items-center gap-4 hover:shadow-md transition-shadow group"
-                style={{ borderColor: "#D8D8D8" }}
-              >
-                {/* Logo / inicial */}
-                <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 overflow-hidden"
-                  style={{ backgroundColor: v.color_hex + "22" }}
-                >
-                  {v.logo_signed_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={v.logo_signed_url} alt={v.name} className="w-9 h-9 object-contain" />
-                  ) : (
-                    <span className="text-xl font-extrabold" style={{ color: v.color_hex }}>
-                      {v.name.charAt(0).toUpperCase()}
-                    </span>
-                  )}
-                </div>
+              <Link key={v.id} href={`/clientes?vertical=${v.slug}`} className="group">
+                <Card className="relative overflow-hidden hover:shadow-md hover:border-primary/50 transition-all">
+                  <div className="absolute top-0 left-0 right-0 h-1.5" style={{ backgroundColor: v.color_hex }} />
+                  <div className="p-5 mt-1 flex items-center gap-4">
+                    {/* Logo / inicial */}
+                    <div
+                      className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 overflow-hidden"
+                      style={{ backgroundColor: v.color_hex + "22" }}
+                    >
+                      {v.logo_signed_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={v.logo_signed_url} alt={v.name} className="w-9 h-9 object-contain" />
+                      ) : (
+                        <span className="text-xl font-extrabold" style={{ color: v.color_hex }}>
+                          {v.name.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
 
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate group-hover:underline" style={{ color: "#111111" }}>
-                    {v.name}
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: "#5E5E5E" }}>
-                    {v.espacios} espacio{v.espacios !== 1 ? "s" : ""} · {v.informes} informe{v.informes !== 1 ? "s" : ""}
-                  </p>
-                </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate group-hover:underline text-foreground">
+                        {v.name}
+                      </p>
+                      <p className="text-xs mt-0.5 text-muted-foreground">
+                        {v.espacios} espacio{v.espacios !== 1 ? "s" : ""} · {v.informes} informe{v.informes !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
               </Link>
             ))}
           </div>
@@ -135,20 +154,21 @@ export default async function DashboardPage() {
       {/* ── Últimos informes ──────────────────────────────────────────────────── */}
       <section className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-bold text-base" style={{ color: "#111111" }}>
+          <h2 className="font-bold text-base text-foreground">
             {isAdmin ? "Últimos informes" : "Mis últimos informes"}
           </h2>
-          <Link href="/clientes" className="text-xs font-medium hover:underline" style={{ color: "#3980E4" }}>
+          <Link href="/clientes" className="text-xs font-medium text-primary hover:underline">
             Ver clientes →
           </Link>
         </div>
 
         {recentReports.length === 0 ? (
-          <div className="bg-white rounded-2xl border p-8 text-center" style={{ borderColor: "#D8D8D8" }}>
-            <p className="text-sm" style={{ color: "#5E5E5E" }}>No hay informes creados todavía.</p>
-          </div>
+          <Card className="border-dashed py-12 flex flex-col items-center justify-center text-center gap-4">
+            <FileText className="h-12 w-12 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">No hay informes creados todavía.</p>
+          </Card>
         ) : (
-          <div className="bg-white rounded-2xl border overflow-hidden" style={{ borderColor: "#D8D8D8" }}>
+          <Card className="overflow-hidden">
             {recentReports.map((r, i) => {
               const spaceSlug = r.client_spaces?.slug ?? "";
               const clientName = r.client_spaces?.clients?.name ?? "—";
@@ -160,23 +180,24 @@ export default async function DashboardPage() {
                 <Link
                   key={r.id}
                   href={`/informes/${r.id}`}
-                  className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors"
-                  style={{ borderBottom: i < recentReports.length - 1 ? "1px solid #D8D8D8" : undefined }}
+                  className={`flex items-center gap-4 px-5 py-4 hover:bg-muted transition-colors ${
+                    i < recentReports.length - 1 ? "border-b border-border" : ""
+                  }`}
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate" style={{ color: "#111111" }}>{r.name}</p>
-                    <p className="text-xs mt-0.5" style={{ color: "#5E5E5E" }}>
+                    <p className="text-sm font-semibold truncate text-foreground">{r.name}</p>
+                    <p className="text-xs mt-0.5 text-muted-foreground">
                       {clientName} · {spaceSlug}
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className="text-xs" style={{ color: "#5E5E5E" }}>{updatedAt}</p>
+                    <p className="text-xs text-muted-foreground">{updatedAt}</p>
                   </div>
-                  <span className="text-xs font-medium shrink-0" style={{ color: "#3980E4" }}>Ver →</span>
+                  <span className="text-xs font-medium shrink-0 text-primary group-hover:underline">Ver →</span>
                 </Link>
               );
             })}
-          </div>
+          </Card>
         )}
       </section>
     </div>

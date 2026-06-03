@@ -87,18 +87,18 @@ export default async function InformeDetailPage({
   return (
     <div className="flex flex-col gap-6 max-w-4xl">
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-[--color-gray-mid]">
-        <Link href="/clientes" className="hover:text-[--color-brand]">Clientes</Link>
+      <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link href="/clientes" className="hover:text-primary">Clientes</Link>
         <span>›</span>
-        <Link href={`/clientes/${report.client_spaces?.clients?.id ?? ""}`} className="hover:text-[--color-brand]">
+        <Link href={`/clientes/${report.client_spaces?.clients?.id ?? ""}`} className="hover:text-primary">
           {report.client_spaces?.clients?.name ?? "Cliente"}
         </Link>
         <span>›</span>
-        <Link href={`/espacios/${report.space_id}`} className="hover:text-[--color-brand]">
+        <Link href={`/espacios/${report.space_id}`} className="hover:text-primary">
           {report.client_spaces?.verticals?.name ?? "Espacio"}
         </Link>
         <span>›</span>
-        <span className="text-[--color-black] font-medium truncate max-w-[200px]">{report.name}</span>
+        <span className="text-foreground font-medium truncate max-w-[200px]">{report.name}</span>
       </nav>
 
       <ReportManageClient

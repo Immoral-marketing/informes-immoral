@@ -4,6 +4,11 @@ import { useState, useTransition, useRef } from "react";
 import Image from "next/image";
 import { slugify } from "@/lib/utils/slugify";
 import { createVertical, updateVertical, deleteVertical, checkSlug } from "./actions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface Vertical {
   id: string;
@@ -25,6 +30,7 @@ export default function VerticalesClient({ verticals: initial }: VerticalesClien
   const [showForm, setShowForm] = useState(false);
   const [editTarget, setEditTarget] = useState<Vertical | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function openCreate() { setEditTarget(null); setShowForm(true); setError(null); }
@@ -36,8 +42,13 @@ export default function VerticalesClient({ verticals: initial }: VerticalesClien
     window.location.reload(); // refresh server data (logo signed URLs)
   }
 
-  function handleDelete(id: string, name: string) {
-    if (!confirm(`¿Eliminar el vertical "${name}"? Esta acción no se puede deshacer.`)) return;
+  function confirmDelete(id: string, name: string) {
+    setDeleteConfirm({ id, name });
+  }
+
+  function handleDelete() {
+    if (!deleteConfirm) return;
+    const { id } = deleteConfirm;
     startTransition(async () => {
       const result = await deleteVertical(id);
       if ("error" in result) {
@@ -45,30 +56,28 @@ export default function VerticalesClient({ verticals: initial }: VerticalesClien
       } else {
         setVerticals((prev) => prev.filter((v) => v.id !== id));
       }
+      setDeleteConfirm(null);
     });
   }
 
   return (
     <div className="flex flex-col gap-4">
       {error && (
-        <div className="bg-red-50 text-red-600 text-sm rounded-xl px-4 py-3 border border-red-200">
+        <div className="bg-destructive/10 text-destructive text-sm rounded-xl px-4 py-3 border border-destructive/20">
           {error}
         </div>
       )}
 
       <div className="flex justify-end">
-        <button
-          onClick={openCreate}
-          className="bg-[--color-brand] text-white font-semibold text-sm rounded-xl px-4 py-2 hover:bg-blue-600 transition-colors"
-        >
+        <Button onClick={openCreate} className="font-semibold text-sm rounded-xl px-4 py-2">
           + Nuevo vertical
-        </button>
+        </Button>
       </div>
 
       {/* List */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {verticals.map((v) => (
-          <div key={v.id} className="bg-white rounded-2xl border border-[--color-gray-light] p-4 flex items-center gap-3">
+          <div key={v.id} className="bg-card rounded-2xl border border-border p-4 flex items-center gap-3">
             <div
               className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 overflow-hidden"
               style={{ backgroundColor: v.color_hex + "22" }}
@@ -82,31 +91,35 @@ export default function VerticalesClient({ verticals: initial }: VerticalesClien
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm text-[--color-black] truncate">{v.name}</p>
-              <p className="text-xs text-[--color-gray-mid] truncate">/{v.slug}</p>
+              <p className="font-semibold text-sm text-foreground truncate">{v.name}</p>
+              <p className="text-xs text-muted-foreground truncate">/{v.slug}</p>
               {v.profiles?.full_name && (
-                <p className="text-xs text-[--color-gray-mid] truncate">por {v.profiles.full_name}</p>
+                <p className="text-xs text-muted-foreground truncate">por {v.profiles.full_name}</p>
               )}
             </div>
             <div className="flex gap-1 shrink-0">
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => openEdit(v)}
-                className="text-xs text-[--color-gray-mid] hover:text-[--color-brand] transition-colors px-2 py-1"
+                className="text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 h-auto"
               >
                 Editar
-              </button>
-              <button
-                onClick={() => handleDelete(v.id, v.name)}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => confirmDelete(v.id, v.name)}
                 disabled={isPending}
-                className="text-xs text-red-400 hover:text-red-600 transition-colors px-2 py-1 disabled:opacity-40"
+                className="text-xs text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors px-2 py-1 h-auto disabled:opacity-40"
               >
                 Eliminar
-              </button>
+              </Button>
             </div>
           </div>
         ))}
         {verticals.length === 0 && (
-          <p className="col-span-full text-sm text-[--color-gray-mid] text-center py-8">
+          <p className="col-span-full text-sm text-muted-foreground text-center py-8">
             No hay verticales creados todavía.
           </p>
         )}
@@ -120,6 +133,22 @@ export default function VerticalesClient({ verticals: initial }: VerticalesClien
           onSaved={handleSaved}
         />
       )}
+
+      {/* Alert Dialog Delete */}
+      <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar el vertical &quot;{deleteConfirm?.name}&quot;?</AlertDialogTitle>
+            <AlertDialogDescription>Esta acción no se puede deshacer. Se eliminarán los datos asociados.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); handleDelete(); }} disabled={isPending} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {isPending ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -134,7 +163,7 @@ function VerticalFormModal({
   onSaved: () => void;
 }) {
   const [name, setName] = useState(vertical?.name ?? "");
-  const [colorHex, setColorHex] = useState(vertical?.color_hex ?? "#3980E4");
+  const [colorHex, setColorHex] = useState(vertical?.color_hex ?? "#000000");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(vertical?.logo_signed_url ?? null);
   const [slugPreview, setSlugPreview] = useState(vertical?.slug ?? "");
@@ -196,68 +225,65 @@ function VerticalFormModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md p-6 flex flex-col gap-5">
-        <div className="flex items-center justify-between">
-          <h2 className="font-bold text-[--color-black]">
-            {isEdit ? "Editar vertical" : "Nuevo vertical"}
-          </h2>
-          <button onClick={onClose} className="text-[--color-gray-mid] hover:text-[--color-black] text-xl">×</button>
-        </div>
+    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? "Editar vertical" : "Nuevo vertical"}</DialogTitle>
+          <DialogDescription className="hidden">Formulario de vertical</DialogDescription>
+        </DialogHeader>
 
         {error && (
-          <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+          <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Name */}
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-[--color-gray-mid]">Nombre *</label>
-            <input
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs text-muted-foreground">Nombre *</Label>
+            <Input
               type="text"
               value={name}
               onChange={(e) => handleNameChange(e.target.value)}
               required
               placeholder="immoralia"
-              className="border border-[--color-gray-light] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[--color-brand]"
             />
             {!isEdit && slugPreview && (
-              <p className={`text-xs ${slugExists ? "text-red-500" : "text-[--color-gray-mid]"}`}>
+              <p className={`text-xs ${slugExists ? "text-destructive" : "text-muted-foreground"}`}>
                 Slug: /{slugPreview}{slugExists ? " — ya existe" : ""}
               </p>
             )}
             {isEdit && (
-              <p className="text-xs text-[--color-gray-mid]">Slug: /{vertical.slug} (no editable)</p>
+              <p className="text-xs text-muted-foreground">Slug: /{vertical.slug} (no editable)</p>
             )}
           </div>
 
           {/* Color */}
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-[--color-gray-mid]">Color *</label>
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs text-muted-foreground">Color *</Label>
             <div className="flex items-center gap-3">
               <input
                 type="color"
                 value={colorHex}
                 onChange={(e) => setColorHex(e.target.value)}
-                className="w-10 h-10 rounded-lg border border-[--color-gray-light] cursor-pointer"
+                className="w-10 h-10 rounded-lg border border-border cursor-pointer p-0 overflow-hidden"
               />
-              <span className="text-sm text-[--color-gray-mid] font-mono">{colorHex}</span>
+              <span className="text-sm text-muted-foreground font-mono">{colorHex}</span>
             </div>
           </div>
 
           {/* Logo */}
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-[--color-gray-mid]">
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs text-muted-foreground">
               Logo {isEdit ? "(opcional — reemplaza el actual)" : "*"} — PNG o SVG, máx 2MB
-            </label>
+            </Label>
             <div
-              className="border-2 border-dashed border-[--color-gray-light] rounded-xl p-4 flex flex-col items-center gap-2 cursor-pointer hover:border-[--color-brand] transition-colors"
+              className="border-2 border-dashed border-border rounded-xl p-4 flex flex-col items-center gap-2 cursor-pointer hover:border-primary transition-colors bg-muted/50"
               onClick={() => fileRef.current?.click()}
             >
               {logoPreview ? (
                 <Image src={logoPreview} alt="preview" width={48} height={48} className="object-contain" />
               ) : (
-                <span className="text-[--color-gray-mid] text-sm">Arrastra o haz clic para subir</span>
+                <span className="text-muted-foreground text-sm">Arrastra o haz clic para subir</span>
               )}
             </div>
             <input
@@ -269,24 +295,24 @@ function VerticalFormModal({
             />
           </div>
 
-          <div className="flex gap-2 justify-end pt-2">
-            <button
+          <DialogFooter className="pt-4">
+            <Button
               type="button"
+              variant="outline"
               onClick={onClose}
-              className="text-sm text-[--color-gray-mid] px-4 py-2 rounded-xl hover:bg-[--color-gray-light] transition-colors"
+              disabled={isPending}
             >
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={isPending || (!isEdit && slugExists)}
-              className="bg-[--color-brand] text-white font-semibold text-sm rounded-xl px-4 py-2 hover:bg-blue-600 transition-colors disabled:opacity-50"
             >
               {isPending ? "Guardando…" : isEdit ? "Guardar cambios" : "Crear vertical"}
-            </button>
-          </div>
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -54,22 +54,22 @@ export default function DomainManager({ domains: initial, currentUserDomain }: D
   }
 
   return (
-    <section className="bg-white rounded-2xl border border-[--color-gray-light] p-6 flex flex-col gap-4">
-      <h2 className="font-bold text-[--color-black]">Dominios autorizados</h2>
+    <section className="bg-card rounded-2xl border border-border p-6 flex flex-col gap-4">
+      <h2 className="font-bold text-foreground">Dominios autorizados</h2>
 
       {feedback && (
-        <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">{feedback}</p>
+        <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{feedback}</p>
       )}
 
       <ul className="flex flex-col gap-2">
         {domains.map((d) => (
-          <li key={d.id} className="flex items-center justify-between py-2 border-b border-[--color-gray-light] last:border-0">
-            <span className="text-sm font-medium text-[--color-black]">@{d.domain}</span>
+          <li key={d.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+            <span className="text-sm font-medium text-foreground">@{d.domain}</span>
             {d.domain !== currentUserDomain && (
               <button
                 onClick={() => handleDelete(d.id, d.domain)}
                 disabled={deletingId === d.id}
-                className="text-xs text-red-500 hover:text-red-700 disabled:opacity-40 transition-colors"
+                className="text-xs text-destructive hover:text-destructive/80 disabled:opacity-40 transition-colors"
               >
                 {deletingId === d.id ? "Eliminando…" : "Eliminar"}
               </button>
@@ -85,12 +85,12 @@ export default function DomainManager({ domains: initial, currentUserDomain }: D
           value={newDomain}
           onChange={(e) => setNewDomain(e.target.value)}
           required
-          className="flex-1 border border-[--color-gray-light] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[--color-brand]"
+          className="flex-1 border border-border bg-background rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary"
         />
         <button
           type="submit"
           disabled={isPendingAdd || !newDomain}
-          className="bg-[--color-brand] text-white text-sm font-semibold rounded-xl px-4 py-2 hover:bg-blue-600 transition-colors disabled:opacity-50"
+          className="bg-primary text-primary-foreground text-sm font-semibold rounded-xl px-4 py-2 hover:bg-primary/90 transition-colors disabled:opacity-50"
         >
           {isPendingAdd ? "Añadiendo…" : "Añadir"}
         </button>

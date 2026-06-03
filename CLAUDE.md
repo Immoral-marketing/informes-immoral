@@ -156,6 +156,9 @@ informes-immoral/
 | [06-report-viewer](specs/06-report-viewer.md) | Viewer cliente cookie-first (PDF/HTML) | 1 | implementada |
 | [07-magic-link-access](specs/07-magic-link-access.md) | Flujo magic link al destinatario | 1 | implementada |
 | [12-ux-polish](specs/12-ux-polish.md) | Fixes post-producción: botones, navbar +, dashboard, refresh listas | 1 | pendiente |
+| [13-auth-admin-fix](specs/13-auth-admin-fix.md) | Fix: rol inmutable tras creación + promoción de admin (desbloquea bootstrap) | 1 | aprobada |
+| [14-theming-system](specs/14-theming-system.md) | Theming centralizado (acento intercambiable) + set shadcn + Toaster | 1 | aprobada |
+| [15-ui-replication](specs/15-ui-replication.md) | Replicar UI de propuestas + migración integral a tokens | 1 | aprobada |
 | 08-client-feedback | Comentarios anclados cliente↔empleado | 2 | pendiente |
 | 09-presentation-mode | Modo presentación sincronizado | 3 | pendiente |
 | 10-notifications | Notificaciones in-app + email | 2 | pendiente |

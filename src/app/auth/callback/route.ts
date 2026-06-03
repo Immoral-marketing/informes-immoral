@@ -75,24 +75,30 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Upsert profile and assign role
-  const { count: adminCount } = await supabaseAdmin
+  // Solo asignar rol al CREAR el perfil. En re-login no se toca el rol.
+  const { data: existingProfile } = await supabaseAdmin
     .from("profiles")
-    .select("id", { count: "exact", head: true })
-    .eq("role", "admin");
+    .select("id")
+    .eq("id", user.id)
+    .maybeSingle();
 
-  const isFirstAdmin = (adminCount ?? 0) === 0 && domain === "immoral.es";
-  const role = isFirstAdmin ? "admin" : "employee";
+  if (!existingProfile) {
+    // Perfil nuevo: calcular el rol una sola vez
+    const { count: adminCount } = await supabaseAdmin
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "admin");
 
-  await supabaseAdmin.from("profiles").upsert(
-    {
+    const isFirstAdmin = (adminCount ?? 0) === 0 && domain === "immoral.es";
+
+    await supabaseAdmin.from("profiles").insert({
       id: user.id,
       full_name: user.user_metadata["full_name"] ?? user.email.split("@")[0],
-      role,
+      role: isFirstAdmin ? "admin" : "employee",
       notification_email_enabled: true,
-    },
-    { onConflict: "id", ignoreDuplicates: false }
-  );
+    });
+  }
+  // Si el perfil YA existe: no se modifica `role` (ni ningún otro campo crítico).
 
   // Return the redirect with session cookies attached
   return response;
