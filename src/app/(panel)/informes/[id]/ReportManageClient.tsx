@@ -87,6 +87,21 @@ export default function ReportManageClient({
   const canEdit = isAdmin || report.created_by === currentUserId;
   const activeVersion = versions.find((v) => v.version_number === report.current_version);
 
+  // Cargar el PIN al montar para mostrarlo difuminado (como en propuestas).
+  useEffect(() => {
+    if (!canEdit || !report.has_pin_encrypted) return;
+    getDecryptedReportPin(report.id).then((r) => {
+      if (!("error" in r)) setDecryptedPin(r.pin ?? null);
+    });
+  }, [report.id, report.has_pin_encrypted, canEdit]);
+
+  // Origen del preview: HTML por endpoint (text/html, renderizado); PDF por signed URL.
+  const previewVer = previewVersion?.version_number ?? report.current_version;
+  const previewIsHtml = (previewVersion?.format ?? activeVersion?.format) === "html";
+  const previewSrc = previewIsHtml
+    ? `/api/reports/${report.id}/preview?version=${previewVer}${isAnnotateMode ? "&mode=annotate" : ""}`
+    : (previewUrl ?? activeVersionUrl);
+
   function copyUrl() {
     navigator.clipboard.writeText(fullUrl);
     toast.success("URL copiada al portapapeles");
@@ -277,16 +292,18 @@ export default function ReportManageClient({
               {/* Expiry Date */}
               <div className="space-y-2">
                 <Label className="text-xs font-medium">Fecha de vigencia</Label>
-                <div className="flex gap-2">
-                  <Input 
-                    type="datetime-local" 
-                    value={expiryDate} 
-                    onChange={(e) => setExpiryDate(e.target.value)}
-                    className="text-sm h-9"
-                  />
+                <Input
+                  type="datetime-local"
+                  value={expiryDate}
+                  onChange={(e) => setExpiryDate(e.target.value)}
+                  className="text-sm h-9 w-full"
+                />
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">
+                    {report.expiry_date ? "Con caducidad" : "Sin caducidad"}
+                  </span>
                   <Button size="sm" onClick={handleSaveExpiry} disabled={isPending}>Guardar</Button>
                 </div>
-                {!report.expiry_date && <p className="text-xs text-muted-foreground">Sin caducidad</p>}
               </div>
 
               {/* Active PIN */}
@@ -294,8 +311,11 @@ export default function ReportManageClient({
                 <Label className="text-xs font-medium">PIN activo</Label>
                 {report.has_pin_encrypted ? (
                   <div className="flex items-center gap-2 bg-muted rounded-xl p-2 border border-border">
-                    <div className="flex-1 text-center font-mono font-bold tracking-widest text-foreground">
-                      {pinVisible && decryptedPin ? decryptedPin : "••••"}
+                    <div
+                      className="flex-1 text-center font-mono font-bold tracking-widest text-foreground transition-all select-none"
+                      style={{ filter: pinVisible ? "none" : "blur(6px)", userSelect: pinVisible ? "auto" : "none" }}
+                    >
+                      {decryptedPin ?? "••••"}
                     </div>
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={handleRevealPin} disabled={isPending}>
                       {pinVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -418,12 +438,12 @@ export default function ReportManageClient({
 
           <div className="flex justify-center w-full relative">
             <div className="bg-card border border-border shadow-sm rounded-xl overflow-hidden transition-all duration-300 ease-out flex items-center justify-center relative" style={{ width: previewWidth, maxWidth: "100%", height: "75vh", minHeight: "600px" }}>
-              {previewUrl || activeVersionUrl ? (
+              {previewSrc ? (
                 <iframe
                   ref={iframeRef}
-                  src={isAnnotateMode ? `/api/reports/${report.id}/preview?version=${previewVersion?.version_number ?? report.current_version}&mode=annotate` : (previewUrl ?? activeVersionUrl) as string}
+                  src={previewSrc}
                   className="w-full h-full border-0 bg-white"
-                  sandbox={previewVersion?.format === "html" ? "allow-same-origin allow-scripts" : undefined}
+                  sandbox={previewIsHtml ? "allow-same-origin allow-scripts allow-popups" : undefined}
                   title="Vista previa"
                 />
               ) : (

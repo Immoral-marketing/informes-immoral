@@ -113,10 +113,6 @@ export async function GET(
   const versionParam = url.searchParams.get("version");
   const mode = url.searchParams.get("mode");
 
-  if (mode !== "annotate") {
-    return new NextResponse("Modo no soportado", { status: 400 });
-  }
-
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -160,7 +156,8 @@ export async function GET(
     return new NextResponse("Versión no encontrada", { status: 404 });
   }
 
-  if (versionData.format !== "html") {
+  // La anotación solo aplica a HTML
+  if (mode === "annotate" && versionData.format !== "html") {
     return new NextResponse("La anotación solo está disponible para informes HTML", { status: 400 });
   }
 
@@ -173,12 +170,27 @@ export async function GET(
   }
 
   const buffer = await fileData.arrayBuffer();
+
+  // PDF: servir tal cual; el iframe lo renderiza nativamente
+  if (versionData.format !== "html") {
+    return new NextResponse(buffer, {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Cache-Control": "no-store, max-age=0",
+        "Content-Security-Policy": "frame-ancestors 'self';",
+      },
+    });
+  }
+
   let htmlContent = new TextDecoder("utf-8").decode(buffer);
-  
-  if (htmlContent.includes("</body>")) {
-    htmlContent = htmlContent.replace("</body>", `\n${annotateScript}\n</body>`);
-  } else {
-    htmlContent += `\n${annotateScript}`;
+
+  // Inyectar el script de anotación SOLO en modo annotate (nunca en preview normal ni en cliente)
+  if (mode === "annotate") {
+    if (htmlContent.includes("</body>")) {
+      htmlContent = htmlContent.replace("</body>", `\n${annotateScript}\n</body>`);
+    } else {
+      htmlContent += `\n${annotateScript}`;
+    }
   }
 
   return new NextResponse(htmlContent, {

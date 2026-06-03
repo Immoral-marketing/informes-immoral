@@ -87,7 +87,7 @@ export default async function InformeDetailPage({
   const fullUrl = `https://informes.immoral.es/${spaceSlug}/${report.slug}`;
 
   return (
-    <div className="flex flex-col gap-6 max-w-4xl">
+    <div className="flex flex-col gap-6">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-muted-foreground">
         <Link href="/clientes" className="hover:text-primary">Clientes</Link>
