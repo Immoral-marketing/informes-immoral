@@ -90,6 +90,9 @@ Next.js 16.2.6 con Turbopack no aplica el template de middleware en dev mode —
 ### Verificaciones de unicidad de slug: usar admin client
 Los checks de slug (para evitar colisiones ocultas por RLS) deben hacerse con `createAdminClient()` para ver todos los registros independientemente del empleado creador.
 
+### Leer el rol del perfil SIEMPRE con admin client (RLS recursiva en `profiles`)
+Las políticas RLS de `profiles` son recursivas: `profiles_select_admin` contiene `EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin')`, lo que al consultar `profiles` con el cliente RLS provoca recursión y la query devuelve `null`. Esto **bloquea silenciosamente a admins legítimos** (p. ej. "Solo los administradores pueden..."). Solución estándar: leer el rol con `createAdminClient()` (la identidad sigue derivándose de la sesión server-side, no del cliente). Aplica a layouts, server actions y guards. Ya corregido en `(panel)/layout.tsx` y `admin/verticales/actions.ts`; replicar el patrón en cualquier lectura de rol nueva.
+
 ---
 
 ## Convenciones de Código
@@ -159,7 +162,13 @@ informes-immoral/
 | [13-auth-admin-fix](specs/13-auth-admin-fix.md) | Fix: rol inmutable tras creación + promoción de admin (desbloquea bootstrap) | 1 | aprobada |
 | [14-theming-system](specs/14-theming-system.md) | Theming centralizado (acento intercambiable) + set shadcn + Toaster | 1 | aprobada |
 | [15-ui-replication](specs/15-ui-replication.md) | Replicar UI de propuestas + migración integral a tokens | 1 | aprobada |
-| 08-client-feedback | Comentarios anclados cliente↔empleado | 2 | pendiente |
-| 09-presentation-mode | Modo presentación sincronizado | 3 | pendiente |
+| [16-loading-and-motion](specs/16-loading-and-motion.md) | Pantalla de carga de marca (ISO + frases) + animación de modales (Emil) | 1 | aprobada |
+| [17-screen-replication](specs/17-screen-replication.md) | Dashboard, detalle de vertical, espacio de cliente, menú usuario + migración de modales restantes | 2 | aprobada |
+| [18-report-manage-screen](specs/18-report-manage-screen.md) | Gestión de informe: preview con dispositivos, vigencia, PIN visible, versiones (+ migración) | 3 | aprobada |
+| [19-presentation-mode](specs/19-presentation-mode.md) | Modo presentación sincronizado (Realtime) — implementa la intención de 09 | 4 | aprobada |
+| [20-presenter-notes](specs/20-presenter-notes.md) | Notas de orador internas ancladas ("Anotar") — distinto de la 08 | 5 | aprobada |
+| [21-employee-master-pin](specs/21-employee-master-pin.md) | PIN maestro de empleado (setup primer login + cambiar + override) | 4 | aprobada |
+| 08-client-feedback | Comentarios anclados cliente↔empleado (NO implementado por 20; sigue futuro) | 2 | pendiente |
+| 09-presentation-mode | Modo presentación sincronizado (implementado por la spec 19) | 3 | reemplazada por 19 |
 | 10-notifications | Notificaciones in-app + email | 2 | pendiente |
 | [11-security](specs/11-security.md) | Arquitectura de seguridad consolidada | 1 | implementada |
