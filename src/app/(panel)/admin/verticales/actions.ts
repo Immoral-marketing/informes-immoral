@@ -13,7 +13,10 @@ async function requireAdmin() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" as const };
-  const { data: p } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  // Leer el rol con admin client: las políticas RLS de `profiles` son recursivas
+  // (profiles_select_admin consulta profiles) y devuelven null con el cliente RLS.
+  const supabaseAdmin = createAdminClient();
+  const { data: p } = await supabaseAdmin.from("profiles").select("role").eq("id", user.id).single();
   const profile = p as { role: "admin" | "employee" } | null;
   if (profile?.role !== "admin") return { error: "Solo los administradores pueden realizar esta acción" as const };
   return { user, supabase };
@@ -55,7 +58,9 @@ export async function checkSlug(name: string): Promise<boolean> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return false;
   const slug = slugify(name);
-  const { data } = await supabase.from("verticals").select("id").eq("slug", slug).single();
+  // Admin client: ver todos los slugs aunque RLS los oculte (evita colisiones)
+  const supabaseAdmin = createAdminClient();
+  const { data } = await supabaseAdmin.from("verticals").select("id").eq("slug", slug).maybeSingle();
   return !!data;
 }
 
@@ -73,8 +78,9 @@ export async function createVertical(formData: FormData) {
 
   const slug = slugify(name);
 
-  // Check slug uniqueness
-  const { data: existing } = await auth.supabase.from("verticals").select("id").eq("slug", slug).single();
+  // Check slug uniqueness con admin client (ver todos los registros, evitar colisiones ocultas por RLS)
+  const supabaseAdminCheck = createAdminClient();
+  const { data: existing } = await supabaseAdminCheck.from("verticals").select("id").eq("slug", slug).maybeSingle();
   if (existing) return { error: `Ya existe un vertical con el slug "${slug}"` };
 
   const logoResult = await uploadLogo(logoFile);
