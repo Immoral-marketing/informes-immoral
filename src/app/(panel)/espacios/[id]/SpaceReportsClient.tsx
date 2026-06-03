@@ -5,6 +5,13 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createReport, checkReportSlug, checkReportName } from "../../informes/actions";
 import { slugify } from "@/lib/utils/slugify";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { User, Phone, Mail, MessageSquare, Calendar, UserPlus, ExternalLink } from "lucide-react";
 
 interface ReportRow {
   id: string;
@@ -21,11 +28,20 @@ export default function SpaceReportsClient({
   spaceSlug,
   reports: initial,
   canEdit,
+  contactData,
 }: {
   spaceId: string;
   spaceSlug: string;
   reports: ReportRow[];
   canEdit: boolean;
+  contactData: {
+    contact_name: string | null;
+    contact_phone: string | null;
+    contact_whatsapp: string | null;
+    email: string | null;
+    created_by_name: string;
+    created_at: string;
+  };
 }) {
   const [showForm, setShowForm] = useState(false);
   const [pinModal, setPinModal] = useState<{ pin: string; warning: string | undefined } | null>(null);
@@ -44,54 +60,108 @@ export default function SpaceReportsClient({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h2 className="font-bold text-foreground">Informes ({initial.length})</h2>
-        {canEdit && (
-          <button
-            onClick={() => setShowForm(true)}
-            className="bg-primary text-white font-semibold text-sm rounded-xl px-4 py-2 hover:bg-primary/90 transition-colors"
-          >
-            + Nuevo informe
-          </button>
-        )}
-      </div>
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
+      {/* ── Columna Izquierda: Informes ──────────────────────────────────────── */}
+      <section className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-bold text-foreground">Informes ({initial.length})</h2>
+          {canEdit && (
+            <Button onClick={() => setShowForm(true)} className="rounded-xl font-semibold">
+              + Nuevo informe
+            </Button>
+          )}
+        </div>
 
-      {initial.length === 0 ? (
-        <div className="bg-card rounded-2xl border border-border p-8 text-center">
-          <p className="text-sm text-muted-foreground">No hay informes en este espacio todavía.</p>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {initial.map((r) => {
-            const format = r.report_versions.find((_, i) => i === 0)?.format ?? "pdf";
-            return (
-              <Link
-                key={r.id}
-                href={`/informes/${r.id}`}
-                className="bg-card rounded-2xl border border-border p-4 flex items-center gap-4 hover:border-primary transition-colors"
-              >
-                <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
-                  <span className="text-lg">{format === "pdf" ? "📄" : "🌐"}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm text-foreground truncate">{r.name}</p>
-                  <p className="text-xs font-mono text-muted-foreground truncate">
-                    /{spaceSlug}/{r.slug}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 shrink-0 text-xs text-muted-foreground">
-                  <span className="uppercase font-medium">{format}</span>
-                  <span>v{r.current_version}</span>
-                  {r.auto_send_on_publish && (
-                    <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">auto-send</span>
-                  )}
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      )}
+        {initial.length === 0 ? (
+          <Card className="border-dashed py-16 flex flex-col items-center justify-center text-center gap-4">
+            <p className="text-sm text-muted-foreground">No hay informes en este espacio todavía.</p>
+          </Card>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {initial.map((r) => {
+              const format = r.report_versions.find((_, i) => i === 0)?.format ?? "pdf";
+              const date = new Date(r.created_at).toLocaleDateString("es-ES", {
+                day: "numeric", month: "short", year: "numeric",
+              });
+              return (
+                <Card key={r.id} className="p-4 flex items-center justify-between gap-4 hover:border-primary/50 transition-colors">
+                  <div className="flex-1 min-w-0 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
+                      <span className="text-lg">{format === "pdf" ? "📄" : "🌐"}</span>
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <p className="font-bold text-sm text-foreground truncate">{r.name}</p>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-muted-foreground">
+                        <span className="bg-muted text-muted-foreground px-2 py-0.5 rounded uppercase font-semibold">
+                          {format}
+                        </span>
+                        <span>v{r.current_version}</span>
+                        <span>{date}</span>
+                        <span className="font-mono text-[10px]">/{spaceSlug}/{r.slug}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="shrink-0">
+                    <Button asChild variant="outline" size="sm" className="rounded-xl gap-1.5 h-8">
+                      <Link href={`/informes/${r.id}`}>
+                        Gestionar <ExternalLink className="w-3.5 h-3.5" />
+                      </Link>
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* ── Columna Derecha: Datos de Contacto ───────────────────────────────── */}
+      <aside>
+        <Card className="p-6 flex flex-col gap-6">
+          <h2 className="font-bold text-foreground">Datos de Contacto</h2>
+          <div className="flex flex-col gap-4 text-sm text-muted-foreground">
+            {contactData.contact_name && (
+              <div className="flex items-center gap-3">
+                <User className="w-4 h-4 shrink-0" />
+                <span className="truncate">{contactData.contact_name}</span>
+              </div>
+            )}
+            {contactData.email && (
+              <div className="flex items-center gap-3">
+                <Mail className="w-4 h-4 shrink-0" />
+                <span className="truncate">{contactData.email}</span>
+              </div>
+            )}
+            {contactData.contact_phone && (
+              <div className="flex items-center gap-3">
+                <Phone className="w-4 h-4 shrink-0" />
+                <span>{contactData.contact_phone}</span>
+              </div>
+            )}
+            {contactData.contact_whatsapp && (
+              <div className="flex items-center gap-3">
+                <MessageSquare className="w-4 h-4 shrink-0" />
+                <span>{contactData.contact_whatsapp}</span>
+              </div>
+            )}
+
+            {(!contactData.contact_name && !contactData.email && !contactData.contact_phone && !contactData.contact_whatsapp) && (
+              <p className="italic">No hay datos de contacto registrados para este cliente.</p>
+            )}
+
+            <div className="h-px bg-border my-1" />
+
+            <div className="flex items-center gap-3">
+              <UserPlus className="w-4 h-4 shrink-0" />
+              <span>Creado por: <span className="font-medium text-foreground">{contactData.created_by_name}</span></span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Calendar className="w-4 h-4 shrink-0" />
+              <span>Fecha: {contactData.created_at}</span>
+            </div>
+          </div>
+        </Card>
+      </aside>
 
       {showForm && (
         <CreateReportModal
@@ -203,38 +273,37 @@ function CreateReportModal({
   const format = docFile?.type === "application/pdf" ? "pdf" : docFile ? "html" : null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 flex flex-col gap-5">
-        <div className="flex items-center justify-between">
-          <h2 className="font-bold text-foreground">Nuevo informe</h2>
-          <button onClick={onClose} className="text-muted-foreground text-xl">×</button>
-        </div>
+    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
+        <DialogHeader>
+          <DialogTitle>Nuevo informe</DialogTitle>
+        </DialogHeader>
 
         {error && <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-4 py-3">{error}</p>}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Name */}
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Nombre *</label>
-            <input
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs text-muted-foreground">Nombre *</Label>
+            <Input
               type="text"
               value={name}
               onChange={(e) => handleNameChange(e.target.value)}
               required
               placeholder="Informe Mensual Junio 2026"
-              className="border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary"
+              className="rounded-xl"
             />
             {nameTaken && <p className="text-xs text-destructive">Ya existe un informe con ese nombre en este espacio</p>}
           </div>
 
           {/* Slug */}
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Slug (editable antes de guardar)</label>
-            <input
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs text-muted-foreground">Slug (editable antes de guardar)</Label>
+            <Input
               type="text"
               value={slug}
               onChange={(e) => handleSlugChange(e.target.value)}
-              className={`border rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary ${slugTaken ? "border-destructive/50" : "border-border"}`}
+              className={`rounded-xl font-mono ${slugTaken ? "border-destructive/50" : ""}`}
             />
             <p className={`text-xs ${slugTaken ? "text-destructive" : "text-muted-foreground"}`}>
               ⚠️ URL: informes.immoral.es/{spaceSlug}/<strong>{slug || "…"}</strong>
@@ -243,8 +312,8 @@ function CreateReportModal({
           </div>
 
           {/* Document upload */}
-          <div className="flex flex-col gap-2">
-            <label className="text-xs font-medium text-muted-foreground">Documento principal * (PDF o HTML, máx 50MB)</label>
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs text-muted-foreground">Documento principal * (PDF o HTML, máx 50MB)</Label>
             <div
               className="border-2 border-dashed border-border rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer hover:border-primary transition-colors"
               onClick={() => fileRef.current?.click()}
@@ -271,31 +340,30 @@ function CreateReportModal({
           )}
 
           {/* Auto-send toggle */}
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
+          <div className="flex items-center space-x-2 mt-2">
+            <Checkbox
+              id="autoSend"
               checked={autoSend}
-              onChange={(e) => setAutoSend(e.target.checked)}
-              className="w-4 h-4 accent-primary"
+              onCheckedChange={(checked) => setAutoSend(checked as boolean)}
             />
-            <span className="text-sm text-foreground">
+            <Label htmlFor="autoSend" className="text-sm font-medium leading-none cursor-pointer">
               Enviar magic link al destinatario primario al publicar
-            </span>
-          </label>
+            </Label>
+          </div>
 
-          <div className="flex gap-2 justify-end pt-2">
-            <button type="button" onClick={onClose} className="text-sm text-muted-foreground px-4 py-2 rounded-xl hover:bg-muted">Cancelar</button>
-            <button
+          <div className="flex gap-2 justify-end pt-4">
+            <Button type="button" variant="ghost" onClick={onClose} className="rounded-xl">Cancelar</Button>
+            <Button
               type="submit"
               disabled={isPending || slugTaken || nameTaken || !docFile}
-              className="bg-primary text-white font-semibold text-sm rounded-xl px-4 py-2 hover:bg-primary/90 disabled:opacity-50"
+              className="rounded-xl font-semibold"
             >
               {isPending ? "Guardando…" : "Crear informe"}
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -309,36 +377,39 @@ function PinModal({ pin, warning, onClose }: { pin: string; warning: string | un
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-2xl w-full max-w-sm p-8 flex flex-col items-center gap-6">
-        <div className="text-center">
-          <h2 className="font-bold text-foreground text-lg mb-1">PIN generado</h2>
-          <p className="text-xs text-muted-foreground">Comparte este PIN con tu cliente. No volverá a mostrarse.</p>
-        </div>
+    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-sm rounded-2xl flex flex-col items-center p-8 gap-6 [&>button]:hidden">
+        <DialogHeader className="w-full text-center">
+          <DialogTitle className="text-xl">PIN generado</DialogTitle>
+          <DialogDescription className="text-xs">
+            Comparte este PIN con tu cliente. No volverá a mostrarse.
+          </DialogDescription>
+        </DialogHeader>
 
         <div
-          className="text-5xl font-bold tracking-[0.4em] text-foreground bg-muted rounded-2xl px-8 py-5 cursor-pointer select-all"
+          className="text-5xl font-bold tracking-[0.4em] text-foreground bg-muted rounded-2xl px-8 py-5 cursor-pointer select-all w-full text-center"
           onClick={copyPin}
           title="Haz clic para copiar"
         >
           {pin}
         </div>
 
-        {copied && <p className="text-xs text-green-600 font-medium">¡Copiado!</p>}
+        {copied && <p className="text-xs text-green-600 font-medium h-2">¡Copiado!</p>}
+        {!copied && <div className="h-2" />}
 
         {warning && (
-          <p className="text-xs text-amber-600 bg-amber-50 rounded-xl px-4 py-3 text-center border border-amber-200">
+          <p className="text-xs text-amber-600 bg-amber-50 rounded-xl px-4 py-3 text-center border border-amber-200 w-full">
             ⚠️ {warning}
           </p>
         )}
 
-        <button
+        <Button
           onClick={onClose}
-          className="w-full bg-primary text-white font-semibold rounded-xl py-3 hover:bg-primary/90 transition-colors"
+          className="w-full rounded-xl py-6 font-semibold text-base mt-2"
         >
           Entendido — he guardado el PIN
-        </button>
-      </div>
-    </div>
+        </Button>
+      </DialogContent>
+    </Dialog>
   );
 }

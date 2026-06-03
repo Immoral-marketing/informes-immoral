@@ -116,33 +116,23 @@ export default async function DashboardPage() {
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {verticals.map((v) => (
-              <Link key={v.id} href={`/clientes?vertical=${v.slug}`} className="group">
+              <Link key={v.id} href={`/verticales/${v.slug}`} className="group">
                 <Card className="relative overflow-hidden hover:shadow-md hover:border-primary/50 transition-all">
                   <div className="absolute top-0 left-0 right-0 h-1.5" style={{ backgroundColor: v.color_hex }} />
-                  <div className="p-5 mt-1 flex items-center gap-4">
-                    {/* Logo / inicial */}
-                    <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 overflow-hidden"
-                      style={{ backgroundColor: v.color_hex + "22" }}
-                    >
+                  <div className="flex flex-col items-center justify-center gap-3 p-6 pt-8 min-h-[160px]">
+                    <div className="flex items-center justify-center h-16 transition-transform group-hover:scale-105">
                       {v.logo_signed_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={v.logo_signed_url} alt={v.name} className="w-9 h-9 object-contain" />
+                        <img src={v.logo_signed_url} alt={v.name} className="max-h-14 max-w-[80%] object-contain" />
                       ) : (
-                        <span className="text-xl font-extrabold" style={{ color: v.color_hex }}>
+                        <span className="text-3xl font-extrabold" style={{ color: v.color_hex }}>
                           {v.name.charAt(0).toUpperCase()}
                         </span>
                       )}
                     </div>
-
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm truncate group-hover:underline text-foreground">
-                        {v.name}
-                      </p>
-                      <p className="text-xs mt-0.5 text-muted-foreground">
-                        {v.espacios} espacio{v.espacios !== 1 ? "s" : ""} · {v.informes} informe{v.informes !== 1 ? "s" : ""}
-                      </p>
-                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {v.espacios} espacio{v.espacios !== 1 ? "s" : ""} · {v.informes} informe{v.informes !== 1 ? "s" : ""}
+                    </p>
                   </div>
                 </Card>
               </Link>

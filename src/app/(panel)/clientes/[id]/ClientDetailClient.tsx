@@ -3,6 +3,12 @@
 import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { updateClient, deleteClient, addRecipient, updateRecipient, deleteRecipient } from "../actions";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Client {
   id: string;
@@ -46,8 +52,10 @@ export default function ClientDetailClient({
 
   const canEdit = isAdmin || client.created_by === currentUserId;
 
+  const [clientToDelete, setClientToDelete] = useState<boolean>(false);
+  const [recipientToDelete, setRecipientToDelete] = useState<Recipient | null>(null);
+
   function handleDeleteClient() {
-    if (!confirm(`¿Eliminar el cliente "${client.name}"? Esta acción no se puede deshacer.`)) return;
     startTransition(async () => {
       const result = await deleteClient(client.id);
       if ("error" in result) setError(result.error);
@@ -56,7 +64,6 @@ export default function ClientDetailClient({
   }
 
   function handleDeleteRecipient(r: Recipient) {
-    if (!confirm(`¿Eliminar el destinatario ${r.email}?`)) return;
     startTransition(async () => {
       const result = await deleteRecipient(r.id, client.id);
       if ("error" in result) {
@@ -66,6 +73,7 @@ export default function ClientDetailClient({
           alert("Nota: Este destinatario había recibido magic links. Las sesiones activas seguirán válidas hasta que expiren.");
         }
         setRecipients((prev) => prev.filter((x) => x.id !== r.id));
+        setRecipientToDelete(null);
         router.refresh();
       }
     });
@@ -117,7 +125,7 @@ export default function ClientDetailClient({
                 Editar
               </button>
               <button
-                onClick={handleDeleteClient}
+                onClick={() => setClientToDelete(true)}
                 disabled={isPending}
                 className="text-sm text-destructive hover:text-destructive disabled:opacity-40"
               >
@@ -169,7 +177,7 @@ export default function ClientDetailClient({
                       Editar
                     </button>
                     <button
-                      onClick={() => handleDeleteRecipient(r)}
+                      onClick={() => setRecipientToDelete(r)}
                       disabled={isPending}
                       className="text-xs text-destructive/80 hover:text-destructive disabled:opacity-40"
                     >
@@ -212,6 +220,41 @@ export default function ClientDetailClient({
           onSubmit={handleUpdateRecipient}
         />
       )}
+
+      {/* Alert Dialogs for deletion */}
+      <AlertDialog open={clientToDelete} onOpenChange={setClientToDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar cliente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que deseas eliminar el cliente "{client.name}"? Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteClient} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {isPending ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!recipientToDelete} onOpenChange={(open) => !open && setRecipientToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar destinatario?</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que deseas eliminar el destinatario {recipientToDelete?.email}?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => recipientToDelete && handleDeleteRecipient(recipientToDelete)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {isPending ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
@@ -240,35 +283,34 @@ function FormModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-2xl w-full max-w-md p-6 flex flex-col gap-5">
-        <div className="flex items-center justify-between">
-          <h2 className="font-bold text-foreground">{title}</h2>
-          <button onClick={onClose} className="text-muted-foreground text-xl">×</button>
-        </div>
+    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[425px] rounded-2xl">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
         {error && <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {fields.map((f) => (
-            <div key={f.name} className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-muted-foreground">{f.label}</label>
-              <input
+            <div key={f.name} className="flex flex-col gap-1.5">
+              <Label className="text-xs text-muted-foreground">{f.label}</Label>
+              <Input
                 type="text"
                 name={f.name}
                 defaultValue={f.defaultValue}
                 required={f.required}
-                className="border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                className="rounded-xl"
               />
             </div>
           ))}
-          <div className="flex gap-2 justify-end pt-2">
-            <button type="button" onClick={onClose} className="text-sm text-muted-foreground px-4 py-2 rounded-xl hover:bg-muted">Cancelar</button>
-            <button type="submit" disabled={isPending} className="bg-primary text-white font-semibold text-sm rounded-xl px-4 py-2 hover:bg-primary/90 disabled:opacity-50">
+          <div className="flex gap-2 justify-end pt-4">
+            <Button type="button" variant="ghost" onClick={onClose} className="rounded-xl">Cancelar</Button>
+            <Button type="submit" disabled={isPending} className="rounded-xl font-semibold">
               {isPending ? "Guardando…" : "Guardar"}
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -296,12 +338,11 @@ function RecipientFormModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-2xl w-full max-w-md p-6 flex flex-col gap-5">
-        <div className="flex items-center justify-between">
-          <h2 className="font-bold text-foreground">{recipient ? "Editar destinatario" : "Añadir destinatario"}</h2>
-          <button onClick={onClose} className="text-muted-foreground text-xl">×</button>
-        </div>
+    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[425px] rounded-2xl">
+        <DialogHeader>
+          <DialogTitle>{recipient ? "Editar destinatario" : "Añadir destinatario"}</DialogTitle>
+        </DialogHeader>
         {error && <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {[
@@ -309,34 +350,35 @@ function RecipientFormModal({
             { name: "full_name", label: "Nombre completo", defaultValue: recipient?.full_name ?? "" },
             { name: "role_label", label: "Cargo", defaultValue: recipient?.role_label ?? "" },
           ].map((f) => (
-            <div key={f.name} className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-muted-foreground">{f.label}</label>
-              <input
+            <div key={f.name} className="flex flex-col gap-1.5">
+              <Label className="text-xs text-muted-foreground">{f.label}</Label>
+              <Input
                 type={f.type ?? "text"}
                 name={f.name}
                 defaultValue={f.defaultValue}
                 required={f.required}
-                className="border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                className="rounded-xl"
               />
             </div>
           ))}
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
+          <div className="flex items-center space-x-2 mt-2">
+            <Checkbox
+              id="isPrimary"
               checked={isPrimary}
-              onChange={(e) => setIsPrimary(e.target.checked)}
-              className="w-4 h-4 accent-primary"
+              onCheckedChange={(checked) => setIsPrimary(checked as boolean)}
             />
-            <span className="text-sm text-foreground">Destinatario primario (recibe el magic link por defecto)</span>
-          </label>
-          <div className="flex gap-2 justify-end pt-2">
-            <button type="button" onClick={onClose} className="text-sm text-muted-foreground px-4 py-2 rounded-xl hover:bg-muted">Cancelar</button>
-            <button type="submit" disabled={isPending} className="bg-primary text-white font-semibold text-sm rounded-xl px-4 py-2 hover:bg-primary/90 disabled:opacity-50">
+            <Label htmlFor="isPrimary" className="text-sm font-medium leading-none cursor-pointer">
+              Destinatario primario (recibe el magic link por defecto)
+            </Label>
+          </div>
+          <div className="flex gap-2 justify-end pt-4">
+            <Button type="button" variant="ghost" onClick={onClose} className="rounded-xl">Cancelar</Button>
+            <Button type="submit" disabled={isPending} className="rounded-xl font-semibold">
               {isPending ? "Guardando…" : recipient ? "Guardar cambios" : "Añadir"}
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

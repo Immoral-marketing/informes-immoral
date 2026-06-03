@@ -25,7 +25,8 @@ export default async function InformeDetailPage({
     .from("reports")
     .select(`
       id, name, slug, current_version, auto_send_on_publish, created_by,
-      space_id, client_spaces(slug, clients(id, name), verticals(name))
+      space_id, expiry_date, pin_encrypted,
+      client_spaces(slug, clients(id, name), verticals(name))
     `)
     .eq("id", id)
     .single();
@@ -33,6 +34,7 @@ export default async function InformeDetailPage({
   const report = rawReport as unknown as {
     id: string; name: string; slug: string; current_version: number;
     auto_send_on_publish: boolean; created_by: string; space_id: string;
+    expiry_date: string | null; pin_encrypted: string | null;
     client_spaces: {
       slug: string;
       clients: { id: string; name: string } | null;
@@ -102,7 +104,11 @@ export default async function InformeDetailPage({
       </nav>
 
       <ReportManageClient
-        report={report}
+        report={(() => {
+          // No enviar el ciphertext del PIN al cliente — solo su presencia (CA-18.8)
+          const { pin_encrypted, ...rest } = report;
+          return { ...rest, has_pin_encrypted: !!pin_encrypted };
+        })()}
         versions={versions}
         attachments={attachmentsWithUrls}
         activeVersionUrl={activeVersionUrl}

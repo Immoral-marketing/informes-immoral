@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -308,6 +308,7 @@ export type Database = {
           full_name: string | null
           id: string
           notification_email_enabled: boolean
+          personal_pin_hash: string | null
           role: Database["public"]["Enums"]["user_role"]
         }
         Insert: {
@@ -315,6 +316,7 @@ export type Database = {
           full_name?: string | null
           id: string
           notification_email_enabled?: boolean
+          personal_pin_hash?: string | null
           role?: Database["public"]["Enums"]["user_role"]
         }
         Update: {
@@ -322,6 +324,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           notification_email_enabled?: boolean
+          personal_pin_hash?: string | null
           role?: Database["public"]["Enums"]["user_role"]
         }
         Relationships: []
@@ -479,8 +482,10 @@ export type Database = {
           created_at: string
           created_by: string
           current_version: number
+          expiry_date: string | null
           id: string
           name: string
+          pin_encrypted: string | null
           pin_hash: string
           pin_updated_at: string
           slug: string
@@ -492,8 +497,10 @@ export type Database = {
           created_at?: string
           created_by: string
           current_version?: number
+          expiry_date?: string | null
           id?: string
           name: string
+          pin_encrypted?: string | null
           pin_hash: string
           pin_updated_at?: string
           slug: string
@@ -505,8 +512,10 @@ export type Database = {
           created_at?: string
           created_by?: string
           current_version?: number
+          expiry_date?: string | null
           id?: string
           name?: string
+          pin_encrypted?: string | null
           pin_hash?: string
           pin_updated_at?: string
           slug?: string

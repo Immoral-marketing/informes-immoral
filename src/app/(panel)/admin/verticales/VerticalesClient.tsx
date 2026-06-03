@@ -229,7 +229,9 @@ function VerticalFormModal({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar vertical" : "Nuevo vertical"}</DialogTitle>
-          <DialogDescription className="hidden">Formulario de vertical</DialogDescription>
+          <DialogDescription className="text-sm text-muted-foreground">
+            {isEdit ? "Modifica los datos del vertical seleccionado." : "Crea un nuevo vertical para organizar a tus clientes."}
+          </DialogDescription>
         </DialogHeader>
 
         {error && (
@@ -259,7 +261,7 @@ function VerticalFormModal({
 
           {/* Color */}
           <div className="flex flex-col gap-1.5">
-            <Label className="text-xs text-muted-foreground">Color *</Label>
+            <Label className="text-xs text-muted-foreground">Color de marca *</Label>
             <div className="flex items-center gap-3">
               <input
                 type="color"

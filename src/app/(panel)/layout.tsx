@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import Navbar from "@/components/shared/Navbar";
+import PersonalPinSetup from "@/components/shared/PersonalPinSetup";
 
 export default async function PanelLayout({
   children,
@@ -17,10 +18,12 @@ export default async function PanelLayout({
   const supabaseAdmin = createAdminClient();
   const { data: rawProfile } = await supabaseAdmin
     .from("profiles")
-    .select("full_name, role")
+    .select("full_name, role, personal_pin_hash")
     .eq("id", user.id)
     .single();
-  const profile = rawProfile as { full_name: string | null; role: "admin" | "employee" } | null;
+  const profile = rawProfile as { full_name: string | null; role: "admin" | "employee"; personal_pin_hash: string | null } | null;
+
+  const hasPin = !!profile?.personal_pin_hash;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -32,6 +35,7 @@ export default async function PanelLayout({
       <main className="flex-1 px-4 py-6 max-w-7xl mx-auto w-full">
         {children}
       </main>
+      {!hasPin && <PersonalPinSetup />}
     </div>
   );
 }

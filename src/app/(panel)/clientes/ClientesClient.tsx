@@ -4,6 +4,10 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { createClient_ } from "./actions";
 import { useRouter } from "next/navigation";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface ClientRow {
   id: string;
@@ -43,12 +47,9 @@ export default function ClientesClient({
       )}
 
       <div className="flex justify-end">
-        <button
-          onClick={() => setShowForm(true)}
-          className="bg-primary text-white font-semibold text-sm rounded-xl px-4 py-2 hover:bg-primary/90 transition-colors"
-        >
+        <Button onClick={() => setShowForm(true)} className="rounded-xl font-semibold">
           + Nuevo cliente
-        </button>
+        </Button>
       </div>
 
       {clients.length === 0 ? (
@@ -122,48 +123,47 @@ function ClientFormModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-2xl w-full max-w-md p-6 flex flex-col gap-5">
-        <div className="flex items-center justify-between">
-          <h2 className="font-bold text-foreground">{client ? "Editar cliente" : "Nuevo cliente"}</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xl">×</button>
-        </div>
+    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[425px] rounded-2xl">
+        <DialogHeader>
+          <DialogTitle>{client ? "Editar cliente" : "Nuevo cliente"}</DialogTitle>
+        </DialogHeader>
 
         {error && <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {(["name", "contact_name", "contact_phone", "contact_whatsapp"] as const).map((field) => (
-            <div key={field} className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-muted-foreground">
+            <div key={field} className="flex flex-col gap-1.5">
+              <Label className="text-xs text-muted-foreground">
                 {field === "name" ? "Nombre *" :
                   field === "contact_name" ? "Persona de contacto" :
                   field === "contact_phone" ? "Teléfono" : "WhatsApp"}
-              </label>
-              <input
+              </Label>
+              <Input
                 type="text"
                 name={field}
                 defaultValue={client?.[field] ?? ""}
                 required={field === "name"}
-                className="border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                className="rounded-xl"
               />
             </div>
           ))}
 
-          <div className="flex gap-2 justify-end pt-2">
-            <button type="button" onClick={onClose} className="text-sm text-muted-foreground px-4 py-2 rounded-xl hover:bg-muted">
+          <div className="flex gap-2 justify-end pt-4">
+            <Button type="button" variant="ghost" onClick={onClose} className="rounded-xl">
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={isPending}
-              className="bg-primary text-white font-semibold text-sm rounded-xl px-4 py-2 hover:bg-primary/90 disabled:opacity-50"
+              className="rounded-xl font-semibold"
             >
               {isPending ? "Guardando…" : client ? "Guardar cambios" : "Crear cliente"}
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

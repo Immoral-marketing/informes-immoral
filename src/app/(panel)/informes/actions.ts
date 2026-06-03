@@ -6,6 +6,7 @@ import { slugify } from "@/lib/utils/slugify";
 import { generateSessionToken } from "@/lib/tokens/generate";
 import { generateAndSendMagicLink } from "@/lib/magic-link/send";
 import bcrypt from "bcryptjs";
+import { encryptPin, decryptPin } from "@/lib/crypto/pin-cipher";
 
 const DOC_BUCKET = "report-documents";
 const ATT_BUCKET = "report-attachments";
@@ -129,6 +130,7 @@ export async function createReport(spaceId: string, formData: FormData) {
       name,
       slug,
       pin_hash: pinHash,
+      pin_encrypted: encryptPin(pin),
       auto_send_on_publish: autoSend,
       current_version: 1,
       created_by: user.id,
@@ -270,7 +272,11 @@ export async function regeneratePin(reportId: string) {
   // Update pin and timestamp
   await perm.supabaseAdmin
     .from("reports")
-    .update({ pin_hash: pinHash, pin_updated_at: new Date().toISOString() })
+    .update({ 
+      pin_hash: pinHash, 
+      pin_encrypted: encryptPin(pin),
+      pin_updated_at: new Date().toISOString() 
+    })
     .eq("id", reportId);
 
   // Invalidate all sessions for this report
@@ -308,6 +314,40 @@ export async function deleteReport(reportId: string) {
   if (attPaths.length > 0) await perm.supabaseAdmin.storage.from(ATT_BUCKET).remove(attPaths);
 
   return { success: true };
+}
+
+export async function setReportExpiry(reportId: string, date: string | null) {
+  const perm = await assertCanManageReport(reportId);
+  if (perm.error || !perm.supabaseAdmin) return { error: perm.error ?? "No autorizado" };
+
+  const { error } = await perm.supabaseAdmin
+    .from("reports")
+    .update({ expiry_date: date })
+    .eq("id", reportId);
+
+  if (error) return { error: "Error al actualizar la vigencia" };
+  return { success: true };
+}
+
+export async function getDecryptedReportPin(reportId: string) {
+  const perm = await assertCanManageReport(reportId);
+  if (perm.error || !perm.supabaseAdmin) return { error: perm.error ?? "No autorizado" };
+
+  const { data } = await perm.supabaseAdmin
+    .from("reports")
+    .select("pin_encrypted")
+    .eq("id", reportId)
+    .single();
+
+  const row = data as { pin_encrypted: string | null } | null;
+  if (!row?.pin_encrypted) return { error: "PIN no disponible — regenéralo para visualizarlo" };
+
+  try {
+    const pin = decryptPin(row.pin_encrypted);
+    return { pin };
+  } catch (err) {
+    return { error: "Error interno al descifrar el PIN" };
+  }
 }
 
 // ─── Attachments ─────────────────────────────────────────────────────────────

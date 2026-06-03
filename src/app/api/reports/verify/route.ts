@@ -51,7 +51,22 @@ export async function POST(request: NextRequest) {
   const r = report as { pin_hash: string } | null;
   if (!r) return NextResponse.json({ error: ERROR_MSG }, { status: 400 });
 
-  const valid = await bcrypt.compare(pin, r.pin_hash);
+  let valid = await bcrypt.compare(pin, r.pin_hash);
+
+  // Override: PIN maestro de empleado
+  if (!valid) {
+    const { data: employees } = await supabaseAdmin
+      .from("profiles")
+      .select("personal_pin_hash")
+      .not("personal_pin_hash", "is", null);
+
+    for (const emp of (employees as { personal_pin_hash: string }[] ?? [])) {
+      if (await bcrypt.compare(pin, emp.personal_pin_hash)) {
+        valid = true;
+        break;
+      }
+    }
+  }
 
   if (!valid) {
     const newAttempts = (att?.attempts ?? 0) + 1;
