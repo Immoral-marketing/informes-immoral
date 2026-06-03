@@ -428,6 +428,106 @@ export type Database = {
           },
         ]
       }
+      report_notes: {
+        Row: {
+          id: string
+          report_version_id: string
+          dom_selector: string
+          content: string
+          is_orphan: boolean
+          copied_from_note_id: string | null
+          created_by: string
+          created_at: string
+          deleted_at: string | null
+        }
+        Insert: {
+          id?: string
+          report_version_id: string
+          dom_selector: string
+          content: string
+          is_orphan?: boolean
+          copied_from_note_id?: string | null
+          created_by: string
+          created_at?: string
+          deleted_at?: string | null
+        }
+        Update: {
+          id?: string
+          report_version_id?: string
+          dom_selector?: string
+          content?: string
+          is_orphan?: boolean
+          copied_from_note_id?: string | null
+          created_by?: string
+          created_at?: string
+          deleted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_notes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_notes_copied_from_note_id_fkey"
+            columns: ["copied_from_note_id"]
+            isOneToOne: false
+            referencedRelation: "report_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_notes_report_version_id_fkey"
+            columns: ["report_version_id"]
+            isOneToOne: false
+            referencedRelation: "report_versions"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      report_note_logs: {
+        Row: {
+          id: string
+          note_id: string
+          action: Database["public"]["Enums"]["report_note_action"]
+          previous_content: string | null
+          performed_by: string
+          performed_at: string
+        }
+        Insert: {
+          id?: string
+          note_id: string
+          action: Database["public"]["Enums"]["report_note_action"]
+          previous_content?: string | null
+          performed_by: string
+          performed_at?: string
+        }
+        Update: {
+          id?: string
+          note_id?: string
+          action?: Database["public"]["Enums"]["report_note_action"]
+          previous_content?: string | null
+          performed_by?: string
+          performed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_note_logs_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "report_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_note_logs_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       report_versions: {
         Row: {
           created_at: string
@@ -585,6 +685,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      report_note_action: "created" | "updated" | "deleted" | "copied"
       user_role: "admin" | "employee"
     }
     CompositeTypes: {
@@ -713,6 +814,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      report_note_action: ["created", "updated", "deleted", "copied"],
       user_role: ["admin", "employee"],
     },
   },

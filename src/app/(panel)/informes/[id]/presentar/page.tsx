@@ -33,14 +33,14 @@ export default async function PresenterPage({
   // Load the active version format (to know if PDF or HTML)
   const { data: v } = await supabaseAdmin
     .from("report_versions")
-    .select("format, storage_path")
+    .select("id, format, storage_path")
     .eq("report_id", id)
     .eq("version_number", report.current_version)
     .single();
 
   if (!v) notFound();
   
-  const version = v as { format: string, storage_path: string };
+  const version = v as { id: string, format: string, storage_path: string };
   
   let signedUrl: string | null = null;
   if (version.format === "pdf") {
@@ -52,7 +52,9 @@ export default async function PresenterPage({
       reportId={id} 
       reportName={report.name} 
       format={version.format} 
-      pdfUrl={signedUrl} 
+      pdfUrl={signedUrl}
+      reportVersionId={version.id}
+      currentUserId={user.id}
     />
   );
 }

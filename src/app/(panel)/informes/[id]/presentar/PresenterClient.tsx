@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Eye, Users, Copy, Square, Link as LinkIcon, Monitor, Smartphone, Tablet } from "lucide-react";
 import BrandLoader from "@/components/shared/BrandLoader";
 import PdfViewer from "@/app/[space]/[slug]/PdfViewer";
+import NotesPanel from "../NotesPanel";
 import { toast } from "sonner";
 
 export default function PresenterClient({
@@ -15,11 +16,15 @@ export default function PresenterClient({
   reportName,
   format,
   pdfUrl,
+  reportVersionId,
+  currentUserId,
 }: {
   reportId: string;
   reportName: string;
   format: string;
   pdfUrl: string | null;
+  reportVersionId: string;
+  currentUserId: string;
 }) {
   const [token, setToken] = useState<string | null>(null);
   const [viewersCount, setViewersCount] = useState(0);
@@ -136,6 +141,8 @@ export default function PresenterClient({
     router.push(`/informes/${reportId}`);
   };
 
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
   if (isLoading || !token) {
     return (
       <div className="fixed inset-0 bg-background flex flex-col items-center justify-center z-50">
@@ -184,8 +191,9 @@ export default function PresenterClient({
       </div>
 
       {/* Main Content Area */}
-      <div className="flex flex-col flex-1 min-h-0">
-        <div className="flex items-center justify-center gap-2 mb-3 shrink-0">
+      <div className="flex flex-1 min-h-0 gap-4">
+        <div className="flex flex-col flex-1 min-w-0">
+          <div className="flex items-center justify-center gap-2 mb-3 shrink-0">
           <Button size="sm" variant={previewWidth === "375px" ? "secondary" : "ghost"} onClick={() => setPreviewWidth("375px")}>
             <Smartphone className="w-4 h-4 mr-1.5" /> Móvil
           </Button>
@@ -204,6 +212,7 @@ export default function PresenterClient({
           >
             {format === "html" ? (
               <iframe
+                ref={iframeRef}
                 src={`/api/presentation/${token}/content?role=presenter`}
                 className="w-full h-full border-0 bg-white"
                 sandbox="allow-same-origin allow-scripts"
@@ -228,6 +237,17 @@ export default function PresenterClient({
               </div>
             )}
           </div>
+        </div>
+        </div>
+        
+        {/* Notes Panel */}
+        <div className="w-[300px] shrink-0 bg-card border border-border shadow-sm rounded-xl overflow-hidden flex flex-col h-full hidden lg:flex">
+          <NotesPanel 
+            reportVersionId={reportVersionId}
+            iframeRef={iframeRef}
+            isReadOnly={true}
+            currentUserId={currentUserId}
+          />
         </div>
       </div>
     </div>

@@ -222,15 +222,33 @@ export async function addVersion(reportId: string, formData: FormData) {
 
   const nextVersion = r.current_version + 1;
   const format = docFile.type === "application/pdf" ? "pdf" : "html";
+  const copyNotes = formData.get("copy_notes") === "true";
 
-  await perm.supabaseAdmin.from("report_versions").insert({
+  // Get previous version id if copying notes
+  let prevVersionId: string | null = null;
+  if (copyNotes && r.current_version > 0) {
+    const { data: prevVersion } = await perm.supabaseAdmin
+      .from("report_versions")
+      .select("id")
+      .eq("report_id", reportId)
+      .eq("version_number", r.current_version)
+      .single();
+    prevVersionId = (prevVersion as { id: string } | null)?.id ?? null;
+  }
+
+  const { data: newVersionRow } = await perm.supabaseAdmin.from("report_versions").insert({
     report_id: reportId,
     version_number: nextVersion,
     format,
     storage_path: uploadResult.path,
     size_bytes: docFile.size,
     created_by: perm.user.id,
-  });
+  }).select("id").single();
+
+  if (copyNotes && prevVersionId && newVersionRow) {
+    const { copyNotesFromPreviousVersion } = await import("./[id]/notes-actions");
+    await copyNotesFromPreviousVersion(reportId, prevVersionId, newVersionRow.id);
+  }
 
   await perm.supabaseAdmin
     .from("reports")

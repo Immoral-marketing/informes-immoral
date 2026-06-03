@@ -7,6 +7,7 @@ import {
   regeneratePin, deleteReport, setReportExpiry, getDecryptedReportPin, getSignedDocUrl
 } from "../actions";
 import SendMagicLinkModal from "./SendMagicLinkModal";
+import NotesPanel from "./NotesPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -66,6 +67,9 @@ export default function ReportManageClient({
   const [previewUrl, setPreviewUrl] = useState<string | null>(activeVersionUrl);
   const [previewWidth, setPreviewWidth] = useState<"375px" | "768px" | "100%">("100%");
   
+  const [isAnnotateMode, setIsAnnotateMode] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  
   const [expiryDate, setExpiryDate] = useState(report.expiry_date ? report.expiry_date.slice(0, 16) : "");
   const [pinVisible, setPinVisible] = useState(false);
   const [decryptedPin, setDecryptedPin] = useState<string | null>(null);
@@ -109,6 +113,11 @@ export default function ReportManageClient({
     startTransition(async () => {
       const fd = new FormData();
       fd.append("document", file);
+      // CA-20.4 Offer to copy notes
+      if (confirm("¿Deseas copiar las notas de orador de la versión anterior a esta nueva versión?")) {
+        fd.append("copy_notes", "true");
+      }
+      
       const result = await addVersion(report.id, fd);
       if ("error" in result) {
         toast.error(result.error);
@@ -242,15 +251,23 @@ export default function ReportManageClient({
               Presentar
             </Button>
           )}
-          <Button variant="secondary" size="sm" disabled title="Próximamente">
-            <Edit3 className="w-4 h-4 mr-1.5" />
-            Anotar
-          </Button>
+          {canEdit && (
+            <Button 
+              variant={isAnnotateMode ? "default" : "secondary"} 
+              size="sm" 
+              onClick={() => setIsAnnotateMode(!isAnnotateMode)} 
+              disabled={isPending || activeVersion?.format !== "html"} 
+              title={activeVersion?.format !== "html" ? "Disponible solo para informes HTML" : "Modo anotación"}
+            >
+              <Edit3 className="w-4 h-4 mr-1.5" />
+              Anotar
+            </Button>
+          )}
         </div>
         <input ref={docFileRef} type="file" accept=".pdf,.html,application/pdf,text/html" className="hidden" onChange={handleNewVersion} />
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 items-start">
+      <div className={`grid grid-cols-1 ${isAnnotateMode ? "lg:grid-cols-[300px_1fr_300px]" : "lg:grid-cols-[300px_1fr]"} gap-6 items-start transition-all`}>
         {/* Sidebar Left: Config & History */}
         <div className="flex flex-col gap-6">
           {canEdit && (
@@ -399,11 +416,12 @@ export default function ReportManageClient({
             </Button>
           </div>
 
-          <div className="flex justify-center w-full">
+          <div className="flex justify-center w-full relative">
             <div className="bg-card border border-border shadow-sm rounded-xl overflow-hidden transition-all duration-300 ease-out flex items-center justify-center relative" style={{ width: previewWidth, maxWidth: "100%", height: "75vh", minHeight: "600px" }}>
               {previewUrl || activeVersionUrl ? (
                 <iframe
-                  src={(previewUrl ?? activeVersionUrl) as string}
+                  ref={iframeRef}
+                  src={isAnnotateMode ? `/api/reports/${report.id}/preview?version=${previewVersion?.version_number ?? report.current_version}&mode=annotate` : (previewUrl ?? activeVersionUrl) as string}
                   className="w-full h-full border-0 bg-white"
                   sandbox={previewVersion?.format === "html" ? "allow-same-origin allow-scripts" : undefined}
                   title="Vista previa"
@@ -416,6 +434,17 @@ export default function ReportManageClient({
             </div>
           </div>
         </section>
+
+        {/* Notes Panel (Right) */}
+        {isAnnotateMode && previewVersion && (
+          <section className="bg-card rounded-2xl border border-border overflow-hidden h-[75vh] min-h-[600px] flex flex-col">
+            <NotesPanel 
+              reportVersionId={previewVersion.id}
+              iframeRef={iframeRef}
+              currentUserId={currentUserId}
+            />
+          </section>
+        )}
       </div>
 
       {showSendModal && (
