@@ -236,10 +236,12 @@ export default function ReportManageClient({
               Enviar
             </Button>
           )}
-          <Button variant="secondary" size="sm" disabled title="Próximamente">
-            <Presentation className="w-4 h-4 mr-1.5" />
-            Presentar
-          </Button>
+          {canEdit && (
+            <Button variant="outline" size="sm" onClick={() => router.push(`/informes/${report.id}/presentar`)} disabled={isPending}>
+              <Presentation className="w-4 h-4 mr-1.5" />
+              Presentar
+            </Button>
+          )}
           <Button variant="secondary" size="sm" disabled title="Próximamente">
             <Edit3 className="w-4 h-4 mr-1.5" />
             Anotar

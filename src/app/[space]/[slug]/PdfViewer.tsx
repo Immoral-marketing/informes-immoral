@@ -2,7 +2,23 @@
 
 import { useEffect, useRef, useState } from "react";
 
-export default function PdfViewer({ url, filename }: { url: string; filename: string }) {
+export default function PdfViewer({ 
+  url, 
+  filename,
+  mode = "default",
+  onPageChange,
+  onScrollChange,
+  forcedPage,
+  forcedScrollRatio
+}: { 
+  url: string; 
+  filename?: string;
+  mode?: "default" | "presenter" | "viewer";
+  onPageChange?: (page: number) => void;
+  onScrollChange?: (ratio: number) => void;
+  forcedPage?: number | undefined;
+  forcedScrollRatio?: number | undefined;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(1);
@@ -15,6 +31,20 @@ export default function PdfViewer({ url, filename }: { url: string; filename: st
   useEffect(() => {
     setIsMobile(window.innerWidth < 768);
   }, []);
+
+  useEffect(() => {
+    if (forcedPage && forcedPage !== page) {
+      setPage(forcedPage);
+    }
+  }, [forcedPage, page]);
+
+  useEffect(() => {
+    if (forcedScrollRatio !== undefined && containerRef.current && mode === "viewer") {
+      const el = containerRef.current;
+      const targetY = forcedScrollRatio * Math.max(0, el.scrollHeight - el.clientHeight);
+      el.scrollTo({ top: targetY, behavior: "auto" });
+    }
+  }, [forcedScrollRatio, mode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,6 +65,9 @@ export default function PdfViewer({ url, filename }: { url: string; filename: st
   useEffect(() => {
     if (!pdfDoc || !canvasRef.current || renderingRef.current) return;
     renderPage(pdfDoc, page);
+    if (onPageChange && mode === "presenter") {
+      onPageChange(page);
+    }
   }, [pdfDoc, page]);
 
   async function renderPage(doc: import("pdfjs-dist").PDFDocumentProxy, pageNum: number) {
@@ -58,10 +91,19 @@ export default function PdfViewer({ url, filename }: { url: string; filename: st
     renderingRef.current = false;
   }
 
+  const handleScroll = () => {
+    if (mode === "presenter" && onScrollChange && containerRef.current) {
+      const el = containerRef.current;
+      const ratio = el.scrollTop / Math.max(1, el.scrollHeight - el.clientHeight);
+      onScrollChange(ratio);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-[#1a1a1a]">
       {/* Controls */}
-      <div className="flex items-center justify-between px-4 py-2 bg-black/40 border-b border-white/10 shrink-0">
+      {mode !== "viewer" && (
+        <div className="flex items-center justify-between px-4 py-2 bg-black/40 border-b border-white/10 shrink-0">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -82,18 +124,25 @@ export default function PdfViewer({ url, filename }: { url: string; filename: st
           </button>
         </div>
 
-        {/* Mobile download fallback (CA-16) */}
-        <a
-          href={url}
-          download={filename}
-          className="text-xs text-primary border border-primary/30 rounded-lg px-3 py-1.5 hover:bg-primary/10 transition-colors sm:hidden"
-        >
-          Descargar PDF
-        </a>
+        {/* Mobile download fallback */}
+        {filename && (
+          <a
+            href={url}
+            download={filename}
+            className="text-xs text-primary border border-primary/30 rounded-lg px-3 py-1.5 hover:bg-primary/10 transition-colors sm:hidden"
+          >
+            Descargar PDF
+          </a>
+        )}
       </div>
+      )}
 
       {/* Canvas */}
-      <div ref={containerRef} className="flex-1 overflow-auto flex justify-center py-4 px-2">
+      <div 
+        ref={containerRef} 
+        onScroll={handleScroll}
+        className={`flex-1 overflow-auto flex justify-center py-4 px-2 ${mode === "viewer" ? "pointer-events-none" : ""}`}
+      >
         {loading ? (
           <div className="flex items-center text-white/40 text-sm">Cargando PDF…</div>
         ) : (
