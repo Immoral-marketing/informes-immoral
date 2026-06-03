@@ -58,6 +58,13 @@ const annotateScript = `
       const data = event.data;
       if (!data) return;
 
+      function resolve(selector) {
+        try {
+          if (selector.startsWith('id(') || selector.startsWith('BODY')) return getElementByXPath(selector);
+          return document.querySelector(selector);
+        } catch(e) { return null; }
+      }
+
       if (data.type === 'highlight-note' && data.selector) {
         // Clear previous mark
         if (currentMark) {
@@ -65,32 +72,27 @@ const annotateScript = `
           currentMark = null;
         }
 
-        try {
-          let targetNode = null;
-          if (data.selector.startsWith('id(') || data.selector.startsWith('BODY')) {
-             targetNode = getElementByXPath(data.selector);
-          } else {
-             targetNode = document.querySelector(data.selector);
-          }
-          
-          if (targetNode) {
-            targetNode.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            currentMark = targetNode;
-            currentMark.dataset.originalOutline = currentMark.style.outline;
-            currentMark.style.outline = '3px solid rgba(255, 122, 0, 0.8)';
-            currentMark.style.outlineOffset = '2px';
-            
-            // Auto remove highlight after a few seconds
-            setTimeout(() => {
-              if (currentMark === targetNode) {
-                currentMark.style.outline = currentMark.dataset.originalOutline || '';
-                currentMark = null;
-              }
-            }, 3000);
-          }
-        } catch(e) {
-          console.error("Highlight error", e);
+        const targetNode = resolve(data.selector);
+        if (targetNode) {
+          targetNode.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          currentMark = targetNode;
+          currentMark.dataset.originalOutline = currentMark.style.outline;
+          currentMark.style.outline = '3px solid rgba(255, 122, 0, 0.8)';
+          currentMark.style.outlineOffset = '2px';
+
+          setTimeout(() => {
+            if (currentMark === targetNode) {
+              currentMark.style.outline = currentMark.dataset.originalOutline || '';
+              currentMark = null;
+            }
+          }, 3000);
+        } else {
+          // Ancla rota: avisar al panel para marcar la nota como huérfana
+          window.parent.postMessage({ type: 'note-orphan', selector: data.selector }, '*');
         }
+      } else if (data.type === 'check-selectors' && Array.isArray(data.selectors)) {
+        const missing = data.selectors.filter((sel) => !resolve(sel));
+        window.parent.postMessage({ type: 'orphan-selectors', selectors: missing }, '*');
       }
     });
 

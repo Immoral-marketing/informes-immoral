@@ -56,21 +56,40 @@ export default function NotesPanel({ reportVersionId, iframeRef, isReadOnly = fa
   const [historyNodeId, setHistoryNodeId] = useState<string | null>(null);
   const [historyLogs, setHistoryLogs] = useState<any[]>([]);
 
+  // Acceso a las notas actuales desde listeners sin cerrar sobre estado obsoleto
+  const notesRef = useRef<Note[]>([]);
+  useEffect(() => { notesRef.current = notes; }, [notes]);
+
   useEffect(() => {
     loadNotes();
   }, [reportVersionId]);
 
+  // Marca como huérfanas las notas cuyos selectores no existen en el iframe
+  function applyOrphans(missing: string[]) {
+    if (missing.length === 0) return;
+    const set = new Set(missing);
+    const toFlip = notesRef.current.filter((n) => !n.is_orphan && set.has(n.dom_selector));
+    if (toFlip.length === 0) return;
+    toFlip.forEach((n) => { markOrphan(n.id).catch(() => {}); });
+    const flipIds = new Set(toFlip.map((n) => n.id));
+    setNotes((prev) => prev.map((n) => (flipIds.has(n.id) ? { ...n, is_orphan: true } : n)));
+  }
+
   useEffect(() => {
     if (isReadOnly) return;
-    
+
     const handleMessage = (e: MessageEvent) => {
       if (e.data?.type === "annotate-target" && e.data.selector) {
         setNewNoteTarget(e.data.selector);
         setNewNoteContent("");
         setIsCreating(true);
+      } else if (e.data?.type === "note-orphan" && e.data.selector) {
+        applyOrphans([e.data.selector]);
+      } else if (e.data?.type === "orphan-selectors" && Array.isArray(e.data.selectors)) {
+        applyOrphans(e.data.selectors);
       }
     };
-    
+
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
   }, [isReadOnly]);
@@ -92,12 +111,15 @@ export default function NotesPanel({ reportVersionId, iframeRef, isReadOnly = fa
     }
   }
 
-  // We do a lazy orphan check by asking the iframe to verify the selector
-  // But wait, we can't easily get a sync response. 
-  // We'll skip strict automatic orphan marking in v1 unless asked by the user, 
-  // or we just rely on visual feedback (highlight doesn't work).
+  // Comprobación perezosa de huérfanas: pide al iframe que verifique los selectores.
+  // El iframe responde con un mensaje 'orphan-selectors' que captura el listener.
   function checkOrphans(notesToCheck: Note[]) {
-    // For now, we just rely on the user seeing it doesn't highlight.
+    const selectors = notesToCheck.filter((n) => !n.is_orphan).map((n) => n.dom_selector);
+    if (selectors.length === 0) return;
+    // El iframe puede no haber cargado aún; reintentar con un pequeño retardo.
+    const send = () => iframeRef.current?.contentWindow?.postMessage({ type: "check-selectors", selectors }, "*");
+    send();
+    setTimeout(send, 1200);
   }
 
   async function handleCreate() {

@@ -211,7 +211,6 @@ export async function addVersion(reportId: string, formData: FormData) {
   const uploadResult = await uploadDocument(docFile, DOC_BUCKET);
   if ("error" in uploadResult) return uploadResult;
 
-  const newVersion = perm.report.space_id ? 0 : 0; // we need current_version
   const { data: current } = await perm.supabaseAdmin
     .from("reports")
     .select("current_version, auto_send_on_publish, space_id")

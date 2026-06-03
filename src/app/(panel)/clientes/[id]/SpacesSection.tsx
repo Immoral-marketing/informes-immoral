@@ -4,6 +4,10 @@ import { useState, useTransition, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSpace, deleteSpace, getSlugPreview } from "../../espacios/actions";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface Vertical {
   id: string;
@@ -34,6 +38,7 @@ export default function SpacesSection({
 }) {
   const [spaces, setSpaces] = useState(initial);
   const [showForm, setShowForm] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Space | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -48,8 +53,9 @@ export default function SpacesSection({
   const usedVerticalIds = new Set(spaces.map((s) => s.vertical_id));
   const availableVerticals = verticals.filter((v) => !usedVerticalIds.has(v.id));
 
-  function handleDelete(space: Space) {
-    if (!confirm(`¿Eliminar el espacio "/${space.slug}"?`)) return;
+  function handleDelete() {
+    if (!deleteTarget) return;
+    const space = deleteTarget;
     startTransition(async () => {
       const result = await deleteSpace(space.id, clientId);
       if ("error" in result) {
@@ -58,6 +64,7 @@ export default function SpacesSection({
         setSpaces((prev) => prev.filter((s) => s.id !== space.id));
         setError(null);
       }
+      setDeleteTarget(null);
     });
   }
 
@@ -99,7 +106,7 @@ export default function SpacesSection({
               </div>
               {canEdit && (
                 <button
-                  onClick={() => handleDelete(s)}
+                  onClick={() => setDeleteTarget(s)}
                   disabled={isPending}
                   className="text-xs text-destructive/80 hover:text-destructive disabled:opacity-40 shrink-0"
                 >
@@ -124,6 +131,27 @@ export default function SpacesSection({
           }}
         />
       )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar el espacio &quot;/{deleteTarget?.slug}&quot;?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminarán los informes asociados a este espacio.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDelete(); }}
+              disabled={isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isPending ? "Eliminando…" : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }
@@ -148,12 +176,12 @@ function NewSpaceModal({
   const [error, setError] = useState<string | null>(null);
 
   // Load slug preview on mount
-  useState(() => {
+  useEffect(() => {
     getSlugPreview(clientName).then((r) => {
       if ("slug" in r) setSlugPreview(r.slug);
       else setSlugError(r.error);
     });
-  });
+  }, [clientName]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -178,12 +206,12 @@ function NewSpaceModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-2xl w-full max-w-md p-6 flex flex-col gap-5">
-        <div className="flex items-center justify-between">
-          <h2 className="font-bold text-foreground">Nuevo espacio</h2>
-          <button onClick={onClose} className="text-muted-foreground text-xl">×</button>
-        </div>
+    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Nuevo espacio</DialogTitle>
+          <DialogDescription>Asocia una vertical a {clientName}.</DialogDescription>
+        </DialogHeader>
 
         {(error ?? slugError) && (
           <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error ?? slugError}</p>
@@ -191,13 +219,13 @@ function NewSpaceModal({
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Vertical selector */}
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Vertical *</label>
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs text-muted-foreground">Vertical *</Label>
             <select
               value={verticalId}
               onChange={(e) => setVerticalId(e.target.value)}
               required
-              className="border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary"
+              className="border border-border rounded-xl px-3 py-2 text-sm bg-background focus:outline-none focus:border-primary"
             >
               {verticals.map((v) => (
                 <option key={v.id} value={v.id}>{v.name}</option>
@@ -213,20 +241,16 @@ function NewSpaceModal({
             </p>
           </div>
 
-          <div className="flex gap-2 justify-end pt-2">
-            <button type="button" onClick={onClose} className="text-sm text-muted-foreground px-4 py-2 rounded-xl hover:bg-muted">
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
               Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={isPending || !!slugError || !slugPreview}
-              className="bg-primary text-white font-semibold text-sm rounded-xl px-4 py-2 hover:bg-primary/90 disabled:opacity-50"
-            >
+            </Button>
+            <Button type="submit" disabled={isPending || !!slugError || !slugPreview}>
               {isPending ? "Creando…" : "Crear espacio"}
-            </button>
-          </div>
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

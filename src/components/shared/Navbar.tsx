@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Plus, Users, LayoutGrid, UserCog, ShieldCheck } from "lucide-react";
+import { Plus, Users, LayoutGrid, UserCog, ShieldCheck, LayoutDashboard } from "lucide-react";
 import { signOut } from "@/app/(auth)/login/actions";
 import QuickCreateModal from "./QuickCreateModal";
 import ChangePinModal from "./ChangePinModal";
@@ -80,6 +80,12 @@ export default function Navbar({ userEmail, userName, userRole }: NavbarProps) {
                 )}
               </div>
               <DropdownMenuSeparator />
+              <Link href="/" className="w-full">
+                <DropdownMenuItem className="cursor-pointer flex items-center gap-2">
+                  <LayoutDashboard className="w-4 h-4" />
+                  Dashboard
+                </DropdownMenuItem>
+              </Link>
               <Link href="/clientes" className="w-full">
                 <DropdownMenuItem className="cursor-pointer flex items-center gap-2">
                   <Users className="w-4 h-4" />
