@@ -1,7 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import Link from "next/link";
+import { getSignedClientLogoUrl } from "@/app/(panel)/clientes/actions";
 import SpaceReportsClient from "./SpaceReportsClient";
 
 export default async function EspacioDetailPage({
@@ -22,19 +24,21 @@ export default async function EspacioDetailPage({
 
   const { data: rawSpace } = await supabaseAdmin
     .from("client_spaces")
-    .select("id, slug, client_id, vertical_id, created_by, created_at, clients(id, name, contact_name, contact_phone, contact_whatsapp), verticals(name, color_hex), client_recipients:clients(client_recipients(email, is_primary))")
+    .select("id, slug, client_id, vertical_id, created_by, created_at, clients(id, name, logo_url, contact_name, contact_phone, contact_whatsapp), verticals(name, color_hex), client_recipients:clients(client_recipients(email, is_primary))")
     .eq("id", id)
     .single();
 
   const space = rawSpace as unknown as {
     id: string; slug: string; client_id: string; vertical_id: string; created_by: string; created_at: string;
-    clients: { id: string; name: string; contact_name: string | null; contact_phone: string | null; contact_whatsapp: string | null } | null;
+    clients: { id: string; name: string; logo_url: string | null; contact_name: string | null; contact_phone: string | null; contact_whatsapp: string | null } | null;
     verticals: { name: string; color_hex: string } | null;
     client_recipients: Array<{ email: string; is_primary: boolean }> | null;
   } | null;
 
   if (!space) notFound();
   if (!isAdmin && space.created_by !== user.id) notFound();
+
+  const clientLogoSignedUrl = await getSignedClientLogoUrl(space.clients?.logo_url || null);
 
   // Contact details
   let primaryEmail = null;
@@ -71,6 +75,13 @@ export default async function EspacioDetailPage({
 
   return (
     <div className="flex flex-col gap-6 max-w-4xl">
+      <Breadcrumbs items={[
+        { label: "Dashboard", href: "/" },
+        { label: "Clientes", href: "/clientes" },
+        { label: space.clients?.name ?? "Cliente", href: `/clientes/${space.client_id}` },
+        { label: space.verticals?.name ?? "Espacio" }
+      ]} />
+
       {/* Breadcrumb / Eyebrow */}
       <nav className="flex items-center gap-2 text-sm text-muted-foreground font-semibold tracking-wide uppercase">
         <span style={{ color: space.verticals?.color_hex }}>●</span>
@@ -78,7 +89,19 @@ export default async function EspacioDetailPage({
       </nav>
 
       {/* Space header */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-3">
+        {clientLogoSignedUrl ? (
+          <div className="h-12 flex items-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={clientLogoSignedUrl} alt={space.clients?.name} className="max-h-full object-contain" />
+          </div>
+        ) : (
+          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <span className="text-2xl font-extrabold text-primary">
+              {space.clients?.name?.charAt(0).toUpperCase()}
+            </span>
+          </div>
+        )}
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-extrabold text-foreground tracking-tight">

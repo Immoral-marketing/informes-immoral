@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { getSignedClientLogoUrl } from "./actions";
 import ClientesClient from "./ClientesClient";
 
 export default async function ClientesPage() {
@@ -17,7 +19,7 @@ export default async function ClientesPage() {
   const query = supabaseAdmin
     .from("clients")
     .select(`
-      id, name, contact_name, created_by, created_at,
+      id, name, logo_url, contact_name, created_by, created_at,
       profiles(full_name),
       client_recipients(count),
       client_spaces(count)
@@ -29,9 +31,10 @@ export default async function ClientesPage() {
   }
 
   const { data: raw } = await query;
-  const clients = (raw as unknown as Array<{
+  const clientsRaw = (raw as unknown as Array<{
     id: string;
     name: string;
+    logo_url: string | null;
     contact_name: string | null;
     created_by: string;
     created_at: string;
@@ -40,8 +43,16 @@ export default async function ClientesPage() {
     client_spaces: [{ count: number }];
   }>) ?? [];
 
+  const clients = await Promise.all(
+    clientsRaw.map(async (c) => ({
+      ...c,
+      logo_signed_url: await getSignedClientLogoUrl(c.logo_url),
+    }))
+  );
+
   return (
     <div className="flex flex-col gap-6">
+      <Breadcrumbs items={[{ label: "Dashboard", href: "/" }, { label: "Clientes" }]} />
       <h1 className="text-2xl font-extrabold text-foreground">Clientes</h1>
       <ClientesClient clients={clients} isAdmin={isAdmin} />
     </div>

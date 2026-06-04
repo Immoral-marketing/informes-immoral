@@ -1,18 +1,22 @@
 "use client";
 
 import { useState, useRef, useTransition } from "react";
-import Image from "next/image";
+import { CoBrandLockup } from "@/components/shared/CoBrandLockup";
 
 type Tab = "pin" | "email";
 
 export default function AccessModal({
   reportId,
   reportName,
+  clientName,
+  clientLogoUrl,
   onAuthenticated,
   linkExpired,
 }: {
   reportId: string;
   reportName: string;
+  clientName: string;
+  clientLogoUrl: string | null;
   onAuthenticated: () => void;
   linkExpired: boolean;
 }) {
@@ -79,7 +83,12 @@ export default function AccessModal({
 
   return (
     <div className="w-full max-w-sm flex flex-col items-center gap-8">
-      <Image src="/immoral-logo-blanco.png" alt="Immoral" width={120} height={34} className="object-contain" />
+      <CoBrandLockup
+        clientLogoUrl={clientLogoUrl}
+        titleText={clientName}
+        variant="modal"
+        theme="dark"
+      />
 
       <div
         className="w-full rounded-2xl p-6 flex flex-col gap-5"

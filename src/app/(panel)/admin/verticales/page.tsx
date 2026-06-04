@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { getSignedLogoUrl } from "./actions";
 import VerticalesClient from "./VerticalesClient";
 
@@ -39,6 +40,7 @@ export default async function AdminVerticalesPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <Breadcrumbs items={[{ label: "Dashboard", href: "/" }, { label: "Verticales" }]} />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-extrabold text-foreground">Verticales</h1>
       </div>

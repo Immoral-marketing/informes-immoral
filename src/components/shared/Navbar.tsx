@@ -2,10 +2,12 @@
 
 import { useState, useTransition } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, Users, LayoutGrid, UserCog, ShieldCheck, LayoutDashboard } from "lucide-react";
+import { Users, LayoutGrid, UserCog, ShieldCheck, LayoutDashboard, UserPlus, FilePlus } from "lucide-react";
 import { signOut } from "@/app/(auth)/login/actions";
-import QuickCreateModal from "./QuickCreateModal";
+import { NewClientWithVerticalDialog } from "@/components/clients/NewClientWithVerticalDialog";
+import { NewReportFlow } from "./NewReportFlow";
 import ChangePinModal from "./ChangePinModal";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -24,7 +26,9 @@ interface NavbarProps {
 }
 
 export default function Navbar({ userEmail, userName, userRole }: NavbarProps) {
-  const [quickCreate, setQuickCreate] = useState(false);
+  const router = useRouter();
+  const [newClient, setNewClient] = useState(false);
+  const [newReport, setNewReport] = useState(false);
   const [changePin, setChangePin] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -45,17 +49,47 @@ export default function Navbar({ userEmail, userName, userRole }: NavbarProps) {
           <span className="text-xs font-medium hidden sm:block text-muted-foreground">Informes</span>
         </Link>
 
-        {quickCreate && <QuickCreateModal onClose={() => setQuickCreate(false)} />}
+        {newClient && (
+          <NewClientWithVerticalDialog
+            onClose={() => setNewClient(false)}
+            onCreated={(r) => {
+              setNewClient(false);
+              router.push(`/espacios/${r.spaceId}`);
+            }}
+          />
+        )}
+        {newReport && <NewReportFlow onClose={() => setNewReport(false)} />}
         {changePin && <ChangePinModal onClose={() => setChangePin(false)} />}
 
         <div className="flex items-center gap-4">
           {/* Nav links */}
-          {/* Nav links (moved to dropdown) */}
+          <nav className="hidden sm:flex items-center gap-4 text-sm font-medium">
+            <Link href="/" className="hover:text-primary transition-colors">Dashboard</Link>
+            <Link href="/clientes" className="hover:text-primary transition-colors">Clientes</Link>
+            {userRole === "admin" && (
+              <>
+                <Link href="/admin/verticales" className="hover:text-primary transition-colors">Verticales</Link>
+                <Link href="/admin/usuarios" className="hover:text-primary transition-colors">Usuarios</Link>
+              </>
+            )}
+          </nav>
 
-          {/* Quick create */}
-          <Button size="icon" onClick={() => setQuickCreate(true)} title="Crear nuevo">
-            <Plus className="w-4 h-4" />
-          </Button>
+          {/* Quick create buttons */}
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setNewClient(true)} className="hidden sm:flex rounded-xl">
+              Nuevo cliente
+            </Button>
+            <Button size="icon" variant="outline" onClick={() => setNewClient(true)} title="Nuevo cliente" className="sm:hidden">
+              <UserPlus className="w-4 h-4" />
+            </Button>
+
+            <Button size="sm" onClick={() => setNewReport(true)} className="hidden sm:flex rounded-xl">
+              Nuevo informe
+            </Button>
+            <Button size="icon" onClick={() => setNewReport(true)} title="Nuevo informe" className="sm:hidden">
+              <FilePlus className="w-4 h-4" />
+            </Button>
+          </div>
 
           {/* User menu */}
           <DropdownMenu>

@@ -9,10 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ClientFields } from "@/components/clients/ClientFields";
 
 interface Client {
   id: string;
   name: string;
+  logo_signed_url?: string | null;
   contact_name: string | null;
   contact_phone: string | null;
   contact_whatsapp: string | null;
@@ -110,11 +112,25 @@ export default function ClientDetailClient({
       {/* Client header */}
       <section className="bg-card rounded-2xl border border-border p-6">
         <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-extrabold text-foreground">{client.name}</h1>
-            {client.contact_name && <p className="text-sm text-muted-foreground mt-1">{client.contact_name}</p>}
-            {client.contact_phone && <p className="text-sm text-muted-foreground">📞 {client.contact_phone}</p>}
-            {client.contact_whatsapp && <p className="text-sm text-muted-foreground">💬 {client.contact_whatsapp}</p>}
+          <div className="flex items-center gap-4">
+            {client.logo_signed_url ? (
+              <div className="w-16 h-16 shrink-0 flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={client.logo_signed_url} alt={client.name} className="max-w-full max-h-full object-contain" />
+              </div>
+            ) : (
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                <span className="text-3xl font-extrabold text-primary">
+                  {client.name.charAt(0).toUpperCase()}
+                </span>
+              </div>
+            )}
+            <div>
+              <h1 className="text-2xl font-extrabold text-foreground">{client.name}</h1>
+              {client.contact_name && <p className="text-sm text-muted-foreground mt-1">{client.contact_name}</p>}
+              {client.contact_phone && <p className="text-sm text-muted-foreground">📞 {client.contact_phone}</p>}
+              {client.contact_whatsapp && <p className="text-sm text-muted-foreground">💬 {client.contact_whatsapp}</p>}
+            </div>
           </div>
           {canEdit && (
             <div className="flex gap-2 shrink-0">
@@ -193,16 +209,10 @@ export default function ClientDetailClient({
 
       {/* Modals */}
       {editingClient && (
-        <FormModal
-          title="Editar cliente"
+        <EditClientDialog
+          client={client}
           onClose={() => setEditingClient(false)}
           onSubmit={handleUpdateClient}
-          fields={[
-            { name: "name", label: "Nombre *", required: true, defaultValue: client.name },
-            { name: "contact_name", label: "Persona de contacto", defaultValue: client.contact_name ?? "" },
-            { name: "contact_phone", label: "Teléfono", defaultValue: client.contact_phone ?? "" },
-            { name: "contact_whatsapp", label: "WhatsApp", defaultValue: client.contact_whatsapp ?? "" },
-          ]}
         />
       )}
 
@@ -256,6 +266,48 @@ export default function ClientDetailClient({
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+}
+
+function EditClientDialog({
+  client,
+  onClose,
+  onSubmit,
+}: {
+  client: Client;
+  onClose: () => void;
+  onSubmit: (fd: FormData) => Promise<void>;
+}) {
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    startTransition(async () => {
+      try { await onSubmit(fd); }
+      catch (err) { setError(err instanceof Error ? err.message : "Error inesperado"); }
+    });
+  }
+
+  return (
+    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[425px] rounded-2xl">
+        <DialogHeader>
+          <DialogTitle>Editar cliente</DialogTitle>
+        </DialogHeader>
+        {error && <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>}
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <ClientFields client={client} />
+          <div className="flex gap-2 justify-end pt-4">
+            <Button type="button" variant="ghost" onClick={onClose} className="rounded-xl">Cancelar</Button>
+            <Button type="submit" disabled={isPending} className="rounded-xl font-semibold">
+              {isPending ? "Guardando…" : "Guardar"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

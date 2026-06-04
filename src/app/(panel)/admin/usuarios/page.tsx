@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import DomainManager from "./DomainManager";
 import EmployeeRoleManager from "./EmployeeRoleManager";
 
@@ -26,6 +27,7 @@ export default async function AdminUsuariosPage() {
 
   return (
     <div className="flex flex-col gap-8 max-w-3xl">
+      <Breadcrumbs items={[{ label: "Dashboard", href: "/" }, { label: "Usuarios" }]} />
       <h1 className="text-2xl font-extrabold text-foreground">Administración de usuarios</h1>
 
       <DomainManager

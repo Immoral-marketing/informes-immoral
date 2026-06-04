@@ -197,6 +197,9 @@ informes-immoral/
 | [20-presenter-notes](specs/20-presenter-notes.md) | Notas de orador internas ancladas ("Anotar") — distinto de la 08 | 5 | aprobada |
 | [21-employee-master-pin](specs/21-employee-master-pin.md) | PIN maestro de empleado (setup primer login + cambiar + override) | 4 | aprobada |
 | [22-post-implementation-fixes](specs/22-post-implementation-fixes.md) | Trazabilidad de fixes post-impl 16-21 (seguridad, preview HTML, PIN cifrado/difuminado, UX) | 1 | implementada |
+| [23-creation-flows-and-nav](specs/23-creation-flows-and-nav.md) | Flujos de creación rápida (cliente+vertical, informe con autocompletar) + navegación (enlaces navbar + breadcrumbs) | 1 | draft |
+| [24-vertical-screen](specs/24-vertical-screen.md) | Pantalla de vertical: logo moderado + tabla de clientes filtrable + "Agregar cliente a esta vertical" | 2 | draft |
+| [25-client-logo](specs/25-client-logo.md) | Logo de cliente + co-branding Immoral × cliente (viewer público, transiciones, lista/espacio) | 3 | aprobada |
 | 08-client-feedback | Comentarios anclados cliente↔empleado (NO implementado por 20; sigue futuro) | 2 | pendiente |
 | 09-presentation-mode | Modo presentación sincronizado (implementado por la spec 19) | 3 | reemplazada por 19 |
 | 10-notifications | Notificaciones in-app + email | 2 | pendiente |

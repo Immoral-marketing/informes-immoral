@@ -1,6 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { getSignedClientLogoUrl } from "@/app/(panel)/clientes/actions";
 import ClientDetailClient from "./ClientDetailClient";
 import SpacesSection from "./SpacesSection";
 
@@ -22,13 +24,14 @@ export default async function ClientDetailPage({
 
   const { data: rawClient } = await supabaseAdmin
     .from("clients")
-    .select("id, name, contact_name, contact_phone, contact_whatsapp, created_by")
+    .select("id, name, logo_url, contact_name, contact_phone, contact_whatsapp, created_by")
     .eq("id", id)
     .single();
 
   const client = rawClient as {
     id: string;
     name: string;
+    logo_url: string | null;
     contact_name: string | null;
     contact_phone: string | null;
     contact_whatsapp: string | null;
@@ -37,6 +40,9 @@ export default async function ClientDetailPage({
 
   if (!client) notFound();
   if (!isAdmin && client.created_by !== user.id) notFound();
+
+  const logo_signed_url = await getSignedClientLogoUrl(client.logo_url);
+  const clientWithLogo = { ...client, logo_signed_url };
 
   const [{ data: rawRecipients }, { data: rawSpaces }, { data: rawVerticals }] = await Promise.all([
     supabaseAdmin
@@ -74,8 +80,13 @@ export default async function ClientDetailPage({
 
   return (
     <div className="flex flex-col gap-8 max-w-3xl">
+      <Breadcrumbs items={[
+        { label: "Dashboard", href: "/" },
+        { label: "Clientes", href: "/clientes" },
+        { label: client.name }
+      ]} />
       <ClientDetailClient
-        client={client}
+        client={clientWithLogo}
         recipients={recipients}
         isAdmin={isAdmin}
         currentUserId={user.id}

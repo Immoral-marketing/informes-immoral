@@ -1,7 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { getSignedLogoUrl } from "../../admin/verticales/actions";
+import { getSignedClientLogoUrl } from "@/app/(panel)/clientes/actions";
 import VerticalDetailClient from "./VerticalDetailClient";
 
 export default async function VerticalDetailPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -27,7 +29,7 @@ export default async function VerticalDetailPage({ params }: { params: Promise<{
 
   let spacesQuery = supabaseAdmin
     .from("client_spaces")
-    .select("id, slug, created_by, clients(id, name, contact_name, contact_phone, contact_whatsapp), client_recipients:clients(client_recipients(email, is_primary))")
+    .select("id, slug, created_by, clients(id, name, logo_url, contact_name, contact_phone), client_recipients:clients(client_recipients(email, is_primary)), reports(count)")
     .eq("vertical_id", vertical.id)
     .order("created_at", { ascending: false });
 
@@ -45,14 +47,15 @@ export default async function VerticalDetailPage({ params }: { params: Promise<{
     clients: {
       id: string;
       name: string;
+      logo_url: string | null;
       contact_name: string | null;
       contact_phone: string | null;
-      contact_whatsapp: string | null;
     } | null;
     client_recipients: Array<{ email: string; is_primary: boolean }> | null;
+    reports: [{ count: number }] | null;
   }> | null) ?? [];
 
-  const formattedSpaces = spaces.map((s) => {
+  const formattedSpaces = await Promise.all(spaces.map(async (s) => {
     // Attempt to extract primary email
     let email = null;
     if (s.client_recipients && Array.isArray(s.client_recipients)) {
@@ -60,21 +63,32 @@ export default async function VerticalDetailPage({ params }: { params: Promise<{
       if (primary) email = primary.email;
     }
 
+    const clientLogoUrl = await getSignedClientLogoUrl(s.clients?.logo_url || null);
+
     return {
       id: s.id,
       slug: s.slug,
+      client_id: s.clients?.id ?? "",
       client_name: s.clients?.name ?? "Cliente Desconocido",
+      client_logo_signed_url: clientLogoUrl,
       contact_name: s.clients?.contact_name ?? null,
       contact_phone: s.clients?.contact_phone ?? null,
-      contact_whatsapp: s.clients?.contact_whatsapp ?? null,
       contact_email: email,
+      reports_count: s.reports?.[0]?.count ?? 0,
     };
-  });
+  }));
 
   return (
-    <VerticalDetailClient
-      vertical={{ ...vertical, logo_signed_url: logoUrl }}
-      spaces={formattedSpaces}
-    />
+    <div className="flex flex-col gap-6">
+      <Breadcrumbs items={[
+        { label: "Dashboard", href: "/" },
+        { label: "Verticales", ...(isAdmin ? { href: "/admin/verticales" } : {}) },
+        { label: vertical.name }
+      ]} />
+      <VerticalDetailClient
+        vertical={{ ...vertical, logo_signed_url: logoUrl }}
+        spaces={formattedSpaces}
+      />
+    </div>
   );
 }

@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import Link from "next/link";
 import { getSignedDocUrl, getSignedAttachmentUrl } from "../actions";
 import ReportManageClient from "./ReportManageClient";
@@ -88,20 +89,13 @@ export default async function InformeDetailPage({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/clientes" className="hover:text-primary">Clientes</Link>
-        <span>›</span>
-        <Link href={`/clientes/${report.client_spaces?.clients?.id ?? ""}`} className="hover:text-primary">
-          {report.client_spaces?.clients?.name ?? "Cliente"}
-        </Link>
-        <span>›</span>
-        <Link href={`/espacios/${report.space_id}`} className="hover:text-primary">
-          {report.client_spaces?.verticals?.name ?? "Espacio"}
-        </Link>
-        <span>›</span>
-        <span className="text-foreground font-medium truncate max-w-[200px]">{report.name}</span>
-      </nav>
+      <Breadcrumbs items={[
+        { label: "Dashboard", href: "/" },
+        { label: "Clientes", href: "/clientes" },
+        { label: report.client_spaces?.clients?.name ?? "Cliente", href: `/clientes/${report.client_spaces?.clients?.id ?? ""}` },
+        { label: report.client_spaces?.verticals?.name ?? "Espacio", href: `/espacios/${report.space_id}` },
+        { label: report.name }
+      ]} />
 
       <ReportManageClient
         report={(() => {

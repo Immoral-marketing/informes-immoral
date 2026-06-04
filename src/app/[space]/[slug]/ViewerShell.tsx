@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import { CoBrandLockup } from "@/components/shared/CoBrandLockup";
 import AccessModal from "./AccessModal";
 import PdfViewer from "./PdfViewer";
 
@@ -18,6 +19,8 @@ interface ReportInfo {
   slug: string;
   current_version: number;
   space_id: string;
+  client_name: string;
+  client_logo_signed_url: string | null;
   attachments: Attachment[];
 }
 
@@ -79,7 +82,14 @@ export default function ViewerShell({
   if (!authenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#111111" }}>
-        <AccessModal reportId={report.id} reportName={report.name} onAuthenticated={handleAuthenticated} linkExpired={linkExpired} />
+        <AccessModal 
+          reportId={report.id} 
+          reportName={report.name} 
+          clientName={report.client_name}
+          clientLogoUrl={report.client_logo_signed_url}
+          onAuthenticated={handleAuthenticated} 
+          linkExpired={linkExpired} 
+        />
       </div>
     );
   }
@@ -91,12 +101,13 @@ export default function ViewerShell({
         className="h-12 shrink-0 flex items-center justify-between px-4 gap-4"
         style={{ backgroundColor: "#111111", borderBottom: "1px solid #2e2e2e" }}
       >
-        <div className="flex items-center gap-3 min-w-0">
-          <a href="https://immoral.marketing" target="_blank" rel="noreferrer" className="shrink-0">
-            <Image src="/immoral-logo-blanco.png" alt="Immoral" width={72} height={20} className="object-contain" />
-          </a>
-          <span className="text-xs" style={{ color: "#2e2e2e" }}>|</span>
-          <span className="text-white text-sm font-medium truncate">{report.name}</span>
+        <div className="flex items-center min-w-0">
+          <CoBrandLockup
+            clientLogoUrl={report.client_logo_signed_url}
+            titleText={report.name}
+            variant="viewer"
+            theme="dark"
+          />
         </div>
 
         {report.attachments.length > 0 && (
@@ -139,8 +150,18 @@ export default function ViewerShell({
       {/* Document area */}
       <main className="flex-1 overflow-hidden">
         {loading && (
-          <div className="h-full flex items-center justify-center">
-            <div className="text-sm" style={{ color: "#5E5E5E" }}>Cargando documento…</div>
+          <div className="h-full flex flex-col items-center justify-center gap-6" style={{ backgroundColor: "#111111" }}>
+            <div style={{ animation: "brandPhraseIn 320ms cubic-bezier(0.23, 1, 0.32, 1) both" }}>
+              <CoBrandLockup
+                clientLogoUrl={report.client_logo_signed_url ?? null}
+                titleText={report.name}
+                variant="loader"
+                theme="dark"
+              />
+            </div>
+            <p className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.5)", animation: "brandPhraseIn 320ms cubic-bezier(0.23, 1, 0.32, 1) both 100ms" }}>
+              Cargando documento…
+            </p>
           </div>
         )}
 
