@@ -2,11 +2,14 @@
 
 import { useState, useTransition, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { slugify } from "@/lib/utils/slugify";
 import { createVertical, updateVertical, deleteVertical, checkSlug } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
@@ -74,56 +77,127 @@ export default function VerticalesClient({ verticals: initial }: VerticalesClien
         </Button>
       </div>
 
-      {/* List */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {verticals.map((v) => (
-          <div key={v.id} className="bg-card rounded-2xl border border-border p-4 flex items-center gap-3">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 overflow-hidden"
-              style={{ backgroundColor: v.color_hex + "22" }}
-            >
-              {v.logo_signed_url ? (
-                <Image src={v.logo_signed_url} alt={v.name} width={32} height={32} className="object-contain" />
-              ) : (
-                <span className="text-lg font-bold" style={{ color: v.color_hex }}>
-                  {v.name.charAt(0).toUpperCase()}
-                </span>
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm text-foreground truncate">{v.name}</p>
-              <p className="text-xs text-muted-foreground truncate">/{v.slug}</p>
-              {v.profiles?.full_name && (
-                <p className="text-xs text-muted-foreground truncate">por {v.profiles.full_name}</p>
-              )}
-            </div>
-            <div className="flex gap-1 shrink-0">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => openEdit(v)}
-                className="text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 h-auto"
-              >
-                Editar
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => confirmDelete(v.id, v.name)}
-                disabled={isPending}
-                className="text-xs text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors px-2 py-1 h-auto disabled:opacity-40"
-              >
-                Eliminar
-              </Button>
-            </div>
+      {verticals.length === 0 ? (
+        <Card className="border-dashed py-16 flex flex-col items-center justify-center text-center gap-4">
+          <p className="text-sm text-muted-foreground">No hay verticales creados todavía.</p>
+          <Button variant="link" onClick={openCreate} className="text-primary font-semibold">
+            Crear primer vertical →
+          </Button>
+        </Card>
+      ) : (
+        <div className="flex flex-col gap-6">
+          {/* Table — sm and above */}
+          <div className="hidden sm:block rounded-xl border bg-card overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Vertical</TableHead>
+                  <TableHead>Slug</TableHead>
+                  <TableHead>Color</TableHead>
+                  <TableHead>Creado por</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {verticals.map((v) => (
+                  <TableRow key={v.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 overflow-hidden"
+                          style={{ backgroundColor: v.color_hex + "22" }}
+                        >
+                          {v.logo_signed_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={v.logo_signed_url} alt={v.name} className="w-full h-full object-contain" />
+                          ) : (
+                            <span className="text-sm font-bold" style={{ color: v.color_hex }}>
+                              {v.name.charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                        <Link href={`/verticales/${v.slug}`} className="font-semibold hover:text-primary transition-colors">
+                          {v.name}
+                        </Link>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground font-mono text-xs">/{v.slug}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded-full border border-border shrink-0" style={{ backgroundColor: v.color_hex }} />
+                        <span className="text-xs font-mono text-muted-foreground">{v.color_hex}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">{v.profiles?.full_name ?? "—"}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => openEdit(v)} className="rounded-lg text-xs">
+                          Editar
+                        </Button>
+                        <Button
+                          variant="ghost" size="sm"
+                          onClick={() => confirmDelete(v.id, v.name)}
+                          disabled={isPending}
+                          className="rounded-lg text-xs text-destructive hover:text-destructive hover:bg-destructive/10 disabled:opacity-40"
+                        >
+                          Eliminar
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
-        ))}
-        {verticals.length === 0 && (
-          <p className="col-span-full text-sm text-muted-foreground text-center py-8">
-            No hay verticales creados todavía.
-          </p>
-        )}
-      </div>
+
+          {/* Cards — mobile */}
+          <div className="grid gap-4 sm:hidden">
+            {verticals.map((v) => (
+              <Card key={v.id} className="p-4 flex flex-col gap-4">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 overflow-hidden"
+                    style={{ backgroundColor: v.color_hex + "22" }}
+                  >
+                    {v.logo_signed_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={v.logo_signed_url} alt={v.name} className="w-full h-full object-contain" />
+                    ) : (
+                      <span className="text-lg font-bold" style={{ color: v.color_hex }}>
+                        {v.name.charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm text-foreground truncate">{v.name}</p>
+                    <p className="text-xs text-muted-foreground font-mono">/{v.slug}</p>
+                    {v.profiles?.full_name && (
+                      <p className="text-xs text-muted-foreground">por {v.profiles.full_name}</p>
+                    )}
+                  </div>
+                  <div className="w-5 h-5 rounded-full border border-border shrink-0" style={{ backgroundColor: v.color_hex }} />
+                </div>
+                <div className="flex gap-2">
+                  <Button asChild variant="outline" size="sm" className="flex-1 rounded-xl">
+                    <Link href={`/verticales/${v.slug}`}>Ver clientes</Link>
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => openEdit(v)} className="rounded-xl px-3">
+                    Editar
+                  </Button>
+                  <Button
+                    variant="ghost" size="sm"
+                    onClick={() => confirmDelete(v.id, v.name)}
+                    disabled={isPending}
+                    className="rounded-xl px-3 text-destructive hover:text-destructive hover:bg-destructive/10 disabled:opacity-40"
+                  >
+                    Eliminar
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Modal Form */}
       {showForm && (

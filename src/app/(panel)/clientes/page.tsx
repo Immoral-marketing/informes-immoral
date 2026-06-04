@@ -16,7 +16,7 @@ export default async function ClientesPage() {
   const isAdmin = profile?.role === "admin";
 
   // Clients query — with counts
-  const query = supabaseAdmin
+  let query = supabaseAdmin
     .from("clients")
     .select(`
       id, name, logo_url, contact_name, created_by, created_at,
@@ -27,7 +27,7 @@ export default async function ClientesPage() {
     .order("created_at", { ascending: false });
 
   if (!isAdmin) {
-    query.eq("created_by", user.id);
+    query = query.eq("created_by", user.id);
   }
 
   const { data: raw } = await query;
