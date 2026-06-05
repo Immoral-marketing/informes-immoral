@@ -8,61 +8,118 @@ const DOC_BUCKET = "report-documents";
 const presenterScript = `
 <script>
   (function() {
-    function sendScroll() {
-      const ratio = window.scrollY / Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-      window.parent.postMessage({ type: 'scroll', ratio }, '*');
+    function getHybridSelector(node) {
+      if (node.id) return '#' + node.id;
+      const attributes = node.attributes;
+      for (let i = 0; i < attributes.length; i++) {
+        const attr = attributes[i];
+        if (attr.name.startsWith('data-')) {
+          const selector = '[' + attr.name + '="' + attr.value + '"]';
+          if (document.querySelectorAll(selector).length === 1) return selector;
+        }
+      }
+      if (node.tagName.toLowerCase() === 'body') return 'body';
+      let selector = '';
+      let current = node;
+      while (current && current.tagName.toLowerCase() !== 'body') {
+        let index = 1;
+        let sibling = current.previousElementSibling;
+        while (sibling) {
+          if (sibling.tagName === current.tagName) index++;
+          sibling = sibling.previousElementSibling;
+        }
+        const part = current.tagName.toLowerCase() + ':nth-of-type(' + index + ')';
+        selector = selector ? part + ' > ' + selector : part;
+        current = current.parentElement;
+      }
+      return 'body > ' + selector;
     }
-    
-    // Throttle scroll events
-    let scrollTimeout;
-    window.addEventListener('scroll', () => {
-      if (!scrollTimeout) {
-        scrollTimeout = setTimeout(() => {
-          sendScroll();
-          scrollTimeout = null;
-        }, 50);
+
+    function getXPath(node) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        let ix = 0;
+        let siblings = node.parentNode.childNodes;
+        for (let i = 0; i < siblings.length; i++) {
+          let sibling = siblings[i];
+          if (sibling === node) return getXPath(node.parentNode) + '/text()[' + (ix + 1) + ']';
+          if (sibling.nodeType === Node.TEXT_NODE) ix++;
+        }
+      }
+      if (node.id && node.id !== '') return 'id("' + node.id + '")';
+      if (node === document.body) return node.tagName;
+      if (node === document.documentElement) return 'HTML';
+      let ix = 0;
+      let siblings = node.parentNode.childNodes;
+      for (let i = 0; i < siblings.length; i++) {
+        let sibling = siblings[i];
+        if (sibling === node) return getXPath(node.parentNode) + '/' + node.tagName + '[' + (ix + 1) + ']';
+        if (sibling.nodeType === 1 && sibling.tagName === node.tagName) ix++;
+      }
+    }
+
+    // Scroll
+    document.addEventListener('scroll', function(e) {
+      const target = e.target;
+      if (target === document || target === window) {
+        const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
+        const maxScroll = Math.max(1, scrollHeight - window.innerHeight);
+        const percent = window.scrollY / maxScroll;
+        window.parent.postMessage({ type: 'scroll', ratio: percent }, '*');
+      } else {
+        const selector = getHybridSelector(target);
+        const maxScroll = Math.max(1, target.scrollHeight - target.clientHeight);
+        const percent = target.scrollTop / maxScroll;
+        window.parent.postMessage({ type: 'element-scroll', selector, ratio: percent }, '*');
+      }
+    }, true);
+
+    // Mousemove
+    let lastMouseMove = 0;
+    document.addEventListener('mousemove', function(e) {
+      const now = Date.now();
+      if (now - lastMouseMove > 100) {
+        lastMouseMove = now;
+        const target = document.elementFromPoint(e.clientX, e.clientY);
+        if (target) {
+          const rect = target.getBoundingClientRect();
+          const percentX = (e.clientX - rect.left) / rect.width;
+          const percentY = (e.clientY - rect.top) / rect.height;
+          const selector = getHybridSelector(target);
+          window.parent.postMessage({ type: 'cursor', selector, percentX, percentY }, '*');
+        }
       }
     });
 
-    // Handle text selection (simplified for v1: just send plain string or clear)
+    // Click
+    document.addEventListener('click', function(e) {
+      const target = e.target;
+      const selector = getHybridSelector(target);
+      window.parent.postMessage({ type: 'click', selector }, '*');
+    }, true);
+
+    // Keydown
+    document.addEventListener('keydown', function(e) {
+      window.parent.postMessage({ type: 'keydown', key: e.key, code: e.code, keyCode: e.keyCode }, '*');
+    }, true);
+
+    // Selection
     document.addEventListener('selectionchange', () => {
       const selection = window.getSelection();
       if (!selection || selection.isCollapsed) {
         window.parent.postMessage({ type: 'selection-clear' }, '*');
         return;
       }
-      
-      // For v1, we'll implement a basic anchorNode/focusNode offset representation
-      // Full XPath is complex to inject reliably without a bigger library.
-      // We will send a placeholder or basic selection for this spec, as per requirement.
-      // To strictly follow spec 19: "calcula XPath inicio/fin + offsets"
-      function getXPath(node) {
-        if (node.id !== '') return 'id("' + node.id + '")';
-        if (node === document.body) return node.nodeName;
-        let ix = 0;
-        let siblings = node.parentNode ? node.parentNode.childNodes : [];
-        for (let i = 0; i < siblings.length; i++) {
-          let sibling = siblings[i];
-          if (sibling === node) return getXPath(node.parentNode) + '/' + node.nodeName + '[' + (ix + 1) + ']';
-          if (sibling.nodeType === 1 && sibling.nodeName === node.nodeName) ix++;
-        }
-      }
-      
       try {
         const range = selection.getRangeAt(0);
-        const startXPath = getXPath(range.startContainer.nodeType === 3 ? range.startContainer.parentNode : range.startContainer);
-        const endXPath = getXPath(range.endContainer.nodeType === 3 ? range.endContainer.parentNode : range.endContainer);
-        
-        window.parent.postMessage({ 
-          type: 'selection', 
-          startXPath, 
-          startOffset: range.startOffset, 
-          endXPath, 
-          endOffset: range.endOffset 
+        window.parent.postMessage({
+          type: 'selection',
+          startXPath: getXPath(range.startContainer),
+          startOffset: range.startOffset,
+          endXPath: getXPath(range.endContainer),
+          endOffset: range.endOffset,
+          text: selection.toString()
         }, '*');
-      } catch (e) {
-        console.error("Selection sync error", e);
-      }
+      } catch (e) {}
     });
   })();
 </script>
@@ -78,6 +135,18 @@ const viewerScript = `
       return document.evaluate(path, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
     }
 
+    // Cursor element
+    const cursor = document.createElement('div');
+    cursor.style.position = 'absolute';
+    cursor.style.width = '24px';
+    cursor.style.height = '24px';
+    cursor.style.pointerEvents = 'none';
+    cursor.style.zIndex = '999999';
+    cursor.style.transition = 'transform 0.1s linear';
+    cursor.style.display = 'none';
+    cursor.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg>';
+    document.body.appendChild(cursor);
+
     window.addEventListener('message', (event) => {
       const data = event.data;
       if (!data) return;
@@ -85,34 +154,51 @@ const viewerScript = `
       if (data.type === 'scroll') {
         const y = data.ratio * Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
         window.scrollTo({ top: y, behavior: 'auto' });
+      } else if (data.type === 'element-scroll') {
+        const el = document.querySelector(data.selector);
+        if (el) {
+          const maxScroll = Math.max(1, el.scrollHeight - el.clientHeight);
+          el.scrollTop = data.ratio * maxScroll;
+        }
+      } else if (data.type === 'cursor') {
+        const el = document.querySelector(data.selector);
+        if (el) {
+          cursor.style.display = 'block';
+          const rect = el.getBoundingClientRect();
+          const x = rect.left + (data.percentX * rect.width) + window.scrollX;
+          const y = rect.top + (data.percentY * rect.height) + window.scrollY;
+          cursor.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
+        }
+      } else if (data.type === 'cursor-hide') {
+        cursor.style.display = 'none';
+      } else if (data.type === 'click') {
+        const el = document.querySelector(data.selector);
+        if (el) {
+          el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+        }
+      } else if (data.type === 'keydown') {
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: data.key, code: data.code, keyCode: data.keyCode, bubbles: true }));
       } else if (data.type === 'selection') {
-        // Clear previous mark
         if (currentMark) {
           const parent = currentMark.parentNode;
           while(currentMark.firstChild) parent.insertBefore(currentMark.firstChild, currentMark);
           parent.removeChild(currentMark);
           currentMark = null;
         }
-        
         try {
           const startNode = getElementByXPath(data.startXPath);
           const endNode = getElementByXPath(data.endXPath);
           if (startNode && endNode) {
-            // Find text nodes
             const startText = Array.from(startNode.childNodes).find(n => n.nodeType === 3) || startNode;
             const endText = Array.from(endNode.childNodes).find(n => n.nodeType === 3) || endNode;
-            
             const range = document.createRange();
             range.setStart(startText, Math.min(data.startOffset, startText.length || 0));
             range.setEnd(endText, Math.min(data.endOffset, endText.length || 0));
-            
             currentMark = document.createElement('mark');
             currentMark.style.backgroundColor = 'rgba(255, 255, 0, 0.4)';
             range.surroundContents(currentMark);
           }
-        } catch(e) {
-          console.error("Selection apply error", e);
-        }
+        } catch(e) {}
       } else if (data.type === 'selection-clear') {
         if (currentMark) {
           const parent = currentMark.parentNode;
@@ -123,8 +209,10 @@ const viewerScript = `
       }
     });
     
-    // Disable scrolling for viewer to force sync
     document.body.style.overflow = 'hidden';
+    const style = document.createElement('style');
+    style.innerHTML = '::-webkit-scrollbar { display: none; }';
+    document.head.appendChild(style);
   })();
 </script>
 `;

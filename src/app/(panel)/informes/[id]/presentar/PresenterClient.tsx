@@ -9,7 +9,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Eye, Users, Copy, Square, Link as LinkIcon, Monitor, Smartphone, Tablet } from "lucide-react";
+import { Eye, Users, Copy, Square, Link as LinkIcon, Monitor, Smartphone, Tablet, MousePointer2 } from "lucide-react";
 import BrandLoader from "@/components/shared/BrandLoader";
 import PdfViewer from "@/app/[space]/[slug]/PdfViewer";
 import NotesPanel from "../NotesPanel";
@@ -36,6 +36,7 @@ export default function PresenterClient({
   const [isEnding, setIsEnding] = useState(false);
   const [showEndDialog, setShowEndDialog] = useState(false);
   const [previewWidth, setPreviewWidth] = useState<"375px" | "768px" | "100%">("100%");
+  const [isPointerEnabled, setIsPointerEnabled] = useState(true);
   
   const router = useRouter();
   const supabase = createBrowserClient(
@@ -96,12 +97,37 @@ export default function PresenterClient({
     const handleMessage = (e: MessageEvent) => {
       if (!e.data || typeof e.data !== "object") return;
       
-      const { type, ratio, startXPath, startOffset, endXPath, endOffset } = e.data;
+      const { type, ratio, startXPath, startOffset, endXPath, endOffset, selector, percentX, percentY, key, code, keyCode } = e.data;
       if (type === "scroll") {
         channelRef.current?.send({
           type: "broadcast",
           event: "presentation-event",
           payload: { type: "scroll", ratio }
+        });
+      } else if (type === "element-scroll") {
+        channelRef.current?.send({
+          type: "broadcast",
+          event: "presentation-event",
+          payload: { type: "element-scroll", selector, ratio }
+        });
+      } else if (type === "cursor") {
+        if (!isPointerEnabled) return;
+        channelRef.current?.send({
+          type: "broadcast",
+          event: "presentation-event",
+          payload: { type: "cursor", selector, percentX, percentY }
+        });
+      } else if (type === "click") {
+        channelRef.current?.send({
+          type: "broadcast",
+          event: "presentation-event",
+          payload: { type: "click", selector }
+        });
+      } else if (type === "keydown") {
+        channelRef.current?.send({
+          type: "broadcast",
+          event: "presentation-event",
+          payload: { type: "keydown", key, code, keyCode }
         });
       } else if (type === "selection") {
         channelRef.current?.send({
@@ -120,7 +146,7 @@ export default function PresenterClient({
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [format]);
+  }, [format, isPointerEnabled]);
 
   // For PDF Sync
   const handlePdfPageChange = (pageNumber: number) => {
@@ -187,6 +213,24 @@ export default function PresenterClient({
         </div>
         
         <div className="flex items-center gap-2 shrink-0">
+          <Button 
+            variant={isPointerEnabled ? "secondary" : "outline"} 
+            size="sm" 
+            onClick={() => {
+              const newState = !isPointerEnabled;
+              setIsPointerEnabled(newState);
+              if (!newState) {
+                channelRef.current?.send({
+                  type: "broadcast",
+                  event: "presentation-event",
+                  payload: { type: "cursor-hide" }
+                });
+              }
+            }}
+          >
+            <MousePointer2 className="w-3.5 h-3.5 mr-1.5" />
+            {isPointerEnabled ? "Puntero visible" : "Puntero oculto"}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(viewerUrl); toast.success("Enlace copiado"); }}>
             Copiar enlace
           </Button>
