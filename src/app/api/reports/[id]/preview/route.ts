@@ -91,8 +91,22 @@ const annotateScript = `
           window.parent.postMessage({ type: 'note-orphan', selector: data.selector }, '*');
         }
       } else if (data.type === 'check-selectors' && Array.isArray(data.selectors)) {
-        const missing = data.selectors.filter((sel) => !resolve(sel));
-        window.parent.postMessage({ type: 'orphan-selectors', selectors: missing }, '*');
+        const missing = [];
+        data.selectors.forEach((sel) => {
+          const node = resolve(sel);
+          if (!node) {
+            missing.push(sel);
+          } else {
+            if (!node.dataset.hasNote) {
+              node.dataset.hasNote = 'true';
+              node.style.outline = '2px dashed rgba(255, 122, 0, 0.6)';
+              node.style.outlineOffset = '4px';
+            }
+          }
+        });
+        if (missing.length > 0) {
+          window.parent.postMessage({ type: 'orphan-selectors', selectors: missing }, '*');
+        }
       }
     });
 

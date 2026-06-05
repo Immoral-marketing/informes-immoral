@@ -492,8 +492,8 @@ export default function ReportManageClient({
 
       {/* Drawer */}
       <div 
-        className={`fixed left-0 top-0 h-full w-[360px] max-w-full z-50 bg-card shadow-2xl border-r border-border transition-transform duration-300 ease-in-out ${
-          isAnnotateMode ? "translate-x-0" : "-translate-x-full"
+        className={`fixed right-0 top-0 h-full w-[360px] max-w-full z-50 bg-card shadow-2xl border-l border-border transition-transform duration-300 ease-in-out ${
+          isAnnotateMode ? "translate-x-0" : "translate-x-full"
         }`}
       >
         {isAnnotateMode && previewVersion && (

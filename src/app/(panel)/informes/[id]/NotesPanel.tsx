@@ -126,7 +126,14 @@ export default function NotesPanel({ reportVersionId, iframeRef, isReadOnly = fa
     if (!newNoteTarget || !newNoteContent.trim()) return;
     try {
       const note = await createNote(reportVersionId, newNoteTarget, newNoteContent);
-      setNotes([...notes, { ...note, profiles: { full_name: "Tú" } } as Note]);
+      const newNote = { ...note, profiles: { full_name: "Tú" } } as Note;
+      setNotes([...notes, newNote]);
+      
+      // Indicar al iframe que aplique el marcador visual permanente a esta nueva nota
+      if (iframeRef.current?.contentWindow) {
+        iframeRef.current.contentWindow.postMessage({ type: "check-selectors", selectors: [newNoteTarget] }, "*");
+      }
+      
       setIsCreating(false);
       setNewNoteTarget(null);
       toast.success("Nota creada");
