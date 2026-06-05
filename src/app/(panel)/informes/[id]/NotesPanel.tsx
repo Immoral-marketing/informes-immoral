@@ -79,14 +79,17 @@ export default function NotesPanel({ reportVersionId, iframeRef, isReadOnly = fa
     if (isReadOnly) return;
 
     const handleMessage = (e: MessageEvent) => {
-      if (e.data?.type === "annotate-target" && e.data.selector) {
+      if (e.data?.type === "annotate-click" && e.data.selector) {
         setNewNoteTarget(e.data.selector);
         setNewNoteContent("");
         setIsCreating(true);
-      } else if (e.data?.type === "note-orphan" && e.data.selector) {
-        applyOrphans([e.data.selector]);
-      } else if (e.data?.type === "orphan-selectors" && Array.isArray(e.data.selectors)) {
-        applyOrphans(e.data.selectors);
+      } else if (e.data?.type === "valid-selectors" && Array.isArray(e.data.selectors)) {
+        const validSet = new Set(e.data.selectors);
+        const currentNotes = notesRef.current.filter((n) => !n.is_orphan);
+        const missing = currentNotes.map(n => n.dom_selector).filter(s => !validSet.has(s));
+        if (missing.length > 0) {
+          applyOrphans(missing);
+        }
       } else if (e.data?.type === "open-note" && e.data.id) {
         const el = document.getElementById(`note-${e.data.id}`);
         if (el) {
@@ -120,17 +123,25 @@ export default function NotesPanel({ reportVersionId, iframeRef, isReadOnly = fa
     }
   }
 
-  // Comprobación perezosa de huérfanas y renderizado de marcadores estilo Figma
+  // Comprobación de huérfanas (verificando existencia) y renderizado estilo Figma
   function checkOrphans(notesToCheck: Note[]) {
-    const payload = notesToCheck.filter((n) => !n.is_orphan).map((n) => {
+    const activeNotes = notesToCheck.filter((n) => !n.is_orphan);
+    if (activeNotes.length === 0) return;
+
+    const selectors = activeNotes.map(n => n.dom_selector);
+    const askValid = () => iframeRef.current?.contentWindow?.postMessage({ type: "get-valid-selectors", selectors }, "*");
+    askValid();
+    setTimeout(askValid, 1200);
+
+    const payload = activeNotes.map((n) => {
       let initials = "?";
       if (n.profiles?.full_name) {
         initials = n.profiles.full_name.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase();
       }
       return { id: n.id, selector: n.dom_selector, initials };
     });
-    if (payload.length === 0) return;
-    const send = () => iframeRef.current?.contentWindow?.postMessage({ type: "render-notes", notes: payload }, "*");
+    
+    const send = () => iframeRef.current?.contentWindow?.postMessage({ type: "show-all-indicators", notes: payload }, "*");
     send();
     setTimeout(send, 1200);
   }
@@ -144,14 +155,8 @@ export default function NotesPanel({ reportVersionId, iframeRef, isReadOnly = fa
       
       // Indicar al iframe que aplique el marcador visual permanente a esta nueva nota
       if (iframeRef.current?.contentWindow) {
-        let initials = "?";
-        if (newNote.profiles?.full_name) {
-          initials = newNote.profiles.full_name.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase();
-        }
-        iframeRef.current.contentWindow.postMessage({ 
-          type: "render-notes", 
-          notes: [{ id: newNote.id, selector: newNoteTarget, initials }] 
-        }, "*");
+        const allNotes = [...notes, newNote];
+        checkOrphans(allNotes);
       }
       
       setIsCreating(false);

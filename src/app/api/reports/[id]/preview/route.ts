@@ -7,167 +7,136 @@ const DOC_BUCKET = "report-documents";
 const annotateScript = `
 <script>
   (function() {
-    let currentMark = null;
-
-    function getXPath(node) {
-      if (node.id !== '') return 'id("' + node.id + '")';
-      if (node === document.body) return '//BODY';
-      let ix = 0;
-      let siblings = node.parentNode ? node.parentNode.childNodes : [];
-      for (let i = 0; i < siblings.length; i++) {
-        let sibling = siblings[i];
-        if (sibling === node) return getXPath(node.parentNode) + '/' + node.nodeName + '[' + (ix + 1) + ']';
-        if (sibling.nodeType === 1 && sibling.nodeName === node.nodeName) ix++;
+    function getHybridSelector(node) {
+      if (node.id) return '#' + node.id;
+      
+      const attributes = node.attributes;
+      for (let i = 0; i < attributes.length; i++) {
+        const attr = attributes[i];
+        if (attr.name.startsWith('data-')) {
+          const selector = '[' + attr.name + '="' + attr.value + '"]';
+          if (document.querySelectorAll(selector).length === 1) {
+            return selector;
+          }
+        }
       }
+      
+      if (node.tagName.toLowerCase() === 'body') return 'body';
+      let selector = '';
+      let current = node;
+      
+      while (current && current.tagName.toLowerCase() !== 'body') {
+        let index = 1;
+        let sibling = current.previousElementSibling;
+        while (sibling) {
+          if (sibling.tagName === current.tagName) {
+            index++;
+          }
+          sibling = sibling.previousElementSibling;
+        }
+        const part = current.tagName.toLowerCase() + ':nth-of-type(' + index + ')';
+        selector = selector ? part + ' > ' + selector : part;
+        current = current.parentElement;
+      }
+      return 'body > ' + selector;
     }
 
-    function getElementByXPath(path) {
-      return document.evaluate(path, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-    }
-
-    // Intercept clicks to select an element
-    document.body.addEventListener('click', (e) => {
-      // Prevent default actions if clicking a link etc. while annotating
+    document.addEventListener('click', function(e) {
       e.preventDefault();
       e.stopPropagation();
-
-      const target = e.target;
-      // Try to get a stable selector: ID first, then data attributes, fallback to XPath
-      let selector = '';
-      if (target.id) {
-        selector = '#' + target.id;
-      } else if (target.hasAttribute('data-id')) {
-        selector = '[data-id="' + target.getAttribute('data-id') + '"]';
-      } else {
-        selector = getXPath(target);
-      }
-
-      window.parent.postMessage({ type: 'annotate-target', selector }, '*');
-      
-      // Temporary highlight for visual feedback
-      const originalOutline = target.style.outline;
-      target.style.outline = '2px solid #FF7A00';
-      target.style.outlineOffset = '2px';
-      setTimeout(() => {
-        target.style.outline = originalOutline;
-      }, 500);
+      const selector = getHybridSelector(e.target);
+      window.parent.postMessage({ type: 'annotate-click', selector: selector }, '*');
     }, true);
 
-    // Listen for highlight commands from parent
-    window.addEventListener('message', (event) => {
-      const data = event.data;
-      if (!data) return;
-
-      function resolve(selector) {
-        try {
-          if (selector.startsWith('id(') || selector.startsWith('BODY')) return getElementByXPath(selector);
-          return document.querySelector(selector);
-        } catch(e) { return null; }
+    window.addEventListener('message', function(e) {
+      if (e.data.type === 'highlight-note') {
+        document.querySelectorAll('.immoral-note-highlight').forEach(el => el.classList.remove('immoral-note-highlight'));
+        const el = document.querySelector(e.data.selector);
+        if (el) {
+          el.classList.add('immoral-note-highlight');
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
       }
 
-      if (data.type === 'highlight-note' && data.selector) {
-        // Clear previous mark
-        if (currentMark) {
-          currentMark.style.outline = currentMark.dataset.originalOutline || '';
-          currentMark = null;
-        }
-
-        const targetNode = resolve(data.selector);
-        if (targetNode) {
-          targetNode.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          currentMark = targetNode;
-          currentMark.dataset.originalOutline = currentMark.style.outline;
-          currentMark.style.outline = '3px solid rgba(255, 122, 0, 0.8)';
-          currentMark.style.outlineOffset = '2px';
-
-          // Resaltar la burbuja si existe
-          const bubble = document.querySelector('.immoral-annotation-pin[data-note-id="'+data.id+'"]');
-          if (bubble) bubble.style.boxShadow = '0 0 0 4px rgba(255, 122, 0, 0.4)';
-
-          setTimeout(() => {
-            if (currentMark === targetNode) {
-              currentMark.style.outline = currentMark.dataset.originalOutline || '';
-              currentMark = null;
-            }
-            if (bubble) bubble.style.boxShadow = '0 4px 6px rgba(0,0,0,0.3)';
-          }, 3000);
-        } else {
-          window.parent.postMessage({ type: 'note-orphan', selector: data.selector }, '*');
-        }
-      } else if (data.type === 'render-notes' && Array.isArray(data.notes)) {
-        // Limpiar burbujas existentes
-        document.querySelectorAll('.immoral-annotation-pin').forEach(el => el.remove());
-        const missing = [];
-        
-        data.notes.forEach((note) => {
-          const node = resolve(note.selector);
-          if (!node) {
-            missing.push(note.selector);
-          } else {
-            const bubble = document.createElement('div');
-            bubble.className = 'immoral-annotation-pin';
-            bubble.textContent = note.initials || '?';
-            bubble.dataset.noteId = note.id;
-            
-            bubble.style.position = 'absolute';
-            bubble.style.background = '#FF7A00';
-            bubble.style.color = '#fff';
-            bubble.style.borderRadius = '50%';
-            bubble.style.width = '28px';
-            bubble.style.height = '28px';
-            bubble.style.display = 'flex';
-            bubble.style.alignItems = 'center';
-            bubble.style.justifyContent = 'center';
-            bubble.style.fontSize = '11px';
-            bubble.style.fontWeight = 'bold';
-            bubble.style.fontFamily = 'sans-serif';
-            bubble.style.cursor = 'pointer';
-            bubble.style.boxShadow = '0 4px 6px rgba(0,0,0,0.3)';
-            bubble.style.zIndex = '999999';
-            bubble.style.transition = 'transform 0.15s ease';
-            
-            bubble.addEventListener('mouseenter', () => bubble.style.transform = 'scale(1.15)');
-            bubble.addEventListener('mouseleave', () => bubble.style.transform = 'scale(1)');
-            bubble.addEventListener('click', (e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              window.parent.postMessage({ type: 'open-note', id: note.id }, '*');
-            });
-            
-            bubble._updatePos = () => {
-              const rect = node.getBoundingClientRect();
-              bubble.style.top = (rect.top + window.scrollY - 14) + 'px';
-              bubble.style.left = (rect.right + window.scrollX - 14) + 'px';
-            };
-            bubble._updatePos();
-            
-            document.body.appendChild(bubble);
-          }
+      if (e.data.type === 'get-valid-selectors') {
+        const valid = [];
+        e.data.selectors.forEach(sel => {
+          try {
+            if (document.querySelector(sel)) valid.push(sel);
+          } catch(err) {}
         });
-        if (missing.length > 0) {
-          window.parent.postMessage({ type: 'orphan-selectors', selectors: missing }, '*');
-        }
+        window.parent.postMessage({ type: 'valid-selectors', selectors: valid }, '*');
+      }
+
+      if (e.data.type === 'show-all-indicators') {
+        document.querySelectorAll('.immoral-note-badge').forEach(el => el.remove());
+        
+        // Agrupar notas
+        const counts = {};
+        const firstInitials = {};
+        const firstIds = {};
+        
+        e.data.notes.forEach(function(note) {
+          if (!counts[note.selector]) {
+            counts[note.selector] = 0;
+            firstInitials[note.selector] = note.initials || '?';
+            firstIds[note.selector] = note.id;
+          }
+          counts[note.selector]++;
+        });
+        
+        Object.keys(counts).forEach(function(sel) {
+          try {
+            var el = document.querySelector(sel);
+            if (el) {
+              var badge = document.createElement('span');
+              badge.className = 'immoral-note-badge';
+              
+              if (counts[sel] > 1) {
+                badge.textContent = firstInitials[sel] + '+';
+                badge.classList.add('immoral-note-multiple');
+              } else {
+                badge.textContent = firstInitials[sel];
+                badge.classList.add('immoral-note-single');
+              }
+              
+              badge.addEventListener('click', function(ev) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                window.parent.postMessage({ type: 'open-note', id: firstIds[sel] }, '*');
+              });
+
+              let target = el;
+              if (['img', 'input', 'br', 'hr', 'col', 'meta', 'link'].includes(el.tagName.toLowerCase())) {
+                target = el.parentElement || document.body;
+              }
+              
+              const currentPos = window.getComputedStyle(target).position;
+              if (currentPos === 'static') {
+                target.style.position = 'relative';
+              }
+              
+              target.appendChild(badge);
+            }
+          } catch(err) {}
+        });
       }
     });
 
-    // Actualización global en scroll/resize/reflow
-    function updateAllBubbles() {
-      document.querySelectorAll('.immoral-annotation-pin').forEach(el => {
-        if (typeof el._updatePos === 'function') el._updatePos();
-      });
-    }
-    window.addEventListener('scroll', updateAllBubbles, true);
-    window.addEventListener('resize', updateAllBubbles);
-    
-    // ResizeObserver atrapa reflows producidos por lazy loading de imágenes
-    const ro = new ResizeObserver(() => updateAllBubbles());
-    ro.observe(document.body);
+    const style = document.createElement('style');
+    style.innerHTML = [
+      '.immoral-note-highlight { outline: 3px solid #FF7A00 !important; outline-offset: 2px; }',
+      '.immoral-note-badge { position: absolute !important; top: -14px !important; right: -14px !important; background: #FF7A00 !important; color: #fff !important; z-index: 999999 !important; pointer-events: auto !important; cursor: pointer !important; font-family: sans-serif !important; box-shadow: 0 4px 6px rgba(0,0,0,0.3) !important; display: flex !important; align-items: center !important; justify-content: center !important; transition: transform 0.15s ease !important; }',
+      '.immoral-note-badge:hover { transform: scale(1.15) !important; }',
+      '.immoral-note-single { width: 28px !important; height: 28px !important; border-radius: 50% !important; font-size: 11px !important; font-weight: bold !important; }',
+      '.immoral-note-multiple { min-width: 32px !important; height: 28px !important; padding: 0 4px !important; border-radius: 14px !important; font-size: 11px !important; font-weight: bold !important; }'
+    ].join(' ');
+    document.head.appendChild(style);
 
-    // Add visual cue that we are in annotation mode
     document.body.style.cursor = 'crosshair';
   })();
 </script>
-`;
+\`;
 
 export async function GET(
   request: Request,
