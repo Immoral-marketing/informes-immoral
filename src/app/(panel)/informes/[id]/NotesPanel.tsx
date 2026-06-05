@@ -87,6 +87,15 @@ export default function NotesPanel({ reportVersionId, iframeRef, isReadOnly = fa
         applyOrphans([e.data.selector]);
       } else if (e.data?.type === "orphan-selectors" && Array.isArray(e.data.selectors)) {
         applyOrphans(e.data.selectors);
+      } else if (e.data?.type === "open-note" && e.data.id) {
+        const el = document.getElementById(`note-${e.data.id}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          el.classList.add("ring-2", "ring-primary", "ring-offset-2", "ring-offset-[#1a1a1a]");
+          setTimeout(() => {
+            el.classList.remove("ring-2", "ring-primary", "ring-offset-2", "ring-offset-[#1a1a1a]");
+          }, 2000);
+        }
       }
     };
 
@@ -111,13 +120,17 @@ export default function NotesPanel({ reportVersionId, iframeRef, isReadOnly = fa
     }
   }
 
-  // Comprobación perezosa de huérfanas: pide al iframe que verifique los selectores.
-  // El iframe responde con un mensaje 'orphan-selectors' que captura el listener.
+  // Comprobación perezosa de huérfanas y renderizado de marcadores estilo Figma
   function checkOrphans(notesToCheck: Note[]) {
-    const selectors = notesToCheck.filter((n) => !n.is_orphan).map((n) => n.dom_selector);
-    if (selectors.length === 0) return;
-    // El iframe puede no haber cargado aún; reintentar con un pequeño retardo.
-    const send = () => iframeRef.current?.contentWindow?.postMessage({ type: "check-selectors", selectors }, "*");
+    const payload = notesToCheck.filter((n) => !n.is_orphan).map((n) => {
+      let initials = "?";
+      if (n.profiles?.full_name) {
+        initials = n.profiles.full_name.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase();
+      }
+      return { id: n.id, selector: n.dom_selector, initials };
+    });
+    if (payload.length === 0) return;
+    const send = () => iframeRef.current?.contentWindow?.postMessage({ type: "render-notes", notes: payload }, "*");
     send();
     setTimeout(send, 1200);
   }
@@ -131,7 +144,14 @@ export default function NotesPanel({ reportVersionId, iframeRef, isReadOnly = fa
       
       // Indicar al iframe que aplique el marcador visual permanente a esta nueva nota
       if (iframeRef.current?.contentWindow) {
-        iframeRef.current.contentWindow.postMessage({ type: "check-selectors", selectors: [newNoteTarget] }, "*");
+        let initials = "?";
+        if (newNote.profiles?.full_name) {
+          initials = newNote.profiles.full_name.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase();
+        }
+        iframeRef.current.contentWindow.postMessage({ 
+          type: "render-notes", 
+          notes: [{ id: newNote.id, selector: newNoteTarget, initials }] 
+        }, "*");
       }
       
       setIsCreating(false);
@@ -337,7 +357,8 @@ function NoteCard({
 }: any) {
   return (
     <div 
-      className="bg-white/5 rounded-lg border border-white/5 p-3 hover:border-white/20 transition-colors cursor-pointer group"
+      id={`note-${note.id}`}
+      className="bg-white/5 rounded-lg border border-white/5 p-3 hover:border-white/20 transition-all cursor-pointer group"
       onClick={(e) => {
         // Prevent click if clicking buttons or if editing
         if ((e.target as HTMLElement).closest('button') || isEditing) return;

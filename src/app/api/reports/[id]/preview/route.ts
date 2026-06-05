@@ -80,28 +80,68 @@ const annotateScript = `
           currentMark.style.outline = '3px solid rgba(255, 122, 0, 0.8)';
           currentMark.style.outlineOffset = '2px';
 
+          // Resaltar la burbuja si existe
+          const bubble = document.querySelector('.immoral-annotation-pin[data-note-id="'+data.id+'"]');
+          if (bubble) bubble.style.boxShadow = '0 0 0 4px rgba(255, 122, 0, 0.4)';
+
           setTimeout(() => {
             if (currentMark === targetNode) {
               currentMark.style.outline = currentMark.dataset.originalOutline || '';
               currentMark = null;
             }
+            if (bubble) bubble.style.boxShadow = '0 4px 6px rgba(0,0,0,0.3)';
           }, 3000);
         } else {
-          // Ancla rota: avisar al panel para marcar la nota como huérfana
           window.parent.postMessage({ type: 'note-orphan', selector: data.selector }, '*');
         }
-      } else if (data.type === 'check-selectors' && Array.isArray(data.selectors)) {
+      } else if (data.type === 'render-notes' && Array.isArray(data.notes)) {
+        // Limpiar burbujas existentes
+        document.querySelectorAll('.immoral-annotation-pin').forEach(el => el.remove());
         const missing = [];
-        data.selectors.forEach((sel) => {
-          const node = resolve(sel);
+        
+        data.notes.forEach((note) => {
+          const node = resolve(note.selector);
           if (!node) {
-            missing.push(sel);
+            missing.push(note.selector);
           } else {
-            if (!node.dataset.hasNote) {
-              node.dataset.hasNote = 'true';
-              node.style.outline = '2px dashed rgba(255, 122, 0, 0.6)';
-              node.style.outlineOffset = '4px';
-            }
+            const bubble = document.createElement('div');
+            bubble.className = 'immoral-annotation-pin';
+            bubble.textContent = note.initials || '?';
+            bubble.dataset.noteId = note.id;
+            
+            bubble.style.position = 'absolute';
+            bubble.style.background = '#FF7A00';
+            bubble.style.color = '#fff';
+            bubble.style.borderRadius = '50%';
+            bubble.style.width = '28px';
+            bubble.style.height = '28px';
+            bubble.style.display = 'flex';
+            bubble.style.alignItems = 'center';
+            bubble.style.justifyContent = 'center';
+            bubble.style.fontSize = '11px';
+            bubble.style.fontWeight = 'bold';
+            bubble.style.fontFamily = 'sans-serif';
+            bubble.style.cursor = 'pointer';
+            bubble.style.boxShadow = '0 4px 6px rgba(0,0,0,0.3)';
+            bubble.style.zIndex = '999999';
+            bubble.style.transition = 'transform 0.15s ease';
+            
+            bubble.addEventListener('mouseenter', () => bubble.style.transform = 'scale(1.15)');
+            bubble.addEventListener('mouseleave', () => bubble.style.transform = 'scale(1)');
+            bubble.addEventListener('click', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              window.parent.postMessage({ type: 'open-note', id: note.id }, '*');
+            });
+            
+            bubble._updatePos = () => {
+              const rect = node.getBoundingClientRect();
+              bubble.style.top = (rect.top + window.scrollY - 14) + 'px';
+              bubble.style.left = (rect.right + window.scrollX - 14) + 'px';
+            };
+            bubble._updatePos();
+            
+            document.body.appendChild(bubble);
           }
         });
         if (missing.length > 0) {
@@ -109,6 +149,19 @@ const annotateScript = `
         }
       }
     });
+
+    // Actualización global en scroll/resize/reflow
+    function updateAllBubbles() {
+      document.querySelectorAll('.immoral-annotation-pin').forEach(el => {
+        if (typeof el._updatePos === 'function') el._updatePos();
+      });
+    }
+    window.addEventListener('scroll', updateAllBubbles, true);
+    window.addEventListener('resize', updateAllBubbles);
+    
+    // ResizeObserver atrapa reflows producidos por lazy loading de imágenes
+    const ro = new ResizeObserver(() => updateAllBubbles());
+    ro.observe(document.body);
 
     // Add visual cue that we are in annotation mode
     document.body.style.cursor = 'crosshair';
