@@ -203,6 +203,7 @@ informes-immoral/
 | [26-ux-polish-navbar-toolbar](specs/26-ux-polish-navbar-toolbar.md) | Navbar/logos más grandes + toolbar de gestión de informe descongestionada (título no cortado) | 1 | implementada |
 | [27-attachments-and-report-access](specs/27-attachments-and-report-access.md) | Pegar PIN + validación/refresco de adjuntos + versión vigente forzada + modal Drive co-branded del cliente | 2 | implementada |
 | [28-annotate-fix-and-clients-search](specs/28-annotate-fix-and-clients-search.md) | Fix Anotar (RLS recursiva en join con profiles, loader, overlay) + buscador y paginación de clientes | 3 | implementada |
+| [29-space-screen-and-annotate-drawer](specs/29-space-screen-and-annotate-drawer.md) | Pantalla de espacio (contacto responsive, filtro/paginación informes) + drawer lateral de Anotar | 2 | draft |
 | 08-client-feedback | Comentarios anclados cliente↔empleado (NO implementado por 20; sigue futuro) | 2 | pendiente |
 | 09-presentation-mode | Modo presentación sincronizado (implementado por la spec 19) | 3 | reemplazada por 19 |
 | 10-notifications | Notificaciones in-app + email | 2 | pendiente |
