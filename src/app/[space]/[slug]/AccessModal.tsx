@@ -47,7 +47,7 @@ export default function AccessModal({
     
     const nextPin = [...pin];
     for (let i = 0; i < pasted.length && idx + i < 4; i++) {
-      nextPin[idx + i] = pasted[i];
+      nextPin[idx + i] = pasted[i] ?? "";
     }
     setPin(nextPin);
     
