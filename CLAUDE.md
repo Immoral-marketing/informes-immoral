@@ -200,6 +200,9 @@ informes-immoral/
 | [23-creation-flows-and-nav](specs/23-creation-flows-and-nav.md) | Flujos de creación rápida (cliente+vertical, informe con autocompletar) + navegación (enlaces navbar + breadcrumbs) | 1 | draft |
 | [24-vertical-screen](specs/24-vertical-screen.md) | Pantalla de vertical: logo moderado + tabla de clientes filtrable + "Agregar cliente a esta vertical" | 2 | draft |
 | [25-client-logo](specs/25-client-logo.md) | Logo de cliente + co-branding Immoral × cliente (viewer público, transiciones, lista/espacio) | 3 | aprobada |
+| [26-ux-polish-navbar-toolbar](specs/26-ux-polish-navbar-toolbar.md) | Navbar/logos más grandes + toolbar de gestión de informe descongestionada (título no cortado) | 1 | implementada |
+| [27-attachments-and-report-access](specs/27-attachments-and-report-access.md) | Pegar PIN + validación/refresco de adjuntos + versión vigente forzada + modal Drive co-branded del cliente | 2 | implementada |
+| [28-annotate-fix-and-clients-search](specs/28-annotate-fix-and-clients-search.md) | Fix Anotar (RLS recursiva en join con profiles, loader, overlay) + buscador y paginación de clientes | 3 | implementada |
 | 08-client-feedback | Comentarios anclados cliente↔empleado (NO implementado por 20; sigue futuro) | 2 | pendiente |
 | 09-presentation-mode | Modo presentación sincronizado (implementado por la spec 19) | 3 | reemplazada por 19 |
 | 10-notifications | Notificaciones in-app + email | 2 | pendiente |

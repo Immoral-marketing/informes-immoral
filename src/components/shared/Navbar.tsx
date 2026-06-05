@@ -43,9 +43,9 @@ export default function Navbar({ userEmail, userName, userRole }: NavbarProps) {
 
   return (
     <header className="border-b border-border bg-card">
-      <div className="container mx-auto max-w-[1400px] px-4 sm:px-8 h-16 flex items-center justify-between">
+      <div className="container mx-auto max-w-[1400px] px-4 sm:px-8 h-20 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
-          <Image src="/immoral-logo-negro.png" alt="Immoral" width={140} height={38} className="dark:invert object-contain" />
+          <Image src="/immoral-logo-negro.png" alt="Immoral" width={182} height={50} className="dark:invert object-contain" />
           <span className="text-xs font-medium hidden sm:block text-muted-foreground">Informes</span>
         </Link>
 
@@ -94,8 +94,8 @@ export default function Navbar({ userEmail, userName, userRole }: NavbarProps) {
           {/* User menu */}
           <DropdownMenu>
             <DropdownMenuTrigger className="outline-none">
-              <Avatar className="w-8 h-8 cursor-pointer">
-                <AvatarFallback className="bg-primary text-primary-foreground font-bold text-xs">
+              <Avatar className="w-9 h-9 cursor-pointer">
+                <AvatarFallback className="bg-primary text-primary-foreground font-bold text-sm">
                   {initial}
                 </AvatarFallback>
               </Avatar>

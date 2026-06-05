@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
   const r = report as { current_version: number } | null;
   if (!r) return new NextResponse("Not found", { status: 404 });
 
-  const version = versionParam ? parseInt(versionParam, 10) : r.current_version;
+  const version = r.current_version;
 
   const { data: reportVersion } = await supabaseAdmin
     .from("report_versions")

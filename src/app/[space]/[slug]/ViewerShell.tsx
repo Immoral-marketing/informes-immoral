@@ -5,6 +5,7 @@ import Image from "next/image";
 import { CoBrandLockup } from "@/components/shared/CoBrandLockup";
 import AccessModal from "./AccessModal";
 import PdfViewer from "./PdfViewer";
+import AttachmentsModal from "./AttachmentsModal";
 
 interface Attachment {
   id: string;
@@ -121,28 +122,6 @@ export default function ViewerShell({
             >
               📎 {report.attachments.length} adjunto{report.attachments.length !== 1 ? "s" : ""}
             </button>
-            {showAttachments && (
-              <div
-                className="absolute right-0 top-10 rounded-xl shadow-xl w-64 py-1 z-50"
-                style={{ backgroundColor: "#1c1c1c", border: "1px solid #2e2e2e" }}
-              >
-                {report.attachments.map((a) => (
-                  <a
-                    key={a.id}
-                    href={`/api/reports/attachments/${a.id}`}
-                    download={a.filename}
-                    className="flex items-center gap-3 px-4 py-2.5 transition-colors"
-                    style={{ color: "#D8D8D8" }}
-                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#242424"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
-                    onClick={() => setShowAttachments(false)}
-                  >
-                    <span className="text-sm text-white truncate flex-1">{a.filename}</span>
-                    <span className="text-xs shrink-0" style={{ color: "#5E5E5E" }}>{(a.size_bytes / 1024).toFixed(0)} KB</span>
-                  </a>
-                ))}
-              </div>
-            )}
           </div>
         )}
       </header>
@@ -193,6 +172,15 @@ export default function ViewerShell({
           />
         )}
       </main>
+
+      {showAttachments && (
+        <AttachmentsModal 
+          attachments={report.attachments}
+          clientLogoUrl={report.client_logo_signed_url}
+          clientName={report.client_name}
+          onClose={() => setShowAttachments(false)}
+        />
+      )}
     </div>
   );
 }

@@ -173,10 +173,7 @@ export default function NotesPanel({ reportVersionId, iframeRef, isReadOnly = fa
     }
   }
 
-  if (loading) {
-    return <div className="p-4 flex justify-center"><BrandLoader variant="dark" /></div>;
-  }
-
+  // Eliminado early return de loading para mantener el encabezado visible
   const normalNotes = notes.filter(n => !n.is_orphan);
   const orphanNotes = notes.filter(n => n.is_orphan);
 
@@ -188,13 +185,19 @@ export default function NotesPanel({ reportVersionId, iframeRef, isReadOnly = fa
       </div>
 
       <div className="p-4 space-y-4 flex-1">
-        {!isReadOnly && notes.length === 0 && !isCreating && (
-          <div className="text-center py-8 text-white/40">
-            <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No hay notas en esta versión.</p>
-            <p className="text-xs mt-1">Activa el modo "Anotar" y haz clic en el informe para crear una.</p>
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <BrandLoader variant="dark" />
           </div>
-        )}
+        ) : (
+          <>
+            {!isReadOnly && notes.length === 0 && !isCreating && (
+              <div className="text-center py-8 text-white/40">
+                <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No hay notas en esta versión.</p>
+                <p className="text-xs mt-1">Activa el modo "Anotar" y haz clic en el informe para crear una.</p>
+              </div>
+            )}
 
         {isCreating && (
           <div className="bg-white/5 p-3 rounded-lg border border-primary/30 shadow-lg">
@@ -259,6 +262,8 @@ export default function NotesPanel({ reportVersionId, iframeRef, isReadOnly = fa
               ))}
             </div>
           </div>
+        )}
+        </>
         )}
       </div>
 

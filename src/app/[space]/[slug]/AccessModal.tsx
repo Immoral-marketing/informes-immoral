@@ -40,6 +40,21 @@ export default function AccessModal({
     if (!digit && idx > 0) inputs[idx - 1]?.current?.focus();
   }
 
+  function handlePaste(idx: number, e: React.ClipboardEvent<HTMLInputElement>) {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "");
+    if (!pasted) return;
+    
+    const nextPin = [...pin];
+    for (let i = 0; i < pasted.length && idx + i < 4; i++) {
+      nextPin[idx + i] = pasted[i];
+    }
+    setPin(nextPin);
+    
+    const nextIdx = Math.min(idx + pasted.length, 3);
+    inputs[nextIdx]?.current?.focus();
+  }
+
   function handlePinKeyDown(idx: number, e: React.KeyboardEvent) {
     if (e.key === "Backspace" && !pin[idx] && idx > 0) {
       inputs[idx - 1]?.current?.focus();
@@ -143,6 +158,7 @@ export default function AccessModal({
                   value={digit}
                   onChange={(e) => handlePinChange(idx, e.target.value)}
                   onKeyDown={(e) => handlePinKeyDown(idx, e)}
+                  onPaste={(e) => handlePaste(idx, e)}
                   className="w-14 h-14 text-center text-2xl font-bold text-white rounded-xl outline-none transition-all"
                   style={{ backgroundColor: "#242424", border: "1px solid #3a3a3a" }}
                   onFocus={(e) => { e.currentTarget.style.borderColor = "var(--brand)"; }}

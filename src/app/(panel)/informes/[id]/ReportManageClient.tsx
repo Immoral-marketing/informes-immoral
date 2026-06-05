@@ -61,6 +61,7 @@ export default function ReportManageClient({
   currentUserId: string; isAdmin: boolean;
 }) {
   const [atts, setAtts] = useState(attachments);
+  const [isUploadingAtt, setIsUploadingAtt] = useState(false);
   const [previewVersion, setPreviewVersion] = useState<Version | null>(
     versions.find((v) => v.version_number === report.current_version) ?? null
   );
@@ -146,14 +147,19 @@ export default function ReportManageClient({
   function handleAddAttachment(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setIsUploadingAtt(true);
     startTransition(async () => {
       const fd = new FormData();
       fd.append("file", file);
       const result = await addAttachment(report.id, fd);
-      if ("error" in result) toast.error(result.error);
-      else {
+      setIsUploadingAtt(false);
+      if ("error" in result) {
+        toast.error(result.error);
+      } else {
         toast.success("Adjunto subido");
-        router.refresh();
+        if (result.attachment) {
+          setAtts((prev) => [...prev, result.attachment as unknown as Attachment]);
+        }
       }
     });
   }
@@ -226,10 +232,10 @@ export default function ReportManageClient({
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <section className="bg-card rounded-2xl border border-border p-6 flex flex-col md:flex-row md:items-start justify-between gap-4">
+      <section className="bg-card rounded-2xl border border-border p-6 flex flex-col xl:flex-row xl:items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-extrabold text-foreground truncate">{report.name}</h1>
+            <h1 className="text-2xl font-extrabold text-foreground truncate" title={report.name}>{report.name}</h1>
             <span className="text-xs font-semibold bg-muted text-muted-foreground rounded-full px-3 py-1 whitespace-nowrap">
               v{report.current_version} · {activeVersion?.format?.toUpperCase()}
             </span>
@@ -241,7 +247,7 @@ export default function ReportManageClient({
             </button>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           {canEdit && (
             <Button variant="outline" size="sm" onClick={() => docFileRef.current?.click()} disabled={isPending}>
               <Upload className="w-4 h-4 mr-1.5" />
@@ -282,7 +288,7 @@ export default function ReportManageClient({
         <input ref={docFileRef} type="file" accept=".pdf,.html,application/pdf,text/html" className="hidden" onChange={handleNewVersion} />
       </section>
 
-      <div className={`grid grid-cols-1 ${isAnnotateMode ? "lg:grid-cols-[300px_1fr_300px]" : "lg:grid-cols-[300px_1fr]"} gap-6 items-start transition-all`}>
+      <div className={`grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 items-start transition-all`}>
         {/* Sidebar Left: Config & History */}
         <div className="flex flex-col gap-6">
           {canEdit && (
@@ -373,14 +379,19 @@ export default function ReportManageClient({
               {canEdit && (
                 <button
                   onClick={() => attFileRef.current?.click()}
-                  disabled={isPending}
+                  disabled={isPending || isUploadingAtt}
                   className="text-xs text-primary hover:underline disabled:opacity-40"
                 >
-                  + Añadir
+                  {isUploadingAtt ? "Subiendo…" : "+ Añadir"}
                 </button>
               )}
             </div>
-            <input ref={attFileRef} type="file" className="hidden" onChange={handleAddAttachment} />
+            {canEdit && (
+              <p className="text-[10px] text-muted-foreground mt-[-10px]">
+                PDF, Word, Excel, PowerPoint, PNG, JPG, ZIP. Máx 25 MB.
+              </p>
+            )}
+            <input ref={attFileRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.zip" className="hidden" onChange={handleAddAttachment} />
             {atts.length === 0 ? (
               <p className="text-sm text-muted-foreground">No hay adjuntos.</p>
             ) : (
@@ -452,19 +463,19 @@ export default function ReportManageClient({
                 </div>
               )}
             </div>
+            
+            {/* Overlay Panel: Notes */}
+            {isAnnotateMode && previewVersion && (
+              <div className="absolute top-0 right-0 h-full w-[320px] max-w-full z-10 shadow-2xl rounded-r-xl border-l border-border overflow-hidden bg-card transition-all">
+                <NotesPanel 
+                  reportVersionId={previewVersion.id}
+                  iframeRef={iframeRef}
+                  currentUserId={currentUserId}
+                />
+              </div>
+            )}
           </div>
         </section>
-
-        {/* Notes Panel (Right) */}
-        {isAnnotateMode && previewVersion && (
-          <section className="bg-card rounded-2xl border border-border overflow-hidden h-[75vh] min-h-[600px] flex flex-col">
-            <NotesPanel 
-              reportVersionId={previewVersion.id}
-              iframeRef={iframeRef}
-              currentUserId={currentUserId}
-            />
-          </section>
-        )}
       </div>
 
       {showSendModal && (

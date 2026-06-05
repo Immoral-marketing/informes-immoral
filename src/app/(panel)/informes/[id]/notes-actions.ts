@@ -28,7 +28,13 @@ export async function getNotes(reportVersionId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No autorizado");
 
-  const { data: notes, error } = await supabase
+  const supabaseAdmin = createAdminClient();
+
+  if (!(await managesVersion(supabaseAdmin, user.id, reportVersionId))) {
+    throw new Error("Sin permiso para leer notas de este informe");
+  }
+
+  const { data: notes, error } = await supabaseAdmin
     .from("report_notes")
     .select("*, profiles!report_notes_created_by_fkey(full_name)")
     .eq("report_version_id", reportVersionId)
@@ -177,7 +183,16 @@ export async function getNoteHistory(noteId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No autorizado");
 
-  const { data: logs, error } = await supabase
+  const supabaseAdmin = createAdminClient();
+
+  const { data: noteRow } = await supabaseAdmin
+    .from("report_notes").select("report_version_id").eq("id", noteId).single();
+  const nr = noteRow as { report_version_id: string } | null;
+  if (!nr || !(await managesVersion(supabaseAdmin, user.id, nr.report_version_id))) {
+    throw new Error("Sin permiso");
+  }
+
+  const { data: logs, error } = await supabaseAdmin
     .from("report_note_logs")
     .select("*, profiles!report_note_logs_performed_by_fkey(full_name)")
     .eq("note_id", noteId)

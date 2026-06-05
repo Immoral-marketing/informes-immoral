@@ -13,6 +13,16 @@ const ATT_BUCKET = "report-attachments";
 const MAX_SIZE = 50 * 1024 * 1024; // 50MB
 const ALLOWED_MIME = ["application/pdf", "text/html"];
 
+const ATT_MAX_SIZE = 25 * 1024 * 1024; // 25MB
+const ATT_ALLOWED_MIME = [
+  "application/pdf", 
+  "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "image/png", "image/jpeg", "image/jpg", 
+  "application/zip", "application/x-zip-compressed"
+];
+
 // ─── Auth helpers ────────────────────────────────────────────────────────────
 
 async function getUser() {
@@ -375,28 +385,51 @@ export async function addAttachment(reportId: string, formData: FormData) {
 
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) return { error: "El archivo es obligatorio" };
-  if (file.size > MAX_SIZE) return { error: "El archivo no puede superar 50MB" };
+  
+  const fileExt = file.name.split('.').pop()?.toLowerCase();
+  let mimeType = file.type;
+  if (!mimeType || mimeType === "application/octet-stream") {
+    if (fileExt === "pdf") mimeType = "application/pdf";
+    else if (fileExt === "doc") mimeType = "application/msword";
+    else if (fileExt === "docx") mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    else if (fileExt === "xls") mimeType = "application/vnd.ms-excel";
+    else if (fileExt === "xlsx") mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    else if (fileExt === "ppt") mimeType = "application/vnd.ms-powerpoint";
+    else if (fileExt === "pptx") mimeType = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+    else if (fileExt === "png") mimeType = "image/png";
+    else if (fileExt === "jpg" || fileExt === "jpeg") mimeType = "image/jpeg";
+    else if (fileExt === "zip") mimeType = "application/zip";
+  }
+
+  if (!ATT_ALLOWED_MIME.includes(mimeType)) {
+    return { error: "Tipo de archivo no permitido" };
+  }
+  if (file.size > ATT_MAX_SIZE) {
+    return { error: "El archivo no puede superar 25 MB" };
+  }
 
   const path = `${Date.now()}-${generateSessionToken().slice(0, 8)}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
   const bytes = await file.arrayBuffer();
-  const { error: uploadError } = await perm.supabaseAdmin.storage.from(ATT_BUCKET).upload(path, bytes, { contentType: file.type });
+  const { error: uploadError } = await perm.supabaseAdmin.storage.from(ATT_BUCKET).upload(path, bytes, { contentType: mimeType });
   if (uploadError) return { error: "Error al subir el adjunto" };
 
-  const { error } = await perm.supabaseAdmin.from("report_attachments").insert({
+  const { data: attData, error } = await perm.supabaseAdmin.from("report_attachments").insert({
     report_id: reportId,
     filename: file.name,
-    mime_type: file.type,
+    mime_type: mimeType,
     storage_path: path,
     size_bytes: file.size,
     created_by: perm.user.id,
-  });
+  }).select("id, filename, mime_type, storage_path, size_bytes, created_at").single();
 
-  if (error) {
+  if (error || !attData) {
     await perm.supabaseAdmin.storage.from(ATT_BUCKET).remove([path]);
     return { error: "Error al guardar el adjunto" };
   }
 
-  return { success: true };
+  const signed_url = await getSignedAttachmentUrl(path);
+
+  return { success: true, attachment: { ...attData, signed_url } };
 }
 
 export async function deleteAttachment(attachmentId: string, reportId: string) {
