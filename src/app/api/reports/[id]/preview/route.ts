@@ -136,7 +136,7 @@ const annotateScript = `
     document.body.style.cursor = 'crosshair';
   })();
 </script>
-\`;
+`;
 
 export async function GET(
   request: Request,
