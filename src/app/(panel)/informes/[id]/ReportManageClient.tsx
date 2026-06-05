@@ -489,7 +489,6 @@ export default function ReportManageClient({
           </div>
         </section>
       </div>
-      </div>
 
       {/* Drawer Overlay */}
       {isAnnotateMode && (
