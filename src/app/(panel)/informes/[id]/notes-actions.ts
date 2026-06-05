@@ -88,7 +88,7 @@ export async function updateNote(noteId: string, content: string) {
 
   const supabaseAdmin = createAdminClient();
 
-  const { data: oldNote, error: fetchError } = await supabase
+  const { data: oldNote, error: fetchError } = await supabaseAdmin
     .from("report_notes")
     .select("content, created_by")
     .eq("id", noteId)
@@ -126,7 +126,7 @@ export async function deleteNote(noteId: string) {
 
   const supabaseAdmin = createAdminClient();
 
-  const { data: oldNote, error: fetchError } = await supabase
+  const { data: oldNote, error: fetchError } = await supabaseAdmin
     .from("report_notes")
     .select("created_by")
     .eq("id", noteId)

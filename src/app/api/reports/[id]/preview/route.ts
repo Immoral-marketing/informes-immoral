@@ -11,7 +11,7 @@ const annotateScript = `
 
     function getXPath(node) {
       if (node.id !== '') return 'id("' + node.id + '")';
-      if (node === document.body) return node.nodeName;
+      if (node === document.body) return '//BODY';
       let ix = 0;
       let siblings = node.parentNode ? node.parentNode.childNodes : [];
       for (let i = 0; i < siblings.length; i++) {
