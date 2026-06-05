@@ -186,8 +186,10 @@ export default function NotesPanel({ reportVersionId, iframeRef, isReadOnly = fa
 
       <div className="p-4 space-y-4 flex-1">
         {loading ? (
-          <div className="flex justify-center py-12">
-            <BrandLoader variant="dark" />
+          <div className="flex flex-col gap-3 py-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-24 rounded-xl bg-white/5 animate-pulse" />
+            ))}
           </div>
         ) : (
           <>

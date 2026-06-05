@@ -255,7 +255,7 @@ export default function ReportManageClient({
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <section className="bg-card rounded-2xl border border-border p-6 flex flex-col xl:flex-row xl:items-start justify-between gap-4">
+      <section className="bg-card rounded-2xl border border-border p-6 flex flex-col gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-extrabold text-foreground truncate" title={report.name}>{report.name}</h1>
@@ -490,18 +490,10 @@ export default function ReportManageClient({
         </section>
       </div>
 
-      {/* Drawer Overlay */}
-      {isAnnotateMode && (
-        <div 
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity" 
-          onClick={() => setIsAnnotateMode(false)} 
-        />
-      )}
-
       {/* Drawer */}
       <div 
-        className={`fixed right-0 top-0 h-full w-[360px] max-w-full z-50 bg-card shadow-2xl border-l border-border transition-transform duration-300 ease-in-out ${
-          isAnnotateMode ? "translate-x-0" : "translate-x-full"
+        className={`fixed left-0 top-0 h-full w-[360px] max-w-full z-50 bg-card shadow-2xl border-r border-border transition-transform duration-300 ease-in-out ${
+          isAnnotateMode ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {isAnnotateMode && previewVersion && (
