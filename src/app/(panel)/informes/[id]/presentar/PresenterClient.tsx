@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { startPresentation, endPresentation } from "../presentation-actions";
 import { createBrowserClient } from "@supabase/ssr";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Eye, Users, Copy, Square, Link as LinkIcon, Monitor, Smartphone, Tablet } from "lucide-react";
 import BrandLoader from "@/components/shared/BrandLoader";
 import PdfViewer from "@/app/[space]/[slug]/PdfViewer";
@@ -30,6 +34,7 @@ export default function PresenterClient({
   const [viewersCount, setViewersCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isEnding, setIsEnding] = useState(false);
+  const [showEndDialog, setShowEndDialog] = useState(false);
   const [previewWidth, setPreviewWidth] = useState<"375px" | "768px" | "100%">("100%");
   
   const router = useRouter();
@@ -126,8 +131,10 @@ export default function PresenterClient({
     });
   };
 
-  const handleEnd = async () => {
-    if (!confirm("¿Terminar la presentación para todos los espectadores?")) return;
+  const handleEnd = () => setShowEndDialog(true);
+
+  const confirmEnd = async () => {
+    setShowEndDialog(false);
     setIsEnding(true);
     
     channelRef.current?.send({
@@ -250,6 +257,22 @@ export default function PresenterClient({
           />
         </div>
       </div>
+      <AlertDialog open={showEndDialog} onOpenChange={setShowEndDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Terminar la presentación?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Todos los espectadores conectados serán desconectados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmEnd} className="bg-destructive hover:bg-destructive/90">
+              Terminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

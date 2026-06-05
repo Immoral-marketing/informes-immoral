@@ -2,6 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { addDomain, deleteDomain } from "./actions";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Domain {
   id: string;
@@ -20,6 +24,7 @@ export default function DomainManager({ domains: initial, currentUserDomain }: D
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isPendingAdd, startAdd] = useTransition();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [domainToDelete, setDomainToDelete] = useState<Domain | null>(null);
 
   function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -39,8 +44,14 @@ export default function DomainManager({ domains: initial, currentUserDomain }: D
     });
   }
 
-  function handleDelete(id: string, domain: string) {
-    if (!confirm(`¿Seguro? Los empleados con @${domain} no podrán iniciar sesión de nuevo.`)) return;
+  function handleDelete(d: Domain) {
+    setDomainToDelete(d);
+  }
+
+  function confirmDelete() {
+    if (!domainToDelete) return;
+    const { id } = domainToDelete;
+    setDomainToDelete(null);
     setDeletingId(id);
     deleteDomain(id).then((result) => {
       setDeletingId(null);
@@ -67,7 +78,7 @@ export default function DomainManager({ domains: initial, currentUserDomain }: D
             <span className="text-sm font-medium text-foreground">@{d.domain}</span>
             {d.domain !== currentUserDomain && (
               <button
-                onClick={() => handleDelete(d.id, d.domain)}
+                onClick={() => handleDelete(d)}
                 disabled={deletingId === d.id}
                 className="text-xs text-destructive hover:text-destructive/80 disabled:opacity-40 transition-colors"
               >
@@ -95,6 +106,23 @@ export default function DomainManager({ domains: initial, currentUserDomain }: D
           {isPendingAdd ? "Añadiendo…" : "Añadir"}
         </button>
       </form>
+
+      <AlertDialog open={!!domainToDelete} onOpenChange={(o) => { if (!o) setDomainToDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar dominio?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Los empleados con @{domainToDelete?.domain} no podrán iniciar sesión de nuevo.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }

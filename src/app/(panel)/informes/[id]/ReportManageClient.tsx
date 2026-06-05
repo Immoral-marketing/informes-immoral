@@ -78,6 +78,10 @@ export default function ReportManageClient({
   const [showSendModal, setShowSendModal] = useState(false);
   const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showDeleteAttDialog, setShowDeleteAttDialog] = useState(false);
+  const [attToDelete, setAttToDelete] = useState<Attachment | null>(null);
+  const [showCopyNotesDialog, setShowCopyNotesDialog] = useState(false);
+  const [pendingVersionFile, setPendingVersionFile] = useState<File | null>(null);
   const [pinModal, setPinModal] = useState<string | null>(null);
 
   const [isPending, startTransition] = useTransition();
@@ -126,14 +130,20 @@ export default function ReportManageClient({
   function handleNewVersion(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setPendingVersionFile(file);
+    setShowCopyNotesDialog(true);
+    e.target.value = "";
+  }
+
+  function confirmNewVersion(copyNotes: boolean) {
+    setShowCopyNotesDialog(false);
+    if (!pendingVersionFile) return;
+    const file = pendingVersionFile;
+    setPendingVersionFile(null);
     startTransition(async () => {
       const fd = new FormData();
       fd.append("document", file);
-      // CA-20.4 Offer to copy notes
-      if (confirm("¿Deseas copiar las notas de orador de la versión anterior a esta nueva versión?")) {
-        fd.append("copy_notes", "true");
-      }
-      
+      if (copyNotes) fd.append("copy_notes", "true");
       const result = await addVersion(report.id, fd);
       if ("error" in result) {
         toast.error(result.error);
@@ -165,7 +175,15 @@ export default function ReportManageClient({
   }
 
   function handleDeleteAttachment(att: Attachment) {
-    if (!confirm(`¿Eliminar el adjunto "${att.filename}"?`)) return;
+    setAttToDelete(att);
+    setShowDeleteAttDialog(true);
+  }
+
+  function confirmDeleteAttachment() {
+    setShowDeleteAttDialog(false);
+    if (!attToDelete) return;
+    const att = attToDelete;
+    setAttToDelete(null);
     startTransition(async () => {
       const result = await deleteAttachment(att.id, report.id);
       if ("error" in result) toast.error(result.error);
@@ -520,6 +538,40 @@ export default function ReportManageClient({
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={(e) => { e.preventDefault(); handleRegeneratePin(); }}>
               Regenerar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Copy Notes Confirm */}
+      <AlertDialog open={showCopyNotesDialog} onOpenChange={(o) => { if (!o) { setShowCopyNotesDialog(false); setPendingVersionFile(null); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Copiar notas de orador?</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Deseas copiar las notas de orador de la versión anterior a esta nueva versión?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => confirmNewVersion(false)}>No copiar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => confirmNewVersion(true)}>Copiar notas</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Attachment Confirm */}
+      <AlertDialog open={showDeleteAttDialog} onOpenChange={(o) => { if (!o) { setShowDeleteAttDialog(false); setAttToDelete(null); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar adjunto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará &quot;{attToDelete?.filename}&quot;. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteAttachment} className="bg-destructive hover:bg-destructive/90">
+              Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

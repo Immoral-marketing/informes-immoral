@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { updateClient, deleteClient, addRecipient, updateRecipient, deleteRecipient } from "../actions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -72,7 +73,7 @@ export default function ClientDetailClient({
         setError(result.error);
       } else {
         if (result.hadMagicLinks) {
-          alert("Nota: Este destinatario había recibido magic links. Las sesiones activas seguirán válidas hasta que expiren.");
+          toast.info("Las sesiones activas de este destinatario seguirán válidas hasta que expiren.");
         }
         setRecipients((prev) => prev.filter((x) => x.id !== r.id));
         setRecipientToDelete(null);
