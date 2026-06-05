@@ -30,7 +30,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Monitor, Smartphone, Tablet, Eye, EyeOff, Copy, RefreshCw, Send, Upload, Calendar, Edit3, Presentation, Trash2
+import {
+  Monitor, Smartphone, Tablet, Eye, EyeOff, Copy, RefreshCw, Send, Upload, Calendar, Edit3, Presentation, Trash2, X
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -92,13 +93,18 @@ export default function ReportManageClient({
   const canEdit = isAdmin || report.created_by === currentUserId;
   const activeVersion = versions.find((v) => v.version_number === report.current_version);
 
-  // Cargar el PIN al montar para mostrarlo difuminado (como en propuestas).
   useEffect(() => {
     if (!canEdit || !report.has_pin_encrypted) return;
     getDecryptedReportPin(report.id).then((r) => {
       if (!("error" in r)) setDecryptedPin(r.pin ?? null);
     });
   }, [report.id, report.has_pin_encrypted, canEdit]);
+
+  // Bloquear el scroll de body cuando el drawer esté abierto
+  useEffect(() => {
+    document.body.style.overflow = isAnnotateMode ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [isAnnotateMode]);
 
   // Origen del preview: HTML por endpoint (text/html, renderizado); PDF por signed URL.
   const previewVer = previewVersion?.version_number ?? report.current_version;
@@ -481,19 +487,40 @@ export default function ReportManageClient({
                 </div>
               )}
             </div>
-            
-            {/* Overlay Panel: Notes */}
-            {isAnnotateMode && previewVersion && (
-              <div className="absolute top-0 right-0 h-full w-[320px] max-w-full z-10 shadow-2xl rounded-r-xl border-l border-border overflow-hidden bg-card transition-all">
-                <NotesPanel 
-                  reportVersionId={previewVersion.id}
-                  iframeRef={iframeRef}
-                  currentUserId={currentUserId}
-                />
-              </div>
-            )}
           </div>
         </section>
+      </div>
+      </div>
+
+      {/* Drawer Overlay */}
+      {isAnnotateMode && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity" 
+          onClick={() => setIsAnnotateMode(false)} 
+        />
+      )}
+
+      {/* Drawer */}
+      <div 
+        className={`fixed right-0 top-0 h-full w-[360px] max-w-full z-50 bg-card shadow-2xl border-l border-border transition-transform duration-300 ease-in-out ${
+          isAnnotateMode ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        {isAnnotateMode && previewVersion && (
+          <div className="relative h-full flex flex-col">
+            <button 
+              onClick={() => setIsAnnotateMode(false)}
+              className="absolute right-4 top-4 z-50 p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <NotesPanel 
+              reportVersionId={previewVersion.id}
+              iframeRef={iframeRef}
+              currentUserId={currentUserId}
+            />
+          </div>
+        )}
       </div>
 
       {showSendModal && (

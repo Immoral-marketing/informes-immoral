@@ -8,8 +8,9 @@ import { PinModal } from "@/components/reports/PinModal";
 import { slugify } from "@/lib/utils/slugify";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { User, Phone, Mail, MessageSquare, Calendar, UserPlus, ExternalLink } from "lucide-react";
+import { User, Phone, Mail, MessageSquare, Calendar, UserPlus, ExternalLink, Search, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ReportRow {
   id: string;
@@ -43,8 +44,11 @@ export default function SpaceReportsClient({
 }) {
   const [showForm, setShowForm] = useState(false);
   const [pinModal, setPinModal] = useState<{ pin: string; warning: string | undefined } | null>(null);
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const PAGE_SIZE = 12;
 
   // Auto-open from QuickCreateModal (?openReport=1)
   useEffect(() => {
@@ -57,26 +61,50 @@ export default function SpaceReportsClient({
     router.refresh();
   }
 
+  const filteredReports = initial.filter(r => 
+    !query.trim() || r.name.toLowerCase().includes(query.toLowerCase())
+  );
+  const totalPages = Math.ceil(filteredReports.length / PAGE_SIZE);
+  const paginatedReports = filteredReports.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  function handleQueryChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setQuery(e.target.value);
+    setPage(1);
+  }
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
+    <div className="grid grid-cols-1 md:grid-cols-[1fr_260px] gap-8">
       {/* ── Columna Izquierda: Informes ──────────────────────────────────────── */}
       <section className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="font-bold text-foreground">Informes ({initial.length})</h2>
-          {canEdit && (
-            <Button onClick={() => setShowForm(true)} className="rounded-xl font-semibold">
-              + Nuevo informe
-            </Button>
-          )}
+          <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input 
+                placeholder="Buscar informe..." 
+                className="pl-9 h-9"
+                value={query}
+                onChange={handleQueryChange}
+              />
+            </div>
+            {canEdit && (
+              <Button onClick={() => setShowForm(true)} className="rounded-xl font-semibold h-9 shrink-0">
+                + Nuevo informe
+              </Button>
+            )}
+          </div>
         </div>
 
-        {initial.length === 0 ? (
+        {filteredReports.length === 0 ? (
           <Card className="border-dashed py-16 flex flex-col items-center justify-center text-center gap-4">
-            <p className="text-sm text-muted-foreground">No hay informes en este espacio todavía.</p>
+            <p className="text-sm text-muted-foreground">
+              {initial.length === 0 ? "No hay informes en este espacio todavía." : "No hay informes que coincidan."}
+            </p>
           </Card>
         ) : (
           <div className="flex flex-col gap-3">
-            {initial.map((r) => {
+            {paginatedReports.map((r) => {
               const format = r.report_versions.find((_, i) => i === 0)?.format ?? "pdf";
               const date = new Date(r.created_at).toLocaleDateString("es-ES", {
                 day: "numeric", month: "short", year: "numeric",
@@ -109,6 +137,23 @@ export default function SpaceReportsClient({
                 </Card>
               );
             })}
+          </div>
+        )}
+
+        {filteredReports.length > PAGE_SIZE && (
+          <div className="flex items-center justify-between pt-2">
+            <p className="text-sm text-muted-foreground">
+              Mostrando {(page - 1) * PAGE_SIZE + 1} a {Math.min(page * PAGE_SIZE, filteredReports.length)} de {filteredReports.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-sm font-medium px-2">{page} de {totalPages}</span>
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         )}
       </section>
