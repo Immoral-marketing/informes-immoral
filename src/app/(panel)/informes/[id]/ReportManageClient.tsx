@@ -3,11 +3,13 @@
 import { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  addVersion, addAttachment, deleteAttachment,
+  addVersion, deleteAttachment,
   regeneratePin, deleteReport, setReportExpiry, getDecryptedReportPin, getSignedDocUrl
 } from "../actions";
 import SendMagicLinkModal from "./SendMagicLinkModal";
 import NotesPanel from "./NotesPanel";
+import { FolderAttachmentList } from "@/components/reports/FolderAttachmentList";
+import { UploadProgressOverlay } from "@/components/reports/UploadProgressOverlay";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,6 +64,8 @@ export default function ReportManageClient({
 }) {
   const [atts, setAtts] = useState(attachments);
   const [isUploadingAtt, setIsUploadingAtt] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadFilename, setUploadFilename] = useState("");
   const [previewVersion, setPreviewVersion] = useState<Version | null>(
     versions.find((v) => v.version_number === report.current_version) ?? null
   );
@@ -86,7 +90,6 @@ export default function ReportManageClient({
 
   const [isPending, startTransition] = useTransition();
   const docFileRef = useRef<HTMLInputElement>(null);
-  const attFileRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   const canEdit = isAdmin || report.created_by === currentUserId;
@@ -159,24 +162,90 @@ export default function ReportManageClient({
     });
   }
 
-  function handleAddAttachment(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  function handleUploadFile(file: File) {
     if (!file) return;
+
+    // Client-side validations
+    const ATT_MAX_SIZE = 25 * 1024 * 1024; // 25MB
+    const ATT_ALLOWED_MIME = [
+      "application/pdf", 
+      "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      "image/png", "image/jpeg", "image/jpg", 
+      "application/zip", "application/x-zip-compressed"
+    ];
+
+    const fileExt = file.name.split('.').pop()?.toLowerCase();
+    let mimeType = file.type;
+    if (!mimeType || mimeType === "application/octet-stream") {
+      if (fileExt === "pdf") mimeType = "application/pdf";
+      else if (fileExt === "doc") mimeType = "application/msword";
+      else if (fileExt === "docx") mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+      else if (fileExt === "xls") mimeType = "application/vnd.ms-excel";
+      else if (fileExt === "xlsx") mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+      else if (fileExt === "ppt") mimeType = "application/vnd.ms-powerpoint";
+      else if (fileExt === "pptx") mimeType = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+      else if (fileExt === "png") mimeType = "image/png";
+      else if (fileExt === "jpg" || fileExt === "jpeg") mimeType = "image/jpeg";
+      else if (fileExt === "zip") mimeType = "application/zip";
+    }
+
+    if (!ATT_ALLOWED_MIME.includes(mimeType)) {
+      toast.error("Tipo de archivo no permitido");
+      return;
+    }
+    if (file.size > ATT_MAX_SIZE) {
+      toast.error("El archivo no puede superar 25 MB");
+      return;
+    }
+
+    setUploadFilename(file.name);
+    setUploadProgress(0);
     setIsUploadingAtt(true);
-    startTransition(async () => {
-      const fd = new FormData();
-      fd.append("file", file);
-      const result = await addAttachment(report.id, fd);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `/api/reports/${report.id}/attachments`, true);
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        const percentComplete = Math.round((e.loaded / e.total) * 100);
+        setUploadProgress(percentComplete);
+      }
+    };
+
+    xhr.onload = () => {
       setIsUploadingAtt(false);
-      if ("error" in result) {
-        toast.error(result.error);
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const res = JSON.parse(xhr.responseText);
+          if (res.success && res.attachment) {
+            toast.success("Adjunto subido con éxito");
+            setAtts((prev) => [...prev, res.attachment as unknown as Attachment]);
+          } else {
+            toast.error(res.error || "Error al subir el archivo");
+          }
+        } catch (err) {
+          toast.error("Error al procesar la respuesta del servidor");
+        }
       } else {
-        toast.success("Adjunto subido");
-        if (result.attachment) {
-          setAtts((prev) => [...prev, result.attachment as unknown as Attachment]);
+        try {
+          const res = JSON.parse(xhr.responseText);
+          toast.error(res.error || "Error al subir el archivo");
+        } catch {
+          toast.error("Error del servidor al subir el archivo");
         }
       }
-    });
+    };
+
+    xhr.onerror = () => {
+      setIsUploadingAtt(false);
+      toast.error("Error de red al intentar subir el archivo");
+    };
+
+    const formData = new FormData();
+    formData.append("file", file);
+    xhr.send(formData);
   }
 
   function handleDeleteAttachment(att: Attachment) {
@@ -395,57 +464,14 @@ export default function ReportManageClient({
             </ul>
           </section>
 
-          {/* Attachments */}
-          <section className="bg-card rounded-2xl border border-border p-5 flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <h2 className="font-bold text-foreground">Adjuntos</h2>
-              {canEdit && (
-                <button
-                  onClick={() => attFileRef.current?.click()}
-                  disabled={isPending || isUploadingAtt}
-                  className="text-xs text-primary hover:underline disabled:opacity-40"
-                >
-                  {isUploadingAtt ? "Subiendo…" : "+ Añadir"}
-                </button>
-              )}
-            </div>
-            {canEdit && (
-              <p className="text-[10px] text-muted-foreground mt-[-10px]">
-                PDF, Word, Excel, PowerPoint, PNG, JPG, ZIP. Máx 25 MB.
-              </p>
-            )}
-            <input ref={attFileRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.zip" className="hidden" onChange={handleAddAttachment} />
-            {atts.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No hay adjuntos.</p>
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {atts.map((a) => (
-                  <li key={a.id} className="flex flex-col gap-1 py-2 border-b border-border last:border-0">
-                    <p className="text-sm font-medium text-foreground truncate" title={a.filename}>{a.filename}</p>
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs text-muted-foreground">{(a.size_bytes / 1024).toFixed(0)} KB</p>
-                      <div className="flex gap-2">
-                        {a.signed_url && (
-                          <a href={a.signed_url} download={a.filename} className="text-xs text-primary hover:underline">
-                            Descargar
-                          </a>
-                        )}
-                        {canEdit && (
-                          <button
-                            onClick={() => handleDeleteAttachment(a)}
-                            disabled={isPending}
-                            className="text-xs text-destructive hover:underline disabled:opacity-40"
-                          >
-                            Eliminar
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          {/* Attachments (Folder Style with Drag & Drop) */}
+          <FolderAttachmentList
+            attachments={atts}
+            canEdit={canEdit}
+            isUploading={isUploadingAtt}
+            onDelete={handleDeleteAttachment}
+            onUploadFile={handleUploadFile}
+          />
           
           {canEdit && (
             <section className="pt-2">
@@ -611,6 +637,12 @@ export default function ReportManageClient({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <UploadProgressOverlay
+        isOpen={isUploadingAtt}
+        progress={uploadProgress}
+        filename={uploadFilename}
+      />
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { CoBrandLockup } from "@/components/shared/CoBrandLockup";
-import { FileText, FileSpreadsheet, FileIcon as FilePresentation, FileImage, FileArchive, File, X } from "lucide-react";
+import { FileText, FileSpreadsheet, FileIcon as FilePresentation, FileImage, FileArchive, File, X, Download } from "lucide-react";
 
 interface Attachment {
   id: string;
@@ -31,14 +31,15 @@ export default function AttachmentsModal({ attachments, clientLogoUrl, clientNam
     };
   }, [onClose]);
 
-  function getIcon(mime: string) {
-    if (mime.includes("pdf")) return <FileText className="w-8 h-8 text-red-400" />;
-    if (mime.includes("word") || mime.includes("document")) return <FileText className="w-8 h-8 text-blue-400" />;
-    if (mime.includes("excel") || mime.includes("spreadsheet")) return <FileSpreadsheet className="w-8 h-8 text-green-400" />;
-    if (mime.includes("powerpoint") || mime.includes("presentation")) return <FilePresentation className="w-8 h-8 text-orange-400" />;
-    if (mime.includes("image")) return <FileImage className="w-8 h-8 text-purple-400" />;
-    if (mime.includes("zip")) return <FileArchive className="w-8 h-8 text-yellow-400" />;
-    return <File className="w-8 h-8 text-gray-400" />;
+  function getIcon(mime: string, sizeClass = "w-5 h-5") {
+    const m = mime.toLowerCase();
+    if (m.includes("pdf")) return <FileText className={`${sizeClass} text-red-500`} />;
+    if (m.includes("word") || m.includes("document")) return <FileText className={`${sizeClass} text-blue-500`} />;
+    if (m.includes("excel") || m.includes("spreadsheet")) return <FileSpreadsheet className={`${sizeClass} text-emerald-500`} />;
+    if (m.includes("powerpoint") || m.includes("presentation")) return <FilePresentation className={`${sizeClass} text-amber-500`} />;
+    if (m.includes("image")) return <FileImage className={`${sizeClass} text-purple-500`} />;
+    if (m.includes("zip")) return <FileArchive className={`${sizeClass} text-yellow-500`} />;
+    return <File className={`${sizeClass} text-slate-500`} />;
   }
 
   return (
@@ -46,7 +47,7 @@ export default function AttachmentsModal({ attachments, clientLogoUrl, clientNam
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       
       <div 
-        className="relative w-full md:w-auto md:min-w-[600px] md:max-w-4xl max-h-[90vh] flex flex-col rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-8 md:slide-in-from-bottom-4 duration-300"
+        className="relative w-full md:w-auto md:min-w-[700px] md:max-w-4xl max-h-[90vh] flex flex-col rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-8 md:slide-in-from-bottom-4 duration-300"
         style={{ backgroundColor: "#111111", border: "1px solid #2e2e2e" }}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#2e2e2e] bg-[#1c1c1c]">
@@ -64,28 +65,63 @@ export default function AttachmentsModal({ attachments, clientLogoUrl, clientNam
         <div className="p-6 overflow-y-auto">
           <h2 className="text-white text-lg font-bold mb-4">Adjuntos ({attachments.length})</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {attachments.map((a) => (
-              <a
-                key={a.id}
-                href={`/api/reports/attachments/${a.id}`}
-                download={a.filename}
-                className="group flex flex-col gap-3 p-4 rounded-xl transition-all"
-                style={{ backgroundColor: "#1c1c1c", border: "1px solid #2e2e2e" }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--brand)"; e.currentTarget.style.backgroundColor = "#242424"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2e2e2e"; e.currentTarget.style.backgroundColor = "#1c1c1c"; }}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="p-2 bg-[#111111] rounded-lg">
-                    {getIcon(a.mime_type)}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {attachments.map((a) => {
+              const isImage = a.mime_type.startsWith("image/");
+              return (
+                <a
+                  key={a.id}
+                  href={`/api/reports/attachments/${a.id}`}
+                  download={a.filename}
+                  className="group flex flex-col rounded-xl overflow-hidden transition-all duration-300 border border-[#2e2e2e]"
+                  style={{ backgroundColor: "#1c1c1c" }}
+                  onMouseEnter={(e) => { 
+                    e.currentTarget.style.borderColor = "var(--brand)"; 
+                    e.currentTarget.style.backgroundColor = "#242424"; 
+                  }}
+                  onMouseLeave={(e) => { 
+                    e.currentTarget.style.borderColor = "#2e2e2e"; 
+                    e.currentTarget.style.backgroundColor = "#1c1c1c"; 
+                  }}
+                >
+                  {/* Visual Preview Area */}
+                  <div className="w-full h-28 bg-[#111111] flex items-center justify-center relative overflow-hidden border-b border-[#2e2e2e]/60">
+                    {isImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={`/api/reports/attachments/${a.id}`}
+                        alt={a.filename}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="transition-transform duration-300 group-hover:scale-110">
+                        {getIcon(a.mime_type, "w-10 h-10")}
+                      </div>
+                    )}
                   </div>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium text-white truncate" title={a.filename}>{a.filename}</span>
-                  <span className="text-xs text-[#5E5E5E]">{(a.size_bytes / 1024).toFixed(0)} KB</span>
-                </div>
-              </a>
-            ))}
+
+                  {/* Card Details Footer */}
+                  <div className="p-3 flex items-center justify-between gap-3 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className="shrink-0">
+                        {getIcon(a.mime_type, "w-4 h-4")}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-white truncate" title={a.filename}>
+                          {a.filename}
+                        </p>
+                        <p className="text-[10px] text-[#5E5E5E]">
+                          {(a.size_bytes / 1024).toFixed(0)} KB
+                        </p>
+                      </div>
+                    </div>
+                    <div className="p-1 text-muted-foreground group-hover:text-primary transition-colors">
+                      <Download className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                </a>
+              );
+            })}
           </div>
         </div>
       </div>
