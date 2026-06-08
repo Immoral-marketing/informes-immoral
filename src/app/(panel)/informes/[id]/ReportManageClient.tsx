@@ -66,6 +66,7 @@ export default function ReportManageClient({
   const [isUploadingAtt, setIsUploadingAtt] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadFilename, setUploadFilename] = useState("");
+  const [errorModal, setErrorModal] = useState<string | null>(null);
   const [previewVersion, setPreviewVersion] = useState<Version | null>(
     versions.find((v) => v.version_number === report.current_version) ?? null
   );
@@ -192,11 +193,11 @@ export default function ReportManageClient({
     }
 
     if (!ATT_ALLOWED_MIME.includes(mimeType)) {
-      toast.error("Tipo de archivo no permitido");
+      setErrorModal("Tipo de archivo no permitido.");
       return;
     }
     if (file.size > ATT_MAX_SIZE) {
-      toast.error("El archivo no puede superar 25 MB");
+      setErrorModal("El archivo no puede superar los 25 MB.");
       return;
     }
 
@@ -223,24 +224,24 @@ export default function ReportManageClient({
             toast.success("Adjunto subido con éxito");
             setAtts((prev) => [...prev, res.attachment as unknown as Attachment]);
           } else {
-            toast.error(res.error || "Error al subir el archivo");
+            setErrorModal(res.error || "Error al subir el archivo");
           }
         } catch (err) {
-          toast.error("Error al procesar la respuesta del servidor");
+          setErrorModal("Error al procesar la respuesta del servidor");
         }
       } else {
         try {
           const res = JSON.parse(xhr.responseText);
-          toast.error(res.error || "Error al subir el archivo");
+          setErrorModal(res.error || "Error al subir el archivo");
         } catch {
-          toast.error("Error del servidor al subir el archivo");
+          setErrorModal("Error del servidor al subir el archivo");
         }
       }
     };
 
     xhr.onerror = () => {
       setIsUploadingAtt(false);
-      toast.error("Error de red al intentar subir el archivo");
+      setErrorModal("Error de red al intentar subir el archivo");
     };
 
     const formData = new FormData();
@@ -643,6 +644,31 @@ export default function ReportManageClient({
         progress={uploadProgress}
         filename={uploadFilename}
       />
+
+      {/* Error Modal */}
+      <Dialog open={!!errorModal} onOpenChange={(o) => { if (!o) setErrorModal(null) }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <span className="text-lg font-bold">Error al subir archivo</span>
+            </DialogTitle>
+            <DialogDescription>
+              {errorModal}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 pt-2 text-xs text-muted-foreground border-t border-border mt-2">
+            <p className="font-semibold text-foreground">Formatos permitidos:</p>
+            <p>PDF, Word, Excel, PowerPoint, PNG, JPG, ZIP.</p>
+            <p className="font-semibold text-foreground mt-1">Límite de tamaño:</p>
+            <p>Máximo 25 MB por archivo.</p>
+          </div>
+          <DialogFooter className="pt-4">
+            <Button onClick={() => setErrorModal(null)} className="w-full">
+              Entendido
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

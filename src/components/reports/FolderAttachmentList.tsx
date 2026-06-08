@@ -271,6 +271,9 @@ export function FolderAttachmentList({
                 <UploadCloud className="w-4 h-4 text-primary" />
                 <span>Subir archivo...</span>
               </button>
+              <p className="text-[10px] text-muted-foreground text-center mt-2">
+                Formatos permitidos: PDF, Word, Excel, PowerPoint, PNG, JPG, ZIP (Máx. 25 MB)
+              </p>
               <input
                 ref={fileInputRef}
                 type="file"
