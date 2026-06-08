@@ -107,21 +107,39 @@ export function FolderAttachmentList({
   onUploadFile,
 }: FolderAttachmentListProps) {
   const [isDragging, setIsDragging] = useState(false)
+  const dragCounter = useRef(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault()
-    if (canEdit) setIsDragging(true)
+    e.stopPropagation()
+    if (!canEdit) return
+    dragCounter.current++
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true)
+    }
   }
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault()
-    setIsDragging(false)
+    e.stopPropagation()
+    if (!canEdit) return
+    dragCounter.current--
+    if (dragCounter.current === 0) {
+      setIsDragging(false)
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
   }
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
+    e.stopPropagation()
     setIsDragging(false)
+    dragCounter.current = 0
     if (!canEdit) return
 
     const files = e.dataTransfer.files
@@ -143,6 +161,7 @@ export function FolderAttachmentList({
     <div className="flex flex-col gap-4">
       {/* Folder Container Wrapper */}
       <div
+        onDragEnter={handleDragEnter}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -163,7 +182,7 @@ export function FolderAttachmentList({
 
         {/* Dropzone Overlay for Drag State */}
         {isDragging && (
-          <div className="absolute inset-0 bg-primary/10 flex flex-col items-center justify-center gap-2 backdrop-blur-[2px] z-10 animate-in fade-in duration-200">
+          <div className="absolute inset-0 bg-primary/10 flex flex-col items-center justify-center gap-2 backdrop-blur-[2px] z-10 animate-in fade-in duration-200 pointer-events-none">
             <UploadCloud className="w-12 h-12 text-primary animate-bounce" />
             <p className="text-sm font-semibold text-primary">¡Suelta tu archivo aquí!</p>
           </div>
@@ -182,7 +201,7 @@ export function FolderAttachmentList({
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-2">
               {attachments.map((a) => {
                 const { Icon, colorClass, bgClass } = getFileIcon(a.mime_type)
                 return (
