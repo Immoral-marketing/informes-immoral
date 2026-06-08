@@ -32,7 +32,7 @@ export default async function PanelLayout({
         userName={profile?.full_name ?? ""}
         userRole={profile?.role ?? "employee"}
       />
-      <main className="flex-1 px-4 py-6 max-w-7xl mx-auto w-full">
+      <main className="flex-1 px-4 sm:px-8 py-6 max-w-[1400px] mx-auto w-full">
         {children}
       </main>
       {!hasPin && <PersonalPinSetup />}
