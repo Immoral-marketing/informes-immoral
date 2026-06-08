@@ -73,7 +73,26 @@ export async function generateAndSendMagicLink({
 
   const greeting = r.full_name ? `Hola ${r.full_name},` : "Hola,";
 
-  const logoSrc = clientLogoUrl || `${appUrl}/immoral-logo-negro.png`;
+  const logoHtml = clientLogoUrl
+    ? `
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation">
+        <tr>
+          <td valign="middle">
+            <img src="${appUrl}/immoral-logo-negro.png" alt="Immoral" height="24" style="display:block;max-width:120px;object-fit:contain;" />
+          </td>
+          <td valign="middle" style="padding:0 16px;">
+            <span style="color:#cbd5e1;font-size:16px;">&times;</span>
+          </td>
+          <td valign="middle">
+            <img src="${clientLogoUrl}" alt="${clientName}" height="28" style="display:block;max-width:120px;object-fit:contain;" />
+          </td>
+        </tr>
+      </table>
+      <div style="height:24px;"></div>
+    `
+    : `
+      <img src="${appUrl}/immoral-logo-negro.png" alt="Immoral" height="28" style="display:block;margin:0 auto 24px;max-width:200px;object-fit:contain;" />
+    `;
 
   const { error: emailError } = await resend.emails.send({
     from: `Immoral Group <${fromEmail}>`,
@@ -88,7 +107,7 @@ export async function generateAndSendMagicLink({
     <tr><td align="center">
       <table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
         <tr><td style="padding:32px 40px 0;text-align:center;">
-          <img src="${logoSrc}" alt="${clientName}" height="40" style="display:block;margin:0 auto 24px;max-width:200px;object-fit:contain;" />
+          ${logoHtml}
         </td></tr>
         <tr><td style="padding:0 40px 32px;">
           <p style="color:#0f172a;font-size:15px;margin:0 0 16px;">${greeting}</p>
