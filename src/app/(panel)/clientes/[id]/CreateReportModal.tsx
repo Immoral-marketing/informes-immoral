@@ -80,7 +80,7 @@ export default function CreateReportModal({ isOpen, onClose, clientId, verticals
     if ("error" in result) {
       toast.error(result.error);
     } else {
-      toast.success("Propuesta creada con éxito");
+      toast.success("Informe creado con éxito");
       if (result.autoSendWarning) {
         toast.warning(result.autoSendWarning, { duration: 6000 });
       }
@@ -122,7 +122,7 @@ export default function CreateReportModal({ isOpen, onClose, clientId, verticals
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 shrink-0">
-          <h2 className="text-xl font-semibold text-slate-900 tracking-tight">Crear Propuesta</h2>
+          <h2 className="text-xl font-semibold text-slate-900 tracking-tight">Crear Informe</h2>
           <button 
             onClick={onClose}
             className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
@@ -146,7 +146,7 @@ export default function CreateReportModal({ isOpen, onClose, clientId, verticals
                 onChange={(e) => setSelectedVertical(e.target.value)}
                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-[var(--brand)] focus:border-transparent transition-all appearance-none cursor-pointer"
               >
-                <option value="" disabled>Selecciona el vertical de esta propuesta</option>
+                <option value="" disabled>Selecciona el vertical de este informe</option>
                 {verticals.map((v) => (
                   <option key={v.id} value={v.id}>{v.name}</option>
                 ))}
@@ -155,7 +155,7 @@ export default function CreateReportModal({ isOpen, onClose, clientId, verticals
 
             <div className="flex flex-col gap-2">
               <label htmlFor="name" className="text-sm font-medium text-slate-700">
-                Nombre de la propuesta <span className="text-red-500">*</span>
+                Nombre del informe <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -268,7 +268,7 @@ export default function CreateReportModal({ isOpen, onClose, clientId, verticals
                 <span>Creando...</span>
               </>
             ) : (
-              <span>Crear Propuesta</span>
+              <span>Crear Informe</span>
             )}
           </button>
         </div>
