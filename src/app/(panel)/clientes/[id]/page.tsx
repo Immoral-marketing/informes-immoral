@@ -56,13 +56,13 @@ export default async function ClientDetailPage({
       .from("reports")
       .select(`
         id, name, slug, current_version, created_at, updated_at,
-        client_spaces!inner(slug, client_id, verticals(name, color_hex))
+        client_spaces!inner(slug, client_id, verticals(name, color_hex, logo_url))
       `)
       .eq("client_spaces.client_id", id)
       .order("created_at", { ascending: false }),
     supabaseAdmin
       .from("verticals")
-      .select("id, name, color_hex")
+      .select("id, name, color_hex, logo_url")
       .order("name"),
   ]);
 
@@ -71,16 +71,21 @@ export default async function ClientDetailPage({
     role_label: string | null; is_primary: boolean; created_at: string;
   }>) ?? [];
 
-  const reports = (rawReports as any[] ?? []).map(r => ({
-    id: r.id,
-    name: r.name,
-    slug: r.slug,
-    current_version: r.current_version,
-    created_at: r.created_at,
-    updated_at: r.updated_at,
-    vertical_name: r.client_spaces?.verticals?.name ?? "—",
-    vertical_color: r.client_spaces?.verticals?.color_hex ?? "#ccc",
-    space_slug: r.client_spaces?.slug ?? "",
+  const reports = await Promise.all((rawReports as any[] ?? []).map(async r => {
+    const logoUrl = r.client_spaces?.verticals?.logo_url;
+    const signedLogoUrl = logoUrl ? await getSignedLogoUrl(logoUrl) : null;
+    return {
+      id: r.id,
+      name: r.name,
+      slug: r.slug,
+      current_version: r.current_version,
+      created_at: r.created_at,
+      updated_at: r.updated_at,
+      vertical_name: r.client_spaces?.verticals?.name ?? "—",
+      vertical_color: r.client_spaces?.verticals?.color_hex ?? "#ccc",
+      vertical_logo_url: signedLogoUrl,
+      space_slug: r.client_spaces?.slug ?? "",
+    };
   }));
 
   const verticals = (rawVerticals as unknown as Array<{

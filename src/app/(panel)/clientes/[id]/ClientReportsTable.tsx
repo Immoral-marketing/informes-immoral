@@ -15,6 +15,7 @@ type ReportRow = {
   updated_at: string;
   vertical_name: string;
   vertical_color: string;
+  vertical_logo_url: string | null;
   space_slug: string;
 };
 
@@ -129,10 +130,20 @@ export default function ClientReportsTable({
                       <div className="text-xs text-slate-400 mt-0.5">/{r.space_slug}/{r.slug}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-medium border bg-white shadow-sm" style={{ borderColor: `${r.vertical_color}30` }}>
-                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: r.vertical_color }} />
-                        <span style={{ color: r.vertical_color }}>{r.vertical_name}</span>
-                      </div>
+                      {r.vertical_logo_url ? (
+                        <div className="flex items-center">
+                          <img
+                            src={r.vertical_logo_url}
+                            alt={r.vertical_name}
+                            className="h-7 w-auto object-contain max-w-[120px] filter drop-shadow-sm brightness-100"
+                          />
+                        </div>
+                      ) : (
+                        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-medium border bg-white shadow-sm" style={{ borderColor: `${r.vertical_color}30` }}>
+                          <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: r.vertical_color }} />
+                          <span style={{ color: r.vertical_color }}>{r.vertical_name}</span>
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600">
                       v{r.current_version}
