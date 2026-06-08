@@ -46,6 +46,7 @@ export async function sendMagicLinks(reportId: string, recipientIds: string[]) {
       reportSlug: r.slug,
       reportName: r.name,
       clientName: s.clients?.name ?? "cliente",
+      clientLogoUrl: null, // Will use default dark logo for admin sends, or we can fetch it here if needed
       createdBy: user.id,
     });
     results.push({ recipientId, ok: "ok" in result, error: "error" in result ? result.error : undefined });

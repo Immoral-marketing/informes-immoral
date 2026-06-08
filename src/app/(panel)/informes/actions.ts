@@ -180,6 +180,7 @@ export async function createReport(spaceId: string, formData: FormData) {
         reportSlug: slug,
         reportName: name,
         clientName: primaryResult.clientName,
+        clientLogoUrl: null, // Fetched during link generation or manual send if needed
         createdBy: user.id,
       });
     }
@@ -280,6 +281,7 @@ export async function addVersion(reportId: string, formData: FormData) {
           reportSlug: ri.slug,
           reportName: ri.name,
           clientName: primary.clientName,
+          clientLogoUrl: null,
           createdBy: perm.user.id,
         });
       }

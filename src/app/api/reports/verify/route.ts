@@ -5,8 +5,8 @@ import { hashToken } from "@/lib/tokens/hash";
 import bcrypt from "bcryptjs";
 
 const ERROR_MSG = "PIN incorrecto o cuenta bloqueada";
-const MAX_ATTEMPTS = 5;
-const BLOCK_MINUTES = 30;
+const MAX_ATTEMPTS = 3;
+const BLOCK_MINUTES = 3;
 const SESSION_HOURS = 48;
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -85,6 +85,15 @@ export async function POST(request: NextRequest) {
   const token = generateSessionToken();
   const tokenHash = hashToken(token);
   const expiresAt = new Date(Date.now() + SESSION_HOURS * 3600 * 1000).toISOString();
+
+  // Reset attempts on successful login to prevent cumulative blocks over time
+  if (att && att.attempts > 0) {
+    await supabaseAdmin
+      .from("pin_attempts")
+      .update({ attempts: 0, blocked_until: null })
+      .eq("report_id", report_id)
+      .eq("ip_address", ip);
+  }
 
   await supabaseAdmin.from("report_sessions").insert({
     report_id,
