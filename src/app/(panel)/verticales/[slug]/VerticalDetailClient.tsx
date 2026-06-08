@@ -74,7 +74,7 @@ export default function VerticalDetailClient({
     const existingSpace = spaces.find((s) => s.client_id === client.id);
     if (existingSpace) {
       setAddError(`${client.name} ya está en esta vertical.`);
-      setDuplicateSpaceId(existingSpace.id);
+      setDuplicateSpaceId(existingSpace.client_id);
       return;
     }
 
@@ -84,7 +84,7 @@ export default function VerticalDetailClient({
         setAddError(result.error);
       } else {
         setShowAdd(false);
-        router.push(`/espacios/${result.id}`);
+        router.push(`/clientes/${client.id}`);
       }
     });
   }
@@ -193,7 +193,7 @@ export default function VerticalDetailClient({
                     </TableCell>
                     <TableCell className="text-right">
                       <ClientTransitionLink
-                        href={`/espacios/${s.id}`}
+                        href={`/clientes/${s.client_id}`}
                         clientLogoUrl={s.client_logo_signed_url ?? null}
                         clientName={s.client_name}
                         className="inline-flex items-center justify-center text-sm font-medium h-8 px-3 rounded-lg border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
@@ -258,7 +258,7 @@ export default function VerticalDetailClient({
                 </div>
 
                 <ClientTransitionLink
-                  href={`/espacios/${s.id}`}
+                  href={`/clientes/${s.client_id}`}
                   clientLogoUrl={s.client_logo_signed_url ?? null}
                   clientName={s.client_name}
                   className="w-full rounded-xl mt-1 inline-flex items-center justify-center text-sm font-medium h-10 px-4 border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
@@ -320,7 +320,7 @@ export default function VerticalDetailClient({
               <p>{addError}</p>
               {duplicateSpaceId && (
                 <Button asChild variant="link" className="p-0 h-auto text-destructive justify-start font-semibold">
-                  <Link href={`/espacios/${duplicateSpaceId}`}>Ir a su espacio →</Link>
+                  <Link href={`/clientes/${duplicateSpaceId}`}>Ir al cliente →</Link>
                 </Button>
               )}
             </div>

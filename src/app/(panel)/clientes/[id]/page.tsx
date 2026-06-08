@@ -90,7 +90,7 @@ export default async function ClientDetailPage({
   const canEdit = isAdmin || client.created_by === user.id;
 
   return (
-    <div className="flex flex-col gap-8 max-w-3xl">
+    <div className="flex flex-col gap-6 w-full">
       <Breadcrumbs items={[
         { label: "Dashboard", href: "/" },
         { label: "Clientes", href: "/clientes" },
