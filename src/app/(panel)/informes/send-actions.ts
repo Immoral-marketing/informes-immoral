@@ -29,11 +29,17 @@ export async function sendMagicLinks(reportId: string, recipientIds: string[]) {
 
   const { data: space } = await supabaseAdmin
     .from("client_spaces")
-    .select("slug, clients(name)")
+    .select("slug, clients(name, logo_url)")
     .eq("id", r.space_id)
     .single();
-  const s = space as unknown as { slug: string; clients: { name: string } | null } | null;
+  const s = space as unknown as { slug: string; clients: { name: string; logo_url: string | null } | null } | null;
   if (!s) return { error: "Espacio no encontrado" };
+
+  let clientLogoUrl: string | null = null;
+  if (s.clients?.logo_url) {
+    const { data } = await supabaseAdmin.storage.from("client-logos").createSignedUrl(s.clients.logo_url, 3600);
+    clientLogoUrl = data?.signedUrl ?? null;
+  }
 
   // Send to each recipient
   const results: Array<{ recipientId: string; ok: boolean; error: string | undefined }> = [];
@@ -46,7 +52,7 @@ export async function sendMagicLinks(reportId: string, recipientIds: string[]) {
       reportSlug: r.slug,
       reportName: r.name,
       clientName: s.clients?.name ?? "cliente",
-      clientLogoUrl: null, // Will use default dark logo for admin sends, or we can fetch it here if needed
+      clientLogoUrl,
       createdBy: user.id,
     });
     results.push({ recipientId, ok: "ok" in result, error: "error" in result ? result.error : undefined });

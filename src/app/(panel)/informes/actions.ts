@@ -180,7 +180,7 @@ export async function createReport(spaceId: string, formData: FormData) {
         reportSlug: slug,
         reportName: name,
         clientName: primaryResult.clientName,
-        clientLogoUrl: null, // Fetched during link generation or manual send if needed
+        clientLogoUrl: primaryResult.clientLogoUrl ?? null,
         createdBy: user.id,
       });
     }
@@ -192,11 +192,11 @@ export async function createReport(spaceId: string, formData: FormData) {
 async function checkPrimaryRecipient(spaceId: string, supabaseAdmin: ReturnType<typeof createAdminClient>) {
   const { data: space } = await supabaseAdmin
     .from("client_spaces")
-    .select("client_id, slug, clients(name)")
+    .select("client_id, slug, clients(name, logo_url)")
     .eq("id", spaceId)
     .single();
   if (!space) return { hasPrimary: false };
-  const s = space as unknown as { client_id: string; slug: string; clients: { name: string } | null };
+  const s = space as unknown as { client_id: string; slug: string; clients: { name: string; logo_url: string | null } | null };
   const { data } = await supabaseAdmin
     .from("client_recipients")
     .select("id")
@@ -204,11 +204,19 @@ async function checkPrimaryRecipient(spaceId: string, supabaseAdmin: ReturnType<
     .eq("is_primary", true)
     .single();
   const rec = data as { id: string } | null;
+
+  let clientLogoUrl: string | null = null;
+  if (s.clients?.logo_url) {
+    const { data: logoData } = await supabaseAdmin.storage.from("client-logos").createSignedUrl(s.clients.logo_url, 3600);
+    clientLogoUrl = logoData?.signedUrl ?? null;
+  }
+
   return {
     hasPrimary: !!rec,
     recipientId: rec?.id,
     spaceSlug: s.slug,
     clientName: s.clients?.name ?? "cliente",
+    clientLogoUrl,
   };
 }
 
@@ -281,7 +289,7 @@ export async function addVersion(reportId: string, formData: FormData) {
           reportSlug: ri.slug,
           reportName: ri.name,
           clientName: primary.clientName,
-          clientLogoUrl: null,
+          clientLogoUrl: primary.clientLogoUrl ?? null,
           createdBy: perm.user.id,
         });
       }
