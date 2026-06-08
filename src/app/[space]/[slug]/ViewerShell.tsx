@@ -67,7 +67,30 @@ export default function ViewerShell({
       const format: DocFormat = contentType.includes("pdf") ? "pdf" : "html";
       setDocFormat(format);
 
-      const blob = await res.blob();
+      let blob = await res.blob();
+
+      if (format === "html") {
+        let text = await blob.text();
+        const injection = `
+          <style>
+            * { user-select: none !important; -webkit-user-select: none !important; }
+          </style>
+          <script>
+            document.addEventListener('contextmenu', e => e.preventDefault());
+            document.addEventListener('keydown', e => {
+              if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') e.preventDefault();
+            });
+            document.addEventListener('copy', e => e.preventDefault());
+          </script>
+        `;
+        if (text.includes("</head>")) {
+          text = text.replace("</head>", injection + "</head>");
+        } else {
+          text += injection;
+        }
+        blob = new Blob([text], { type: "text/html" });
+      }
+
       const url = URL.createObjectURL(blob);
       setDocUrl(url);
     } catch {
@@ -97,7 +120,17 @@ export default function ViewerShell({
   }
 
   return (
-    <div className="flex flex-col h-screen" style={{ backgroundColor: "#F8F9FA" }}>
+    <div 
+      className="flex flex-col h-screen select-none" 
+      style={{ backgroundColor: "#F8F9FA" }}
+      onContextMenu={(e) => e.preventDefault()}
+      onCopy={(e) => e.preventDefault()}
+      onKeyDown={(e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
+          e.preventDefault();
+        }
+      }}
+    >
       {/* Viewer Header */}
       <header
         className="h-16 shrink-0 flex items-center justify-between px-6 gap-4"
