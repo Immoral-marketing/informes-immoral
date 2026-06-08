@@ -39,10 +39,10 @@ export async function POST(request: NextRequest) {
 
   const { data: space } = await supabaseAdmin
     .from("client_spaces")
-    .select("slug, client_id, clients(name)")
+    .select("slug, client_id, clients(name, logo_url)")
     .eq("id", r.space_id)
     .single();
-  const s = space as unknown as { slug: string; client_id: string; clients: { name: string } | null } | null;
+  const s = space as unknown as { slug: string; client_id: string; clients: { name: string; logo_url: string | null } | null } | null;
   if (!s) return NextResponse.json({ message: GENERIC_MSG });
 
   // Find recipient by email (case-insensitive)
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     .ilike("email", emailTrimmed)
     .single();
   const rec = recipient as { id: string } | null;
-  if (!rec) return NextResponse.json({ message: GENERIC_MSG });
+  if (!rec) return NextResponse.json({ error: "El email no está registrado como acceso a este cliente." }, { status: 400 });
 
   // Rate limiting — CA-10
   const windowStart = new Date(Date.now() - WINDOW_MINUTES * 60 * 1000).toISOString();
@@ -85,6 +85,12 @@ export async function POST(request: NextRequest) {
     { onConflict: "report_id,recipient_id,ip_address" }
   );
 
+  let clientLogoUrl: string | null = null;
+  if (s.clients?.logo_url) {
+    const { data } = await supabaseAdmin.storage.from("client-logos").createSignedUrl(s.clients.logo_url, 3600);
+    clientLogoUrl = data?.signedUrl ?? null;
+  }
+
   // Send
   await generateAndSendMagicLink({
     reportId: r.id,
@@ -93,6 +99,7 @@ export async function POST(request: NextRequest) {
     reportSlug: r.slug,
     reportName: r.name,
     clientName: s.clients?.name ?? "cliente",
+    clientLogoUrl,
     createdBy: null,
   });
 

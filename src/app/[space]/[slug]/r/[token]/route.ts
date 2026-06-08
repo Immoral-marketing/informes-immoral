@@ -65,14 +65,15 @@ export async function GET(
   }
 
   // Atomic consumption — update only if consumed_at is still NULL (race condition guard)
-  const { count } = await supabaseAdmin
+  const { data: updated } = await supabaseAdmin
     .from("magic_link_tokens")
     .update({ consumed_at: new Date().toISOString() })
     .eq("id", t.id)
-    .is("consumed_at", null);
+    .is("consumed_at", null)
+    .select("id");
 
-  // If count is 0, another request consumed it first
-  if (!count || count === 0) {
+  // If updated is empty, another request consumed it first
+  if (!updated || updated.length === 0) {
     return NextResponse.redirect(new URL(`/${base}?error=link_expired`, request.url));
   }
 

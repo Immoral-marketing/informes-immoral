@@ -87,13 +87,18 @@ export default function AccessModal({
     e.preventDefault();
     startTransition(async () => {
       setFeedback(null);
-      await fetch("/api/reports/request-magic-link", {
+      const res = await fetch("/api/reports/request-magic-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, report_id: reportId }),
       });
-      setFeedback({ type: "success", text: "Si este email está registrado, recibirás un enlace de acceso." });
-      setEmail("");
+      const data = await res.json();
+      if (res.ok && !data.error) {
+        setFeedback({ type: "success", text: "El enlace ha sido enviado. Por favor, revisa también tu carpeta de spam." });
+        setEmail("");
+      } else {
+        setFeedback({ type: "error", text: data.error || data.message || "Error al enviar el enlace" });
+      }
     });
   }
 

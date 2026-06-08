@@ -12,6 +12,7 @@ export async function generateAndSendMagicLink({
   reportSlug,
   reportName,
   clientName,
+  clientLogoUrl,
   createdBy,
 }: {
   reportId: string;
@@ -20,6 +21,7 @@ export async function generateAndSendMagicLink({
   reportSlug: string;
   reportName: string;
   clientName: string;
+  clientLogoUrl: string | null;
   createdBy: string | null;
 }): Promise<{ ok: true } | { error: string }> {
   const supabaseAdmin = createAdminClient();
@@ -71,6 +73,8 @@ export async function generateAndSendMagicLink({
 
   const greeting = r.full_name ? `Hola ${r.full_name},` : "Hola,";
 
+  const logoSrc = clientLogoUrl || `${appUrl}/immoral-logo-negro.png`;
+
   const { error: emailError } = await resend.emails.send({
     from: `Immoral Group <${fromEmail}>`,
     to: r.email,
@@ -82,16 +86,16 @@ export async function generateAndSendMagicLink({
 <body style="margin:0;padding:0;background:#f5f5f5;font-family:'Helvetica Neue',Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 0;">
     <tr><td align="center">
-      <table width="520" cellpadding="0" cellspacing="0" style="background:#111111;border-radius:16px;overflow:hidden;">
+      <table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
         <tr><td style="padding:32px 40px 0;text-align:center;">
-          <img src="${appUrl}/immoral-logo-blanco.png" alt="Immoral" height="28" style="display:block;margin:0 auto 24px;" />
+          <img src="${logoSrc}" alt="${clientName}" height="40" style="display:block;margin:0 auto 24px;max-width:200px;object-fit:contain;" />
         </td></tr>
         <tr><td style="padding:0 40px 32px;">
-          <p style="color:#ffffff;font-size:15px;margin:0 0 16px;">${greeting}</p>
-          <p style="color:#a0a0a0;font-size:15px;margin:0 0 24px;">
-            Tienes acceso a un informe de <strong style="color:#ffffff;">${clientName}</strong>:
+          <p style="color:#0f172a;font-size:15px;margin:0 0 16px;">${greeting}</p>
+          <p style="color:#475569;font-size:15px;margin:0 0 24px;">
+            Tienes acceso a un informe de <strong style="color:#0f172a;">${clientName}</strong>:
           </p>
-          <p style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 32px;">${reportName}</p>
+          <p style="color:#0f172a;font-size:18px;font-weight:700;margin:0 0 32px;">${reportName}</p>
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr><td align="center">
               <a href="${url}" style="display:inline-block;background:#3980E4;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;border-radius:12px;padding:14px 32px;">
@@ -99,13 +103,13 @@ export async function generateAndSendMagicLink({
               </a>
             </td></tr>
           </table>
-          <p style="color:#5e5e5e;font-size:13px;margin:24px 0 0;text-align:center;">
+          <p style="color:#64748b;font-size:13px;margin:24px 0 0;text-align:center;">
             Este enlace es válido durante 48 horas.<br>
             Si no esperabas este email, puedes ignorarlo.
           </p>
         </td></tr>
-        <tr><td style="padding:20px 40px;border-top:1px solid #222;text-align:center;">
-          <p style="color:#444;font-size:12px;margin:0;">
+        <tr><td style="padding:20px 40px;border-top:1px solid #f1f5f9;text-align:center;">
+          <p style="color:#94a3b8;font-size:12px;margin:0;">
             Immoral Group · <a href="https://immoral.marketing" style="color:#3980E4;text-decoration:none;">immoral.marketing</a>
           </p>
         </td></tr>
