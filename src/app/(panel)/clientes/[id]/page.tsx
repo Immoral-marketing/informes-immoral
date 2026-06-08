@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { getSignedClientLogoUrl } from "@/app/(panel)/clientes/actions";
+import { getSignedLogoUrl } from "../../admin/verticales/actions";
 import ClientDetailClient from "./ClientDetailClient";
 import SpacesSection from "./SpacesSection";
 
@@ -53,7 +54,7 @@ export default async function ClientDetailPage({
       .order("created_at"),
     supabaseAdmin
       .from("client_spaces")
-      .select("id, slug, vertical_id, created_at, verticals(name, color_hex)")
+      .select("id, slug, vertical_id, created_at, verticals(id, name, slug, logo_url, color_hex), reports(count)")
       .eq("client_id", id)
       .order("created_at"),
     supabaseAdmin
@@ -67,10 +68,29 @@ export default async function ClientDetailPage({
     role_label: string | null; is_primary: boolean; created_at: string;
   }>) ?? [];
 
-  const spaces = (rawSpaces as unknown as Array<{
-    id: string; slug: string; vertical_id: string; created_at: string;
-    verticals: { name: string; color_hex: string } | null;
-  }>) ?? [];
+  const spaces = await Promise.all(
+    (rawSpaces as unknown as Array<{
+      id: string;
+      slug: string;
+      vertical_id: string;
+      created_at: string;
+      verticals: { id: string; name: string; slug: string; logo_url: string | null; color_hex: string } | null;
+      reports: { count: number }[];
+    }> ?? []).map(async (s) => {
+      const logoSignedUrl = s.verticals?.logo_url ? await getSignedLogoUrl(s.verticals.logo_url) : null;
+      const reportsCount = s.reports?.[0]?.count ?? 0;
+      return {
+        id: s.id,
+        slug: s.slug,
+        vertical_id: s.vertical_id,
+        created_at: s.created_at,
+        vertical_name: s.verticals?.name ?? "—",
+        vertical_color: s.verticals?.color_hex ?? "#ccc",
+        logo_signed_url: logoSignedUrl,
+        reports_count: reportsCount,
+      };
+    })
+  );
 
   const verticals = (rawVerticals as unknown as Array<{
     id: string; name: string; color_hex: string;

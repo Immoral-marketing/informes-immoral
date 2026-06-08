@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSpace, deleteSpace, getSlugPreview } from "../../espacios/actions";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { DashboardCard } from "@/components/shared/dashboard-card";
 
 interface Vertical {
   id: string;
@@ -20,7 +20,10 @@ interface Space {
   slug: string;
   vertical_id: string;
   created_at: string;
-  verticals: { name: string; color_hex: string } | null;
+  vertical_name: string;
+  vertical_color: string;
+  logo_signed_url: string | null;
+  reports_count: number;
 }
 
 export default function SpacesSection({
@@ -89,33 +92,29 @@ export default function SpacesSection({
       {spaces.length === 0 ? (
         <p className="text-sm text-muted-foreground">No hay espacios creados todavía.</p>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {spaces.map((s) => (
-            <li key={s.id} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
-              <div
-                className="w-2 h-2 rounded-full shrink-0"
-                style={{ backgroundColor: s.verticals?.color_hex ?? "#ccc" }}
+            <div key={s.id} className="relative group/card h-full">
+              <DashboardCard
+                href={`/espacios/${s.id}`}
+                title={s.vertical_name}
+                subtitle={`/${s.slug} · ${s.reports_count} informe${s.reports_count !== 1 ? "s" : ""}`}
+                topColor={s.vertical_color}
+                imageUrl={s.logo_signed_url}
               />
-              <div className="flex-1 min-w-0">
-                <Link
-                  href={`/espacios/${s.id}`}
-                  className="text-sm font-medium text-foreground hover:text-primary truncate block"
-                >
-                  {s.verticals?.name ?? "—"} · <span className="font-mono text-xs text-muted-foreground">/{s.slug}</span>
-                </Link>
-              </div>
               {canEdit && (
                 <button
                   onClick={() => setDeleteTarget(s)}
                   disabled={isPending}
-                  className="text-xs text-destructive/80 hover:text-destructive disabled:opacity-40 shrink-0"
+                  className="absolute top-3 right-3 z-10 opacity-0 group-hover/card:opacity-100 focus:opacity-100 bg-background/95 border border-border px-2.5 py-1 text-xs font-semibold text-destructive rounded-lg shadow-sm transition-all hover:bg-destructive/10"
+                  title="Eliminar espacio"
                 >
                   Eliminar
                 </button>
               )}
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
 
       {showForm && (
@@ -197,9 +196,10 @@ function NewSpaceModal({
           slug: result.slug,
           vertical_id: verticalId,
           created_at: new Date().toISOString(),
-          verticals: selectedVertical
-            ? { name: selectedVertical.name, color_hex: selectedVertical.color_hex }
-            : null,
+          vertical_name: selectedVertical?.name ?? "—",
+          vertical_color: selectedVertical?.color_hex ?? "#ccc",
+          logo_signed_url: null,
+          reports_count: 0,
         });
       }
     });

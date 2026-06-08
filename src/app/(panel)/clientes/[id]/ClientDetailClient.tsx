@@ -111,45 +111,62 @@ export default function ClientDetailClient({
       )}
 
       {/* Client header */}
-      <section className="bg-card rounded-2xl border border-border p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-4">
-            {client.logo_signed_url ? (
-              <div className="w-16 h-16 shrink-0 flex items-center justify-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={client.logo_signed_url} alt={client.name} className="max-w-full max-h-full object-contain" />
-              </div>
-            ) : (
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-                <span className="text-3xl font-extrabold text-primary">
-                  {client.name.charAt(0).toUpperCase()}
-                </span>
-              </div>
-            )}
-            <div>
-              <h1 className="text-2xl font-extrabold text-foreground">{client.name}</h1>
-              {client.contact_name && <p className="text-sm text-muted-foreground mt-1">{client.contact_name}</p>}
-              {client.contact_phone && <p className="text-sm text-muted-foreground">📞 {client.contact_phone}</p>}
-              {client.contact_whatsapp && <p className="text-sm text-muted-foreground">💬 {client.contact_whatsapp}</p>}
-            </div>
+      <section className="bg-card rounded-2xl border border-border p-8 relative flex flex-col items-center text-center">
+        {canEdit && (
+          <div className="absolute top-6 right-6 flex gap-3">
+            <button
+              onClick={() => setEditingClient(true)}
+              className="text-sm text-primary hover:underline font-medium"
+            >
+              Editar
+            </button>
+            <span className="text-border">|</span>
+            <button
+              onClick={() => setClientToDelete(true)}
+              disabled={isPending}
+              className="text-sm text-destructive hover:underline font-medium disabled:opacity-40"
+            >
+              Eliminar
+            </button>
           </div>
-          {canEdit && (
-            <div className="flex gap-2 shrink-0">
-              <button
-                onClick={() => setEditingClient(true)}
-                className="text-sm text-primary hover:underline"
-              >
-                Editar
-              </button>
-              <button
-                onClick={() => setClientToDelete(true)}
-                disabled={isPending}
-                className="text-sm text-destructive hover:text-destructive disabled:opacity-40"
-              >
-                Eliminar
-              </button>
+        )}
+
+        <div className="flex flex-col items-center gap-4 mt-2">
+          {client.logo_signed_url ? (
+            <div className="w-32 h-32 flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={client.logo_signed_url} alt={client.name} className="max-w-full max-h-full object-contain" />
+            </div>
+          ) : (
+            <div className="w-24 h-24 rounded-3xl bg-primary/10 flex items-center justify-center">
+              <span className="text-4xl font-extrabold text-primary">
+                {client.name.charAt(0).toUpperCase()}
+              </span>
             </div>
           )}
+          
+          <div className="flex flex-col items-center">
+            <h1 className="text-3xl font-extrabold text-foreground tracking-tight">{client.name}</h1>
+            
+            {/* Contact info row */}
+            {(client.contact_name || client.contact_phone || client.contact_whatsapp) && (
+              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 mt-3 text-sm text-muted-foreground font-medium">
+                {client.contact_name && <span>{client.contact_name}</span>}
+                {client.contact_phone && (
+                  <>
+                    <span className="hidden sm:inline text-muted-foreground/30">•</span>
+                    <span className="flex items-center gap-1">📞 {client.contact_phone}</span>
+                  </>
+                )}
+                {client.contact_whatsapp && (
+                  <>
+                    <span className="hidden sm:inline text-muted-foreground/30">•</span>
+                    <span className="flex items-center gap-1">💬 {client.contact_whatsapp}</span>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
