@@ -56,7 +56,7 @@ export default function ClientReportsTable({
     <div className="flex flex-col gap-4">
       {/* Header Actions */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <h2 className="text-xl font-semibold text-slate-900 tracking-tight">Propuestas</h2>
+        <h2 className="text-xl font-semibold text-slate-900 tracking-tight">Informes</h2>
         
         {canEdit && (
           <button
@@ -64,7 +64,7 @@ export default function ClientReportsTable({
             className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors bg-slate-900 text-white hover:bg-slate-800 shrink-0 w-full sm:w-auto justify-center"
           >
             <Plus className="w-4 h-4" />
-            <span>Crear Propuesta</span>
+            <span>Crear Informe</span>
           </button>
         )}
       </div>
@@ -75,7 +75,7 @@ export default function ClientReportsTable({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Buscar propuesta..."
+            placeholder="Buscar informe..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[var(--brand)] focus:border-transparent transition-shadow"
@@ -119,7 +119,7 @@ export default function ClientReportsTable({
               {filteredReports.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-slate-500 text-sm">
-                    No se encontraron propuestas.
+                    No se encontraron informes.
                   </td>
                 </tr>
               ) : (
