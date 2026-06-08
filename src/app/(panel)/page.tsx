@@ -6,6 +6,7 @@ import { getSignedLogoUrl } from "./admin/verticales/actions";
 import DashboardQuickActions from "./DashboardQuickActions";
 import { Card } from "@/components/ui/card";
 import { Layers, FileText } from "lucide-react";
+import { DashboardCard } from "@/components/shared/dashboard-card";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -114,28 +115,16 @@ export default async function DashboardPage() {
             )}
           </Card>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
             {verticals.map((v) => (
-              <Link key={v.id} href={`/verticales/${v.slug}`} className="group">
-                <Card className="relative overflow-hidden hover:shadow-md hover:border-primary/50 transition-all">
-                  <div className="absolute top-0 left-0 right-0 h-1.5" style={{ backgroundColor: v.color_hex }} />
-                  <div className="flex flex-col items-center justify-center gap-3 p-6 pt-8 min-h-[160px]">
-                    <div className="flex items-center justify-center h-16 transition-transform group-hover:scale-105">
-                      {v.logo_signed_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={v.logo_signed_url} alt={v.name} className="max-h-14 max-w-[80%] object-contain" />
-                      ) : (
-                        <span className="text-3xl font-extrabold" style={{ color: v.color_hex }}>
-                          {v.name.charAt(0).toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {v.espacios} espacio{v.espacios !== 1 ? "s" : ""} · {v.informes} informe{v.informes !== 1 ? "s" : ""}
-                    </p>
-                  </div>
-                </Card>
-              </Link>
+              <DashboardCard
+                key={v.id}
+                href={`/verticales/${v.slug}`}
+                title={v.name}
+                subtitle={`${v.espacios} espacio${v.espacios !== 1 ? "s" : ""} · ${v.informes} informe${v.informes !== 1 ? "s" : ""}`}
+                topColor={v.color_hex}
+                imageUrl={v.logo_signed_url}
+              />
             ))}
           </div>
         )}
