@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { User, Phone, Mail, FileText, Search, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { ClientAutocomplete } from "@/components/shared/ClientAutocomplete";
 import { ClientTransitionLink } from "@/components/shared/ClientTransitionLink";
-import { createSpace } from "../../espacios/actions";
+import { createSpace } from "../../clientes/actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";

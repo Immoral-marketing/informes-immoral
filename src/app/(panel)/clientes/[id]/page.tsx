@@ -5,7 +5,7 @@ import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { getSignedClientLogoUrl } from "@/app/(panel)/clientes/actions";
 import { getSignedLogoUrl } from "../../admin/verticales/actions";
 import ClientDetailClient from "./ClientDetailClient";
-import SpacesSection from "./SpacesSection";
+import ClientReportsTable from "./ClientReportsTable";
 
 export default async function ClientDetailPage({
   params,
@@ -45,7 +45,7 @@ export default async function ClientDetailPage({
   const logo_signed_url = await getSignedClientLogoUrl(client.logo_url);
   const clientWithLogo = { ...client, logo_signed_url };
 
-  const [{ data: rawRecipients }, { data: rawSpaces }, { data: rawVerticals }] = await Promise.all([
+  const [{ data: rawRecipients }, { data: rawReports }, { data: rawVerticals }] = await Promise.all([
     supabaseAdmin
       .from("client_recipients")
       .select("id, email, full_name, role_label, is_primary, created_at")
@@ -53,10 +53,13 @@ export default async function ClientDetailPage({
       .order("is_primary", { ascending: false })
       .order("created_at"),
     supabaseAdmin
-      .from("client_spaces")
-      .select("id, slug, vertical_id, created_at, verticals(id, name, slug, logo_url, color_hex), reports(count)")
-      .eq("client_id", id)
-      .order("created_at"),
+      .from("reports")
+      .select(`
+        id, name, slug, current_version, created_at, updated_at,
+        client_spaces!inner(slug, client_id, verticals(name, color_hex))
+      `)
+      .eq("client_spaces.client_id", id)
+      .order("created_at", { ascending: false }),
     supabaseAdmin
       .from("verticals")
       .select("id, name, color_hex")
@@ -68,29 +71,17 @@ export default async function ClientDetailPage({
     role_label: string | null; is_primary: boolean; created_at: string;
   }>) ?? [];
 
-  const spaces = await Promise.all(
-    (rawSpaces as unknown as Array<{
-      id: string;
-      slug: string;
-      vertical_id: string;
-      created_at: string;
-      verticals: { id: string; name: string; slug: string; logo_url: string | null; color_hex: string } | null;
-      reports: { count: number }[];
-    }> ?? []).map(async (s) => {
-      const logoSignedUrl = s.verticals?.logo_url ? await getSignedLogoUrl(s.verticals.logo_url) : null;
-      const reportsCount = s.reports?.[0]?.count ?? 0;
-      return {
-        id: s.id,
-        slug: s.slug,
-        vertical_id: s.vertical_id,
-        created_at: s.created_at,
-        vertical_name: s.verticals?.name ?? "—",
-        vertical_color: s.verticals?.color_hex ?? "#ccc",
-        logo_signed_url: logoSignedUrl,
-        reports_count: reportsCount,
-      };
-    })
-  );
+  const reports = (rawReports as any[] ?? []).map(r => ({
+    id: r.id,
+    name: r.name,
+    slug: r.slug,
+    current_version: r.current_version,
+    created_at: r.created_at,
+    updated_at: r.updated_at,
+    vertical_name: r.client_spaces?.verticals?.name ?? "—",
+    vertical_color: r.client_spaces?.verticals?.color_hex ?? "#ccc",
+    space_slug: r.client_spaces?.slug ?? "",
+  }));
 
   const verticals = (rawVerticals as unknown as Array<{
     id: string; name: string; color_hex: string;
@@ -111,10 +102,10 @@ export default async function ClientDetailPage({
         isAdmin={isAdmin}
         currentUserId={user.id}
       />
-      <SpacesSection
+      <ClientReportsTable
         clientId={client.id}
         clientName={client.name}
-        spaces={spaces}
+        reports={reports}
         verticals={verticals}
         canEdit={canEdit}
       />

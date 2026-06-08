@@ -8,7 +8,7 @@ import { ClientAutocomplete } from "./ClientAutocomplete";
 import { NewClientWithVerticalDialog } from "@/components/clients/NewClientWithVerticalDialog";
 import { CreateReportForm } from "@/components/reports/CreateReportForm";
 import { PinModal } from "@/components/reports/PinModal";
-import { getSpacesForSelect, createSpace } from "@/app/(panel)/espacios/actions";
+import { getSpacesForSelect, createSpace } from "@/app/(panel)/clientes/actions";
 import { VerticalSelect } from "@/components/clients/VerticalSelect";
 
 type Step = "search" | "resolveSpace" | "createClient" | "reportForm" | "pin";

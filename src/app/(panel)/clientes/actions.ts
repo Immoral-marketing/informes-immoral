@@ -2,7 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createSpace } from "@/app/(panel)/espacios/actions";
+import { slugify } from "@/lib/utils/slugify";
+import { createReport } from "@/app/(panel)/informes/actions";
 
 const LOGO_BUCKET = "client-logos";
 const MAX_LOGO_BYTES = 2 * 1024 * 1024; // 2 MB
@@ -122,6 +123,144 @@ export async function createClientWithSpace(formData: FormData, verticalId: stri
     spaceId: spaceResult.id,
     spaceSlug: spaceResult.slug,
   };
+}
+
+// ─── Spaces (Moved from espacios) ──────────────────────────────────────────
+
+const RESERVED_SLUGS = new Set([
+  "admin", "login", "auth", "api", "clientes", "espacios",
+  "_next", "public", "favicon.ico", "sitemap.xml", "robots.txt",
+]);
+
+async function resolveSlug(baseName: string): Promise<{ slug: string } | { error: string }> {
+  const base = slugify(baseName);
+  if (!base) return { error: "El nombre del cliente no produce un slug válido" };
+  if (RESERVED_SLUGS.has(base)) {
+    return { error: `El slug "${base}" está reservado por el sistema. Cambia el nombre del cliente.` };
+  }
+
+  const supabaseAdmin = createAdminClient();
+
+  // Check against vertical slugs (slug collision with verticals)
+  const { data: vertical } = await supabaseAdmin
+    .from("verticals")
+    .select("id")
+    .eq("slug", base)
+    .single();
+  if (vertical) {
+    return { error: `El slug "${base}" coincide con un vertical existente. Cambia el nombre del cliente.` };
+  }
+
+  // Check global uniqueness in client_spaces, find available variant
+  let candidate = base;
+  let suffix = 2;
+  while (true) {
+    const { data: existing } = await supabaseAdmin
+      .from("client_spaces")
+      .select("id")
+      .eq("slug", candidate)
+      .single();
+    if (!existing) break;
+    candidate = `${base}-${suffix}`;
+    suffix++;
+    if (suffix > 99) return { error: "No se pudo generar un slug único. Contacta con soporte." };
+  }
+
+  return { slug: candidate };
+}
+
+export async function getSpacesForSelect(clientId: string) {
+  const auth = await getAuthenticatedUser();
+  if (auth.error || !auth.user) return [];
+  const supabaseAdmin = createAdminClient();
+  const { data } = await supabaseAdmin
+    .from("client_spaces")
+    .select("id, slug, verticals(name)")
+    .eq("client_id", clientId)
+    .order("created_at");
+  return (data as unknown as Array<{ id: string; slug: string; verticals: { name: string } | null }>) ?? [];
+}
+
+export async function createSpace(clientId: string, verticalId: string, clientName: string) {
+  const perm = await assertCanManageClient(clientId);
+  if (perm.error || !perm.supabaseAdmin) return { error: perm.error ?? "No autorizado" };
+
+  // Verify not already has space in this vertical (CA-07)
+  const { data: existing } = await perm.supabaseAdmin
+    .from("client_spaces")
+    .select("id")
+    .eq("client_id", clientId)
+    .eq("vertical_id", verticalId)
+    .single();
+  if (existing) return { error: "Este cliente ya tiene un espacio en el vertical seleccionado." };
+
+  // Resolve slug
+  const slugResult = await resolveSlug(clientName);
+  if ("error" in slugResult) return slugResult;
+
+  const { data, error } = await perm.supabaseAdmin
+    .from("client_spaces")
+    .insert({
+      client_id: clientId,
+      vertical_id: verticalId,
+      slug: slugResult.slug,
+      created_by: perm.user.id,
+    })
+    .select("id")
+    .single();
+
+  if (error) return { error: "Error al crear el espacio" };
+  return { success: true, id: (data as { id: string }).id, slug: slugResult.slug };
+}
+
+export async function deleteSpace(spaceId: string, clientId: string) {
+  const perm = await assertCanManageClient(clientId);
+  if (perm.error || !perm.supabaseAdmin) return { error: perm.error ?? "No autorizado" };
+
+  // Check for reports (CA-08)
+  const { count } = await perm.supabaseAdmin
+    .from("reports")
+    .select("id", { count: "exact", head: true })
+    .eq("space_id", spaceId);
+
+  if ((count ?? 0) > 0) {
+    return { error: `Este espacio tiene ${count} informe(s). Elimínalos antes de continuar.` };
+  }
+
+  const { error } = await perm.supabaseAdmin
+    .from("client_spaces")
+    .delete()
+    .eq("id", spaceId);
+
+  if (error) return { error: "Error al eliminar el espacio" };
+  return { success: true };
+}
+
+export async function createReportUnified(clientId: string, verticalId: string, formData: FormData) {
+  const perm = await assertCanManageClient(clientId);
+  if (perm.error || !perm.supabaseAdmin) return { error: perm.error ?? "No autorizado" };
+
+  // 1. Find or create space
+  const { data: space } = await perm.supabaseAdmin
+    .from("client_spaces")
+    .select("id")
+    .eq("client_id", clientId)
+    .eq("vertical_id", verticalId)
+    .single();
+
+  let spaceId = (space as { id: string } | null)?.id;
+
+  if (!spaceId) {
+    const { data: clientData } = await perm.supabaseAdmin.from("clients").select("name").eq("id", clientId).single();
+    const clientName = (clientData as { name: string } | null)?.name ?? "Cliente";
+    
+    const spaceResult = await createSpace(clientId, verticalId, clientName);
+    if ("error" in spaceResult) return { error: spaceResult.error };
+    spaceId = spaceResult.id;
+  }
+
+  // 2. create report using informes actions
+  return await createReport(spaceId, formData);
 }
 
 // ─── Clients ───────────────────────────────────────────────────────────────
