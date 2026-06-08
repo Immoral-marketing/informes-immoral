@@ -2,6 +2,7 @@
 
 import { useState, useRef, useTransition } from "react";
 import { CoBrandLockup } from "@/components/shared/CoBrandLockup";
+import { KeyRound, Mail } from "lucide-react";
 
 type Tab = "pin" | "email";
 
@@ -102,32 +103,40 @@ export default function AccessModal({
         clientLogoUrl={clientLogoUrl}
         titleText={clientName}
         variant="modal"
-        theme="dark"
+        theme="light"
       />
 
       <div
-        className="w-full rounded-2xl p-6 flex flex-col gap-5"
-        style={{ backgroundColor: "#1c1c1c", border: "1px solid #2e2e2e" }}
+        className="w-full rounded-2xl p-6 flex flex-col gap-5 shadow-xl"
+        style={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0" }}
       >
         <div className="text-center">
           <p className="text-xs uppercase tracking-wider mb-1" style={{ color: "#5E5E5E" }}>Informe protegido</p>
-          <h1 className="text-white font-bold text-base truncate">{reportName}</h1>
+          <h1 className="text-slate-900 font-bold text-base truncate">{reportName}</h1>
         </div>
 
         {/* Tabs */}
-        <div className="flex rounded-xl overflow-hidden text-sm" style={{ border: "1px solid #2e2e2e" }}>
+        <div className="flex rounded-xl overflow-hidden text-sm" style={{ border: "1px solid #e2e8f0" }}>
           {(["pin", "email"] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => { setTab(t); setFeedback(null); }}
-              className="flex-1 py-2 font-medium transition-colors"
+              className="flex-1 py-2.5 font-medium transition-colors"
               style={
                 tab === t
-                  ? { backgroundColor: "#2e2e2e", color: "#ffffff" }
-                  : { backgroundColor: "transparent", color: "#5E5E5E" }
+                  ? { backgroundColor: "#f1f5f9", color: "#0f172a" }
+                  : { backgroundColor: "transparent", color: "#64748b" }
               }
             >
-              {t === "pin" ? "🔑 PIN" : "✉️ Enlace"}
+              {t === "pin" ? (
+                <span className="flex items-center justify-center gap-1.5">
+                  <KeyRound className="w-4 h-4 text-slate-500" /> PIN
+                </span>
+              ) : (
+                <span className="flex items-center justify-center gap-1.5">
+                  <Mail className="w-4 h-4 text-slate-500" /> Enlace
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -137,8 +146,8 @@ export default function AccessModal({
             className="text-xs text-center px-3 py-2 rounded-lg"
             style={
               feedback.type === "error"
-                ? { backgroundColor: "rgba(239,68,68,0.12)", color: "#f87171", border: "1px solid rgba(239,68,68,0.25)" }
-                : { backgroundColor: "rgba(57,128,228,0.12)", color: "#7eb3f5", border: "1px solid rgba(57,128,228,0.25)" }
+                ? { backgroundColor: "rgba(239,68,68,0.08)", color: "#dc2626", border: "1px solid rgba(239,68,68,0.2)" }
+                : { backgroundColor: "rgba(57,128,228,0.08)", color: "#1d4ed8", border: "1px solid rgba(57,128,228,0.2)" }
             }
           >
             {feedback.text}
@@ -159,10 +168,10 @@ export default function AccessModal({
                   onChange={(e) => handlePinChange(idx, e.target.value)}
                   onKeyDown={(e) => handlePinKeyDown(idx, e)}
                   onPaste={(e) => handlePaste(idx, e)}
-                  className="w-14 h-14 text-center text-2xl font-bold text-white rounded-xl outline-none transition-all"
-                  style={{ backgroundColor: "#242424", border: "1px solid #3a3a3a" }}
+                  className="w-14 h-14 text-center text-2xl font-bold text-slate-900 rounded-xl outline-none transition-all"
+                  style={{ backgroundColor: "#ffffff", border: "1px solid #cbd5e1" }}
                   onFocus={(e) => { e.currentTarget.style.borderColor = "var(--brand)"; }}
-                  onBlur={(e) => { e.currentTarget.style.borderColor = "#3a3a3a"; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = "#cbd5e1"; }}
                   autoFocus={idx === 0}
                 />
               ))}
@@ -186,16 +195,16 @@ export default function AccessModal({
               onChange={(e) => setEmail(e.target.value)}
               placeholder="tu@email.com"
               required
-              className="w-full rounded-xl px-4 py-3 text-white text-sm outline-none transition-all"
-              style={{ backgroundColor: "#242424", border: "1px solid #3a3a3a" }}
+              className="w-full rounded-xl px-4 py-3 text-slate-900 text-sm outline-none transition-all"
+              style={{ backgroundColor: "#ffffff", border: "1px solid #cbd5e1" }}
               onFocus={(e) => { e.currentTarget.style.borderColor = "var(--brand)"; }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = "#3a3a3a"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "#cbd5e1"; }}
             />
             <button
               type="submit"
               disabled={isPending || !email}
               className="w-full text-white font-semibold rounded-xl py-3 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ backgroundColor: "#2e2e2e", border: "1px solid #3a3a3a" }}
+              style={{ backgroundColor: "var(--brand)" }}
             >
               {isPending ? "Enviando…" : "Enviarme un enlace"}
             </button>

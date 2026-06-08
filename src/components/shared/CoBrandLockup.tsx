@@ -14,10 +14,10 @@ export function CoBrandLockup({ clientLogoUrl, titleText, variant = "viewer", th
   const crossColor = isDark ? "#404040" : "var(--border)";
   const textColor = isDark ? "text-white" : "text-foreground";
 
-  let immoralSize = { width: 72, height: 20 };
-  let clientSize = "h-5"; 
-  let textSize = "text-sm";
-  let gap = "gap-3";
+  let immoralSize = { width: 110, height: 30 };
+  let clientSize = "h-7 sm:h-8"; 
+  let textSize = "text-sm sm:text-base";
+  let gap = "gap-3 sm:gap-4";
 
   if (variant === "modal" || variant === "loader") {
     immoralSize = { width: 120, height: 34 };
@@ -25,13 +25,16 @@ export function CoBrandLockup({ clientLogoUrl, titleText, variant = "viewer", th
     textSize = "text-base";
     gap = "gap-4";
   } else if (variant === "header") {
-    immoralSize = { width: 96, height: 26 };
-    clientSize = "h-6 sm:h-8";
+    immoralSize = { width: 120, height: 32 };
+    clientSize = "h-8 sm:h-10";
     textSize = "text-base sm:text-lg";
     gap = "gap-4";
   }
 
-  const immoralLogo = isDark ? "/immoral-logo-blanco.png" : "/ISO-Negro.png";
+  const immoralLogo = isDark 
+    ? "/immoral-logo-blanco.png" 
+    : (variant === "loader" || variant === "modal" ? "/ISO-Negro.png" : "/immoral-logo-negro.png");
+
   if (!isDark && (variant === "loader" || variant === "modal")) {
      immoralSize = { width: 96, height: 96 };
      clientSize = "h-12"; 

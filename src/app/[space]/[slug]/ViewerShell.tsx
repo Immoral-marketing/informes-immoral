@@ -6,6 +6,7 @@ import { CoBrandLockup } from "@/components/shared/CoBrandLockup";
 import AccessModal from "./AccessModal";
 import PdfViewer from "./PdfViewer";
 import AttachmentsModal from "./AttachmentsModal";
+import { Paperclip } from "lucide-react";
 
 interface Attachment {
   id: string;
@@ -82,7 +83,7 @@ export default function ViewerShell({
 
   if (!authenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#111111" }}>
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#F8F9FA" }}>
         <AccessModal 
           reportId={report.id} 
           reportName={report.name} 
@@ -96,18 +97,18 @@ export default function ViewerShell({
   }
 
   return (
-    <div className="flex flex-col h-screen" style={{ backgroundColor: "#111111" }}>
+    <div className="flex flex-col h-screen" style={{ backgroundColor: "#F8F9FA" }}>
       {/* Viewer Header */}
       <header
-        className="h-12 shrink-0 flex items-center justify-between px-4 gap-4"
-        style={{ backgroundColor: "#111111", borderBottom: "1px solid #2e2e2e" }}
+        className="h-16 shrink-0 flex items-center justify-between px-6 gap-4"
+        style={{ backgroundColor: "#ffffff", borderBottom: "1px solid #e2e8f0" }}
       >
         <div className="flex items-center min-w-0">
           <CoBrandLockup
             clientLogoUrl={report.client_logo_signed_url}
             titleText={report.name}
             variant="viewer"
-            theme="dark"
+            theme="light"
           />
         </div>
 
@@ -115,12 +116,10 @@ export default function ViewerShell({
           <div className="relative shrink-0">
             <button
               onClick={() => setShowAttachments((v) => !v)}
-              className="flex items-center gap-1.5 text-xs transition-colors rounded-lg px-3 py-1.5"
-              style={{ color: "#5E5E5E", border: "1px solid #3a3a3a" }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = "#ffffff"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = "#5E5E5E"; }}
+              className="flex items-center gap-2 text-sm font-medium transition-all rounded-xl px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50 hover:border-slate-300 shadow-sm"
             >
-              📎 {report.attachments.length} adjunto{report.attachments.length !== 1 ? "s" : ""}
+              <Paperclip className="w-4 h-4 text-slate-500" />
+              <span>{report.attachments.length} {report.attachments.length === 1 ? "adjunto" : "adjuntos"}</span>
             </button>
           </div>
         )}
@@ -129,16 +128,16 @@ export default function ViewerShell({
       {/* Document area */}
       <main className="flex-1 overflow-hidden">
         {loading && (
-          <div className="h-full flex flex-col items-center justify-center gap-6" style={{ backgroundColor: "#111111" }}>
+          <div className="h-full flex flex-col items-center justify-center gap-6" style={{ backgroundColor: "#F8F9FA" }}>
             <div style={{ animation: "brandPhraseIn 320ms cubic-bezier(0.23, 1, 0.32, 1) both" }}>
               <CoBrandLockup
                 clientLogoUrl={report.client_logo_signed_url ?? null}
                 titleText={report.name}
                 variant="loader"
-                theme="dark"
+                theme="light"
               />
             </div>
-            <p className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.5)", animation: "brandPhraseIn 320ms cubic-bezier(0.23, 1, 0.32, 1) both 100ms" }}>
+            <p className="text-sm font-medium" style={{ color: "rgba(15,23,42,0.6)", animation: "brandPhraseIn 320ms cubic-bezier(0.23, 1, 0.32, 1) both 100ms" }}>
               Cargando documento…
             </p>
           </div>

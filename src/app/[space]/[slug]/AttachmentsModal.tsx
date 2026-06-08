@@ -48,22 +48,22 @@ export default function AttachmentsModal({ attachments, clientLogoUrl, clientNam
       
       <div 
         className="relative w-full md:w-auto md:min-w-[700px] md:max-w-4xl max-h-[90vh] flex flex-col rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-8 md:slide-in-from-bottom-4 duration-300"
-        style={{ backgroundColor: "#111111", border: "1px solid #2e2e2e" }}
+        style={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0" }}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#2e2e2e] bg-[#1c1c1c]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e2e8f0] bg-[#f8fafc]">
           <CoBrandLockup
             clientLogoUrl={clientLogoUrl}
             titleText={clientName}
-            variant="viewer"
-            theme="dark"
+            variant="header"
+            theme="light"
           />
-          <button onClick={onClose} className="p-2 text-[#5E5E5E] hover:text-white transition-colors rounded-full hover:bg-[#2e2e2e]">
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-full hover:bg-slate-200">
             <X className="w-5 h-5" />
           </button>
         </div>
         
         <div className="p-6 overflow-y-auto">
-          <h2 className="text-white text-lg font-bold mb-4">Adjuntos ({attachments.length})</h2>
+          <h2 className="text-slate-900 text-lg font-bold mb-4">Adjuntos ({attachments.length})</h2>
           
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {attachments.map((a) => {
@@ -73,19 +73,19 @@ export default function AttachmentsModal({ attachments, clientLogoUrl, clientNam
                   key={a.id}
                   href={`/api/reports/attachments/${a.id}`}
                   download={a.filename}
-                  className="group flex flex-col rounded-xl overflow-hidden transition-all duration-300 border border-[#2e2e2e]"
-                  style={{ backgroundColor: "#1c1c1c" }}
+                  className="group flex flex-col rounded-xl overflow-hidden transition-all duration-300 border border-slate-200"
+                  style={{ backgroundColor: "#ffffff" }}
                   onMouseEnter={(e) => { 
                     e.currentTarget.style.borderColor = "var(--brand)"; 
-                    e.currentTarget.style.backgroundColor = "#242424"; 
+                    e.currentTarget.style.backgroundColor = "#f8fafc"; 
                   }}
                   onMouseLeave={(e) => { 
-                    e.currentTarget.style.borderColor = "#2e2e2e"; 
-                    e.currentTarget.style.backgroundColor = "#1c1c1c"; 
+                    e.currentTarget.style.borderColor = "#e2e8f0"; 
+                    e.currentTarget.style.backgroundColor = "#ffffff"; 
                   }}
                 >
                   {/* Visual Preview Area */}
-                  <div className="w-full h-28 bg-[#111111] flex items-center justify-center relative overflow-hidden border-b border-[#2e2e2e]/60">
+                  <div className="w-full h-28 bg-slate-50 flex items-center justify-center relative overflow-hidden border-b border-slate-100">
                     {isImage ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -107,15 +107,15 @@ export default function AttachmentsModal({ attachments, clientLogoUrl, clientNam
                         {getIcon(a.mime_type, "w-4 h-4")}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold text-white truncate" title={a.filename}>
+                        <p className="text-xs font-semibold text-slate-900 truncate" title={a.filename}>
                           {a.filename}
                         </p>
-                        <p className="text-[10px] text-[#5E5E5E]">
+                        <p className="text-[10px] text-slate-400">
                           {(a.size_bytes / 1024).toFixed(0)} KB
                         </p>
                       </div>
                     </div>
-                    <div className="p-1 text-muted-foreground group-hover:text-primary transition-colors">
+                    <div className="p-1 text-slate-400 group-hover:text-primary transition-colors">
                       <Download className="w-3.5 h-3.5" />
                     </div>
                   </div>
