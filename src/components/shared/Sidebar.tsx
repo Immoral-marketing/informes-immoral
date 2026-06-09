@@ -53,8 +53,8 @@ export default function Sidebar({ userRole }: SidebarProps) {
       })}
 
       {userRole === "admin" && (
-        <div className="pt-3">
-          <p className="px-3 pb-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+        <div className="pt-3 mt-1 border-t border-border">
+          <p className="px-3 pt-3 pb-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
             Configuración
           </p>
           {adminItems.map((item) => {
