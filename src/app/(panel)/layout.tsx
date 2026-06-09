@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import Navbar from "@/components/shared/Navbar";
+import Sidebar from "@/components/shared/Sidebar";
 import PersonalPinSetup from "@/components/shared/PersonalPinSetup";
 
 export default async function PanelLayout({
@@ -32,9 +33,12 @@ export default async function PanelLayout({
         userName={profile?.full_name ?? ""}
         userRole={profile?.role ?? "employee"}
       />
-      <main className="flex-1 px-4 sm:px-8 py-6 max-w-[1400px] mx-auto w-full">
-        {children}
-      </main>
+      <div className="flex flex-1 min-h-0">
+        <Sidebar userRole={profile?.role ?? "employee"} />
+        <main className="flex-1 overflow-auto p-6">
+          {children}
+        </main>
+      </div>
       {!hasPin && <PersonalPinSetup />}
     </div>
   );

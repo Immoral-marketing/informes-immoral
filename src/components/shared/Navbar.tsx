@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Users, LayoutGrid, UserCog, ShieldCheck, LayoutDashboard, UserPlus, FilePlus } from "lucide-react";
+import { ShieldCheck, UserPlus } from "lucide-react";
 import { signOut } from "@/app/(auth)/login/actions";
 import { NewClientWithVerticalDialog } from "@/components/clients/NewClientWithVerticalDialog";
 import { NewReportFlow } from "./NewReportFlow";
@@ -43,39 +43,11 @@ export default function Navbar({ userEmail, userName, userRole }: NavbarProps) {
 
   return (
     <header className="border-b border-border bg-card">
-      <div className="container mx-auto max-w-[1400px] px-4 sm:px-8 h-16 flex items-center justify-between">
-        
-        {/* Left Section */}
-        <div className="flex items-center gap-8">
-          {/* Logo */}
-          <Link href="/" className="flex items-center">
-            <Image src="/immoral-logo-negro.png" alt="Immoral" width={140} height={38} className="dark:invert object-contain" />
-          </Link>
-
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-6">
-            <Link href="/" className="flex items-center gap-2 text-sm font-medium hover:text-primary transition-colors">
-              <LayoutDashboard className="w-4 h-4" />
-              <span>Dashboard</span>
-            </Link>
-            <Link href="/clientes" className="flex items-center gap-2 text-sm font-medium hover:text-primary transition-colors">
-              <Users className="w-4 h-4" />
-              <span>Clientes</span>
-            </Link>
-            {userRole === "admin" && (
-              <>
-                <Link href="/admin/verticales" className="flex items-center gap-2 text-sm font-medium hover:text-primary transition-colors">
-                  <LayoutGrid className="w-4 h-4" />
-                  <span>Verticales</span>
-                </Link>
-                <Link href="/admin/usuarios" className="flex items-center gap-2 text-sm font-medium hover:text-primary transition-colors">
-                  <UserCog className="w-4 h-4" />
-                  <span>Usuarios</span>
-                </Link>
-              </>
-            )}
-          </nav>
-        </div>
+      <div className="w-full px-6 h-16 flex items-center justify-between">
+        {/* Logo */}
+        <Link href="/" className="flex items-center">
+          <Image src="/immoral-logo-negro.png" alt="Immoral" width={140} height={38} className="dark:invert object-contain" />
+        </Link>
 
         {/* Right Section */}
         <div className="flex items-center gap-4">
@@ -113,37 +85,6 @@ export default function Navbar({ userEmail, userName, userRole }: NavbarProps) {
                 )}
               </div>
               <DropdownMenuSeparator />
-              <div className="md:hidden">
-                <Link href="/" className="w-full">
-                  <DropdownMenuItem className="cursor-pointer">
-                    <LayoutDashboard className="w-4 h-4 mr-2" />
-                    Dashboard
-                  </DropdownMenuItem>
-                </Link>
-                <Link href="/clientes" className="w-full">
-                  <DropdownMenuItem className="cursor-pointer">
-                    <Users className="w-4 h-4 mr-2" />
-                    Clientes
-                  </DropdownMenuItem>
-                </Link>
-                {userRole === "admin" && (
-                  <>
-                    <Link href="/admin/verticales" className="w-full">
-                      <DropdownMenuItem className="cursor-pointer">
-                        <LayoutGrid className="w-4 h-4 mr-2" />
-                        Verticales
-                      </DropdownMenuItem>
-                    </Link>
-                    <Link href="/admin/usuarios" className="w-full">
-                      <DropdownMenuItem className="cursor-pointer">
-                        <UserCog className="w-4 h-4 mr-2" />
-                        Usuarios
-                      </DropdownMenuItem>
-                    </Link>
-                  </>
-                )}
-                <DropdownMenuSeparator />
-              </div>
               <DropdownMenuItem
                 onSelect={(e) => {
                   e.preventDefault();
