@@ -12,12 +12,15 @@ export async function proxy(request: NextRequest) {
   const isPublicViewerRoute =
     /^\/[^/]+\/[^/]+(\/r\/[^/]+)?$/.test(pathname) &&
     !pathname.startsWith("/(");
+  // Client portal — /{space}/portal and any sub-route (e.g. /{space}/portal/{slug}).
+  // Auth here is handled server-side via hasValidPortalSession, not by employee login.
+  const isPortalRoute = /^\/[^/]+\/portal(\/.*)?$/.test(pathname);
   const isAuthRoute =
     pathname.startsWith("/login") ||
     pathname.startsWith("/auth/");
   const isApiRoute = pathname.startsWith("/api/");
 
-  if (isPublicViewerRoute || isAuthRoute || isApiRoute) {
+  if (isPublicViewerRoute || isPortalRoute || isAuthRoute || isApiRoute) {
     return response;
   }
 
