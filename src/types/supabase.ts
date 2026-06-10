@@ -305,6 +305,51 @@ export type Database = {
           },
         ]
       }
+      portal_sessions: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          last_accessed_at: string | null
+          recipient_id: string | null
+          session_token_hash: string
+          space_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          last_accessed_at?: string | null
+          recipient_id?: string | null
+          session_token_hash: string
+          space_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          last_accessed_at?: string | null
+          recipient_id?: string | null
+          session_token_hash?: string
+          space_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_sessions_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "client_recipients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_sessions_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "client_spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -383,6 +428,106 @@ export type Database = {
           },
         ]
       }
+      report_note_logs: {
+        Row: {
+          action: Database["public"]["Enums"]["report_note_action"]
+          id: string
+          note_id: string
+          performed_at: string
+          performed_by: string
+          previous_content: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["report_note_action"]
+          id?: string
+          note_id: string
+          performed_at?: string
+          performed_by: string
+          previous_content?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["report_note_action"]
+          id?: string
+          note_id?: string
+          performed_at?: string
+          performed_by?: string
+          previous_content?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_note_logs_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "report_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_note_logs_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_notes: {
+        Row: {
+          content: string
+          copied_from_note_id: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          dom_selector: string
+          id: string
+          is_orphan: boolean
+          report_version_id: string
+        }
+        Insert: {
+          content: string
+          copied_from_note_id?: string | null
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          dom_selector: string
+          id?: string
+          is_orphan?: boolean
+          report_version_id: string
+        }
+        Update: {
+          content?: string
+          copied_from_note_id?: string | null
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          dom_selector?: string
+          id?: string
+          is_orphan?: boolean
+          report_version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_notes_copied_from_note_id_fkey"
+            columns: ["copied_from_note_id"]
+            isOneToOne: false
+            referencedRelation: "report_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_notes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_notes_report_version_id_fkey"
+            columns: ["report_version_id"]
+            isOneToOne: false
+            referencedRelation: "report_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       report_sessions: {
         Row: {
           created_at: string
@@ -429,106 +574,6 @@ export type Database = {
             referencedRelation: "reports"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      report_notes: {
-        Row: {
-          id: string
-          report_version_id: string
-          dom_selector: string
-          content: string
-          is_orphan: boolean
-          copied_from_note_id: string | null
-          created_by: string
-          created_at: string
-          deleted_at: string | null
-        }
-        Insert: {
-          id?: string
-          report_version_id: string
-          dom_selector: string
-          content: string
-          is_orphan?: boolean
-          copied_from_note_id?: string | null
-          created_by: string
-          created_at?: string
-          deleted_at?: string | null
-        }
-        Update: {
-          id?: string
-          report_version_id?: string
-          dom_selector?: string
-          content?: string
-          is_orphan?: boolean
-          copied_from_note_id?: string | null
-          created_by?: string
-          created_at?: string
-          deleted_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "report_notes_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "report_notes_copied_from_note_id_fkey"
-            columns: ["copied_from_note_id"]
-            isOneToOne: false
-            referencedRelation: "report_notes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "report_notes_report_version_id_fkey"
-            columns: ["report_version_id"]
-            isOneToOne: false
-            referencedRelation: "report_versions"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      report_note_logs: {
-        Row: {
-          id: string
-          note_id: string
-          action: Database["public"]["Enums"]["report_note_action"]
-          previous_content: string | null
-          performed_by: string
-          performed_at: string
-        }
-        Insert: {
-          id?: string
-          note_id: string
-          action: Database["public"]["Enums"]["report_note_action"]
-          previous_content?: string | null
-          performed_by: string
-          performed_at?: string
-        }
-        Update: {
-          id?: string
-          note_id?: string
-          action?: Database["public"]["Enums"]["report_note_action"]
-          previous_content?: string | null
-          performed_by?: string
-          performed_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "report_note_logs_note_id_fkey"
-            columns: ["note_id"]
-            isOneToOne: false
-            referencedRelation: "report_notes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "report_note_logs_performed_by_fkey"
-            columns: ["performed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
         ]
       }
       report_versions: {
@@ -642,77 +687,32 @@ export type Database = {
           },
         ]
       }
-      portal_sessions: {
-        Row: {
-          created_at: string
-          expires_at: string
-          id: string
-          last_accessed_at: string | null
-          recipient_id: string
-          session_token_hash: string
-          space_id: string
-        }
-        Insert: {
-          created_at?: string
-          expires_at: string
-          id?: string
-          last_accessed_at?: string | null
-          recipient_id: string
-          session_token_hash: string
-          space_id: string
-        }
-        Update: {
-          created_at?: string
-          expires_at?: string
-          id?: string
-          last_accessed_at?: string | null
-          recipient_id?: string
-          session_token_hash?: string
-          space_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "portal_sessions_recipient_id_fkey"
-            columns: ["recipient_id"]
-            isOneToOne: false
-            referencedRelation: "client_recipients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "portal_sessions_space_id_fkey"
-            columns: ["space_id"]
-            isOneToOne: false
-            referencedRelation: "client_spaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       space_access_tokens: {
         Row: {
           consumed_at: string | null
-          created_at: string
+          created_at: string | null
           expires_at: string
           id: string
-          recipient_id: string
-          space_id: string
+          recipient_id: string | null
+          space_id: string | null
           token_hash: string
         }
         Insert: {
           consumed_at?: string | null
-          created_at?: string
+          created_at?: string | null
           expires_at: string
           id?: string
-          recipient_id: string
-          space_id: string
+          recipient_id?: string | null
+          space_id?: string | null
           token_hash: string
         }
         Update: {
           consumed_at?: string | null
-          created_at?: string
+          created_at?: string | null
           expires_at?: string
           id?: string
-          recipient_id?: string
-          space_id?: string
+          recipient_id?: string | null
+          space_id?: string | null
           token_hash?: string
         }
         Relationships: [
