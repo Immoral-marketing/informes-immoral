@@ -71,28 +71,28 @@ function RequestAccessView({ space, errorParam }: { space: PortalSpace; errorPar
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-[#111111]">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#F8F9FA" }}>
       <div className="w-full max-w-sm flex flex-col items-center gap-8">
         <CoBrandLockup
           clientLogoUrl={space.clientLogoUrl}
           titleText={space.clientName}
           variant="modal"
-          theme="dark"
+          theme="light"
         />
 
         <div
           className="w-full rounded-2xl p-6 flex flex-col gap-5 shadow-xl"
-          style={{ backgroundColor: "#1e1e1e", border: "1px solid #333333" }}
+          style={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0" }}
         >
           <div className="text-center">
-            <p className="text-xs uppercase tracking-wider mb-1" style={{ color: "#a1a1aa" }}>Portal Seguro</p>
-            <h1 className="text-slate-100 font-bold text-base truncate">Documentos de {space.clientName}</h1>
+            <p className="text-xs uppercase tracking-wider mb-1" style={{ color: "#5E5E5E" }}>Portal de documentos</p>
+            <h1 className="text-slate-900 font-bold text-base truncate">Documentos de {space.clientName}</h1>
           </div>
 
-          <div className="flex rounded-xl overflow-hidden text-sm" style={{ border: "1px solid #333333" }}>
-            <div className="flex-1 py-2.5 font-medium transition-colors text-center bg-[#2d2d2d] text-slate-200">
+          <div className="flex rounded-xl overflow-hidden text-sm" style={{ border: "1px solid #e2e8f0" }}>
+            <div className="flex-1 py-2.5 font-medium transition-colors text-center" style={{ backgroundColor: "#f1f5f9", color: "#0f172a" }}>
               <span className="flex items-center justify-center gap-1.5">
-                <Mail className="w-4 h-4 text-slate-400" /> Enlace de acceso
+                <Mail className="w-4 h-4 text-slate-500" /> Enlace de acceso
               </span>
             </div>
           </div>
@@ -102,8 +102,8 @@ function RequestAccessView({ space, errorParam }: { space: PortalSpace; errorPar
               className="text-xs text-center px-3 py-2 rounded-lg"
               style={
                 feedback.type === "error"
-                  ? { backgroundColor: "rgba(239,68,68,0.1)", color: "#f87171", border: "1px solid rgba(239,68,68,0.2)" }
-                  : { backgroundColor: "rgba(57,128,228,0.1)", color: "#60a5fa", border: "1px solid rgba(57,128,228,0.2)" }
+                  ? { backgroundColor: "rgba(239,68,68,0.08)", color: "#dc2626", border: "1px solid rgba(239,68,68,0.2)" }
+                  : { backgroundColor: "rgba(57,128,228,0.08)", color: "#1d4ed8", border: "1px solid rgba(57,128,228,0.2)" }
               }
             >
               {feedback.text}
@@ -117,10 +117,10 @@ function RequestAccessView({ space, errorParam }: { space: PortalSpace; errorPar
               onChange={(e) => setEmail(e.target.value)}
               placeholder="tu@email.com"
               required
-              className="w-full rounded-xl px-4 py-3 text-slate-100 text-sm outline-none transition-all"
-              style={{ backgroundColor: "#111111", border: "1px solid #333333" }}
+              className="w-full rounded-xl px-4 py-3 text-slate-900 text-sm outline-none transition-all"
+              style={{ backgroundColor: "#ffffff", border: "1px solid #cbd5e1" }}
               onFocus={(e) => { e.currentTarget.style.borderColor = "var(--brand)"; }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = "#333333"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "#cbd5e1"; }}
             />
             <button
               type="submit"
@@ -154,19 +154,22 @@ function AuthenticatedPortalView({ space, spaceSlug }: { space: PortalSpace; spa
   }
 
   return (
-    <div className="min-h-screen bg-[#111111] text-slate-100 flex flex-col">
-      <header className="border-b border-[#222] bg-[#1a1a1a]">
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#F8F9FA" }}>
+      <header className="shrink-0" style={{ backgroundColor: "#ffffff", borderBottom: "1px solid #e2e8f0" }}>
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <CoBrandLockup
             clientLogoUrl={space.clientLogoUrl}
             titleText={space.clientName}
             variant="header"
-            theme="dark"
+            theme="light"
           />
           <button
             onClick={handleLogout}
             disabled={isLoggingOut}
-            className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 text-sm font-medium transition-colors disabled:opacity-50"
+            style={{ color: "#64748b" }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = "#0f172a"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = "#64748b"; }}
             title="Cerrar sesión"
           >
             <LogOut className="w-4 h-4" />
@@ -177,18 +180,21 @@ function AuthenticatedPortalView({ space, spaceSlug }: { space: PortalSpace; spa
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold mb-2">Informes disponibles</h1>
-          <p className="text-slate-400 text-sm">Explora los documentos y reportes que Immoral ha preparado para ti.</p>
+          <h1 className="text-2xl font-semibold mb-2 text-slate-900">Documentos disponibles</h1>
+          <p className="text-sm" style={{ color: "#64748b" }}>Explora los documentos y reportes que Immoral ha preparado para ti.</p>
         </div>
 
         {space.reports.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center border border-[#222] rounded-2xl bg-[#1a1a1a]">
-            <div className="w-16 h-16 rounded-full bg-[#222] flex items-center justify-center mb-4">
-              <FileText className="w-8 h-8 text-slate-500" />
+          <div
+            className="flex flex-col items-center justify-center py-20 text-center rounded-2xl"
+            style={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0" }}
+          >
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: "#f1f5f9" }}>
+              <FileText className="w-8 h-8" style={{ color: "#94a3b8" }} />
             </div>
-            <h3 className="text-lg font-medium mb-1">Aún no hay documentos disponibles</h3>
-            <p className="text-sm text-slate-400 max-w-md">
-              Cuando el equipo de Immoral publique un informe para este espacio, aparecerá aquí.
+            <h3 className="text-lg font-medium mb-1 text-slate-800">Aún no hay documentos disponibles</h3>
+            <p className="text-sm max-w-md" style={{ color: "#64748b" }}>
+              Cuando el equipo de Immoral publique un documento para este espacio, aparecerá aquí.
             </p>
           </div>
         ) : (
@@ -197,37 +203,39 @@ function AuthenticatedPortalView({ space, spaceSlug }: { space: PortalSpace; spa
               <a
                 key={r.id}
                 href={`/${space.slug}/${r.slug}`}
-                className="group flex flex-col bg-[#1a1a1a] border border-[#333] rounded-2xl p-5 hover:border-brand/50 transition-colors"
-                style={{ "--brand": "255, 60, 0" } as any}
+                className="group flex flex-col rounded-2xl p-5 transition-all"
+                style={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0" }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.06)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; }}
               >
                 <div className="flex items-start justify-between mb-4">
-                  <div className="p-2 bg-[#222] rounded-lg group-hover:bg-[#2a2a2a] transition-colors">
-                    <FileText className="w-5 h-5 text-slate-300" />
+                  <div className="p-2 rounded-lg transition-colors" style={{ backgroundColor: "#f1f5f9" }}>
+                    <FileText className="w-5 h-5" style={{ color: "#64748b" }} />
                   </div>
                   {r.verticals && (
-                    <span 
+                    <span
                       className="text-xs px-2.5 py-1 rounded-full font-medium"
-                      style={{ 
-                        backgroundColor: `${r.verticals.color_hex}15`, 
-                        color: r.verticals.color_hex 
+                      style={{
+                        backgroundColor: `${r.verticals.color_hex}18`,
+                        color: r.verticals.color_hex,
                       }}
                     >
                       {r.verticals.name}
                     </span>
                   )}
                 </div>
-                
-                <h3 className="font-medium text-lg leading-tight mb-2 group-hover:text-brand transition-colors text-slate-100">
+
+                <h3 className="font-medium text-base leading-tight mb-2 text-slate-800 group-hover:text-slate-900 transition-colors">
                   {r.name}
                 </h3>
-                
-                <div className="mt-auto flex items-center justify-between text-xs text-slate-400 pt-4 border-t border-[#333]">
+
+                <div className="mt-auto flex items-center justify-between text-xs pt-4" style={{ color: "#94a3b8", borderTop: "1px solid #f1f5f9" }}>
                   <span className="flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5" />
                     {new Date(r.updated_at).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })}
                   </span>
-                  <span className="flex items-center gap-1 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-brand font-medium">
-                    Ver informe <ArrowRight className="w-3.5 h-3.5" />
+                  <span className="flex items-center gap-1 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all font-medium" style={{ color: "var(--brand)" }}>
+                    Ver <ArrowRight className="w-3.5 h-3.5" />
                   </span>
                 </div>
               </a>
@@ -240,17 +248,23 @@ function AuthenticatedPortalView({ space, spaceSlug }: { space: PortalSpace; spa
             <button
               disabled={page === 1}
               onClick={() => setPage(page - 1)}
-              className="px-4 py-2 text-sm font-medium rounded-lg border border-[#333] hover:bg-[#222] disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-slate-300"
+              className="px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ border: "1px solid #e2e8f0", color: "#64748b", backgroundColor: "#ffffff" }}
+              onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = "#f8fafc"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#ffffff"; }}
             >
               Anterior
             </button>
-            <span className="text-sm text-slate-400">
+            <span className="text-sm" style={{ color: "#94a3b8" }}>
               {page} de {totalPages}
             </span>
             <button
               disabled={page === totalPages}
               onClick={() => setPage(page + 1)}
-              className="px-4 py-2 text-sm font-medium rounded-lg border border-[#333] hover:bg-[#222] disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-slate-300"
+              className="px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ border: "1px solid #e2e8f0", color: "#64748b", backgroundColor: "#ffffff" }}
+              onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = "#f8fafc"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#ffffff"; }}
             >
               Siguiente
             </button>
