@@ -3,24 +3,51 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { hashToken } from "@/lib/tokens/hash";
 
 async function validateSession(request: NextRequest, reportId: string) {
-  const token = request.cookies.get("informes_session")?.value;
-  if (!token) return null;
-
-  const tokenHash = hashToken(token);
   const supabaseAdmin = createAdminClient();
 
-  const { data } = await supabaseAdmin
-    .from("report_sessions")
-    .select("id, expires_at")
-    .eq("report_id", reportId)
-    .eq("token_hash", tokenHash)
-    .single();
+  // 1. Try document session
+  const docToken = request.cookies.get("informes_session")?.value;
+  if (docToken) {
+    const docHash = hashToken(docToken);
+    const { data: docSession } = await supabaseAdmin
+      .from("report_sessions")
+      .select("id, expires_at")
+      .eq("report_id", reportId)
+      .eq("token_hash", docHash)
+      .single();
 
-  const session = data as { id: string; expires_at: string } | null;
-  if (!session) return null;
-  if (new Date(session.expires_at) <= new Date()) return null;
+    if (docSession && new Date(docSession.expires_at) > new Date()) {
+      return docSession;
+    }
+  }
 
-  return session;
+  // 2. Try portal session
+  const portalToken = request.cookies.get("portal_session")?.value;
+  if (portalToken) {
+    const portalHash = hashToken(portalToken);
+    
+    // Need space_id of the report
+    const { data: rData } = await supabaseAdmin
+      .from("reports")
+      .select("space_id")
+      .eq("id", reportId)
+      .single();
+
+    if (rData) {
+      const { data: pSession } = await supabaseAdmin
+        .from("portal_sessions")
+        .select("id, expires_at")
+        .eq("space_id", rData.space_id)
+        .eq("session_token_hash", portalHash)
+        .single();
+
+      if (pSession && new Date(pSession.expires_at) > new Date()) {
+        return pSession;
+      }
+    }
+  }
+
+  return null;
 }
 
 export async function GET(request: NextRequest) {

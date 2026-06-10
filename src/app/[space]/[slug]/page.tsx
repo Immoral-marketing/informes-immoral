@@ -55,26 +55,41 @@ async function getReportBySlug(spaceSlug: string, reportSlug: string): Promise<R
   };
 }
 
-async function hasValidSession(reportId: string): Promise<boolean> {
+async function hasValidSession(reportId: string, spaceId: string): Promise<boolean> {
   const cookieStore = await cookies();
-  const token = cookieStore.get("informes_session")?.value;
-  if (!token) return false;
+  const supabaseAdmin = createAdminClient();
 
-  try {
-    const tokenHash = hashToken(token);
-    const supabaseAdmin = createAdminClient();
-    const { data } = await supabaseAdmin
-      .from("report_sessions")
-      .select("expires_at")
-      .eq("report_id", reportId)
-      .eq("token_hash", tokenHash)
-      .single();
-    const session = data as { expires_at: string } | null;
-    if (!session) return false;
-    return new Date(session.expires_at) > new Date();
-  } catch {
-    return false;
+  // 1. Try document session
+  const docToken = cookieStore.get("informes_session")?.value;
+  if (docToken) {
+    try {
+      const docHash = hashToken(docToken);
+      const { data } = await supabaseAdmin
+        .from("report_sessions")
+        .select("expires_at")
+        .eq("report_id", reportId)
+        .eq("token_hash", docHash)
+        .single();
+      if (data && new Date(data.expires_at) > new Date()) return true;
+    } catch { /* ignore */ }
   }
+
+  // 2. Try portal session
+  const portalToken = cookieStore.get("portal_session")?.value;
+  if (portalToken) {
+    try {
+      const portalHash = hashToken(portalToken);
+      const { data } = await supabaseAdmin
+        .from("portal_sessions")
+        .select("expires_at")
+        .eq("space_id", spaceId)
+        .eq("session_token_hash", portalHash)
+        .single();
+      if (data && new Date(data.expires_at) > new Date()) return true;
+    } catch { /* ignore */ }
+  }
+
+  return false;
 }
 
 export default async function ViewerPage({
@@ -90,7 +105,7 @@ export default async function ViewerPage({
   const report = await getReportBySlug(space, slug);
   if (!report) notFound();
 
-  const sessionValid = await hasValidSession(report.id);
+  const sessionValid = await hasValidSession(report.id, report.space_id);
 
   return (
     <ViewerShell

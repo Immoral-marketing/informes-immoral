@@ -642,6 +642,96 @@ export type Database = {
           },
         ]
       }
+      portal_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          last_accessed_at: string | null
+          recipient_id: string
+          session_token_hash: string
+          space_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          last_accessed_at?: string | null
+          recipient_id: string
+          session_token_hash: string
+          space_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          last_accessed_at?: string | null
+          recipient_id?: string
+          session_token_hash?: string
+          space_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_sessions_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "client_recipients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_sessions_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "client_spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      space_access_tokens: {
+        Row: {
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          recipient_id: string
+          space_id: string
+          token_hash: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          recipient_id: string
+          space_id: string
+          token_hash: string
+        }
+        Update: {
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          recipient_id?: string
+          space_id?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "space_access_tokens_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "client_recipients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "space_access_tokens_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "client_spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       verticals: {
         Row: {
           color_hex: string

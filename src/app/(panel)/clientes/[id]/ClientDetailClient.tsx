@@ -12,7 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ClientFields } from "@/components/clients/ClientFields";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Users, MoreVertical, Edit2, Trash2, MailPlus } from "lucide-react";
+import { Users, MoreVertical, Edit2, Trash2, MailPlus, Layout } from "lucide-react";
+import SharePortalModal from "./SharePortalModal";
 
 interface Client {
   id: string;
@@ -36,11 +37,13 @@ interface Recipient {
 export default function ClientDetailClient({
   client,
   recipients: initial,
+  spaces,
   isAdmin,
   currentUserId,
 }: {
   client: Client;
   recipients: Recipient[];
+  spaces: { id: string; slug: string; vertical_name: string }[];
   isAdmin: boolean;
   currentUserId: string;
 }) {
@@ -52,6 +55,7 @@ export default function ClientDetailClient({
   
   const [showRecipientsManager, setShowRecipientsManager] = useState(false);
   const [showRecipientForm, setShowRecipientForm] = useState(false);
+  const [showSharePortal, setShowSharePortal] = useState(false);
   const [editRecipient, setEditRecipient] = useState<Recipient | null>(null);
   
   const [error, setError] = useState<string | null>(null);
@@ -156,6 +160,18 @@ export default function ClientDetailClient({
         </div>
 
         <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+          {spaces.length > 0 && (
+            <Button
+              variant="outline"
+              className="rounded-xl flex items-center gap-2"
+              onClick={() => setShowSharePortal(true)}
+              style={{ color: "var(--brand)", borderColor: "var(--brand)" }}
+            >
+              <Layout className="w-4 h-4" />
+              <span>Compartir portal</span>
+            </Button>
+          )}
+          
           <Button 
             variant="outline" 
             className="rounded-xl flex items-center gap-2"
@@ -186,6 +202,15 @@ export default function ClientDetailClient({
       </section>
 
       {/* Modals */}
+      {showSharePortal && (
+        <SharePortalModal
+          clientName={client.name}
+          spaces={spaces}
+          recipients={recipients}
+          onClose={() => setShowSharePortal(false)}
+        />
+      )}
+
       {showRecipientsManager && (
         <RecipientsManagerModal
           recipients={recipients}

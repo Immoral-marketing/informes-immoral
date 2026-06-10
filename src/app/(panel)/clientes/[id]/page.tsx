@@ -88,6 +88,19 @@ export default async function ClientDetailPage({
     };
   }));
 
+  const { data: rawSpaces } = await supabaseAdmin
+    .from("client_spaces")
+    .select("id, slug, verticals(name)")
+    .eq("client_id", id);
+    
+  const spaces = (rawSpaces as unknown as Array<{
+    id: string; slug: string; verticals: { name: string } | null;
+  }>)?.map(s => ({
+    id: s.id,
+    slug: s.slug,
+    vertical_name: s.verticals?.name ?? "—"
+  })) ?? [];
+
   const verticals = (rawVerticals as unknown as Array<{
     id: string; name: string; color_hex: string;
   }>) ?? [];
@@ -104,6 +117,7 @@ export default async function ClientDetailPage({
       <ClientDetailClient
         client={clientWithLogo}
         recipients={recipients}
+        spaces={spaces}
         isAdmin={isAdmin}
         currentUserId={user.id}
       />
