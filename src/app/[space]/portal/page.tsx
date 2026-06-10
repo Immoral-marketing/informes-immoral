@@ -43,17 +43,18 @@ async function getSpacePortalData(spaceSlug: string, sessionValid: boolean) {
   const clientName = s.clients?.name ?? "Cliente";
   const clientLogoUrl = await getSignedClientLogoUrl(s.clients?.logo_url ?? null);
 
-  let reportsData: any[] = [];
-  
+  type PortalReportRow = { id: string; name: string; slug: string; updated_at: string; verticals: { name: string; color_hex: string } | null };
+  let reportsData: PortalReportRow[] = [];
+
   if (sessionValid) {
     const { data: reports } = await supabaseAdmin
       .from("reports")
       .select("id, name, slug, updated_at, verticals(name, color_hex)")
       .eq("space_id", s.id)
-      .not("current_version", "is", null) // only with published version
+      .not("current_version", "is", null)
       .order("updated_at", { ascending: false });
-    
-    reportsData = reports ?? [];
+
+    reportsData = (reports ?? []) as unknown as PortalReportRow[];
   }
 
   return {
