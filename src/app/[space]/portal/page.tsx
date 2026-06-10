@@ -1,7 +1,5 @@
 import { notFound } from "next/navigation";
-import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { hashToken } from "@/lib/tokens/hash";
 import { getSignedClientLogoUrl } from "@/app/(panel)/clientes/actions";
 import PortalClient from "./PortalClient";
 import { Metadata } from "next";
@@ -33,15 +31,20 @@ async function getSpacePortalData(spaceSlug: string, sessionValid: boolean) {
 
   const { data: space } = await supabaseAdmin
     .from("client_spaces")
-    .select("id, clients(name, logo_url)")
+    .select("id, clients(name, logo_url), verticals(name, color_hex)")
     .eq("slug", spaceSlug)
     .single();
 
   if (!space) return null;
-  const s = space as unknown as { id: string; clients: { name: string; logo_url: string | null } | null };
+  const s = space as unknown as {
+    id: string;
+    clients: { name: string; logo_url: string | null } | null;
+    verticals: { name: string; color_hex: string } | null;
+  };
 
   const clientName = s.clients?.name ?? "Cliente";
   const clientLogoUrl = await getSignedClientLogoUrl(s.clients?.logo_url ?? null);
+  const vertical = s.verticals;
 
   type PortalReportRow = { id: string; name: string; slug: string; updated_at: string; verticals: { name: string; color_hex: string } | null };
   let reportsData: PortalReportRow[] = [];
@@ -49,12 +52,18 @@ async function getSpacePortalData(spaceSlug: string, sessionValid: boolean) {
   if (sessionValid) {
     const { data: reports } = await supabaseAdmin
       .from("reports")
-      .select("id, name, slug, updated_at, verticals(name, color_hex)")
+      .select("id, name, slug, updated_at")
       .eq("space_id", s.id)
       .not("current_version", "is", null)
       .order("updated_at", { ascending: false });
 
-    reportsData = (reports ?? []) as unknown as PortalReportRow[];
+    reportsData = (reports ?? []).map((r) => ({
+      id: r.id,
+      name: r.name,
+      slug: r.slug,
+      updated_at: r.updated_at,
+      verticals: vertical,
+    }));
   }
 
   return {

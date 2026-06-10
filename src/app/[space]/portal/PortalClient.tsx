@@ -149,6 +149,7 @@ function AuthenticatedPortalView({ space, spaceSlug }: { space: PortalSpace; spa
   function handleLogout() {
     startLogout(async () => {
       await logoutPortal(spaceSlug);
+      router.replace(`/${spaceSlug}/portal`);
       router.refresh();
     });
   }

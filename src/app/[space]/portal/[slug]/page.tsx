@@ -42,16 +42,20 @@ export default async function ReportFolderPage({
   const { space, slug } = await params;
   const supabaseAdmin = createAdminClient();
 
-  // 1. Obtener spaceId
+  // 1. Obtener spaceId + vertical (la vertical pertenece al espacio, no al informe)
   const { data: spaceData } = await supabaseAdmin
     .from("client_spaces")
-    .select("id, clients(name, logo_url)")
+    .select("id, clients(name, logo_url), verticals(name, color_hex)")
     .eq("slug", space)
     .single();
 
   if (!spaceData) notFound();
-  
-  const s = spaceData as unknown as { id: string; clients: { name: string; logo_url: string | null } | null };
+
+  const s = spaceData as unknown as {
+    id: string;
+    clients: { name: string; logo_url: string | null } | null;
+    verticals: { name: string; color_hex: string } | null;
+  };
 
   // 2. Verificar sesión
   const isValidSession = await hasValidPortalSession(s.id);
@@ -62,7 +66,7 @@ export default async function ReportFolderPage({
   // 3. Obtener datos del informe
   const { data: reportData } = await supabaseAdmin
     .from("reports")
-    .select("id, name, slug, updated_at, verticals(name, color_hex)")
+    .select("id, name, slug, updated_at")
     .eq("space_id", s.id)
     .eq("slug", slug)
     .not("current_version", "is", null)
@@ -82,12 +86,12 @@ export default async function ReportFolderPage({
   const clientLogoUrl = await getSignedClientLogoUrl(s.clients?.logo_url ?? null);
 
   const data = {
-    report: reportData as unknown as {
-      id: string;
-      name: string;
-      slug: string;
-      updated_at: string;
-      verticals: { name: string; color_hex: string } | null;
+    report: {
+      id: reportData.id,
+      name: reportData.name,
+      slug: reportData.slug,
+      updated_at: reportData.updated_at,
+      verticals: s.verticals,
     },
     attachments: (attachmentsData ?? []) as Array<{
       id: string;
