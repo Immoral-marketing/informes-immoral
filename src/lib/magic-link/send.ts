@@ -63,8 +63,10 @@ export async function generateAndSendMagicLink({
     ...(createdBy ? { created_by: createdBy } : {}),
   });
 
-  // Build URL
-  const appUrl = process.env["NEXT_PUBLIC_APP_URL"] ?? "https://informes.immoral.es";
+  // Build URL — prefer NEXT_PUBLIC_SITE_URL, fallback to hardcoded https
+  const rawUrl = process.env["NEXT_PUBLIC_SITE_URL"] ?? process.env["NEXT_PUBLIC_APP_URL"] ?? "https://informes.immoral.es";
+  // Always force https in production to prevent cookie issues with Secure flag
+  const appUrl = rawUrl.replace(/^http:\/\//, "https://");
   const url = `${appUrl}/${spaceSlug}/${reportSlug}/r/${token}`;
 
   // Send email via Resend
