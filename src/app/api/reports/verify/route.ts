@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
   response.cookies.set("informes_session", token, {
     httpOnly: true,
     secure: process.env["NODE_ENV"] === "production",
-    sameSite: "strict",
+    sameSite: "lax",
     maxAge: SESSION_HOURS * 3600,
     path: "/",
   });
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
     response.cookies.set("portal_session", portalToken, {
       httpOnly: true,
       secure: process.env["NODE_ENV"] === "production",
-      sameSite: "strict",
+      sameSite: "lax",
       maxAge: SESSION_HOURS * 3600,
       path: `/${spaceSlug}`,
     });

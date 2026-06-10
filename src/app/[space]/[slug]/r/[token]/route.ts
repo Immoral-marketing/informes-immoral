@@ -104,14 +104,14 @@ export async function GET(
   response.cookies.set("informes_session", sessionToken, {
     httpOnly: true,
     secure: process.env["NODE_ENV"] === "production",
-    sameSite: "strict",
+    sameSite: "lax",
     maxAge: SESSION_HOURS * 3600,
     path: "/",
   });
   response.cookies.set("portal_session", portalToken, {
     httpOnly: true,
     secure: process.env["NODE_ENV"] === "production",
-    sameSite: "strict",
+    sameSite: "lax",
     maxAge: SESSION_HOURS * 3600,
     path: `/${space}`,
   });

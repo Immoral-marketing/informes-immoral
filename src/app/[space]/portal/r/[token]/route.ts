@@ -8,6 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ space: string; token: string }> }
 ) {
   const { space, token } = await params;
+  const origin = new URL(request.url).origin;
   const tokenHash = hashToken(token);
   const supabaseAdmin = createAdminClient();
 
@@ -19,7 +20,7 @@ export async function GET(
     .single();
 
   if (!spaceData) {
-    return NextResponse.redirect(new URL(`/${space}/portal?error=invalid_space`, request.url));
+    return NextResponse.redirect(new URL(`/${space}/portal?error=invalid_space`, origin));
   }
 
   const spaceId = spaceData.id;
@@ -33,11 +34,11 @@ export async function GET(
     .single();
 
   if (!tokenRecord) {
-    return NextResponse.redirect(new URL(`/${space}/portal?error=link_invalid`, request.url));
+    return NextResponse.redirect(new URL(`/${space}/portal?error=link_invalid`, origin));
   }
 
   if (tokenRecord.consumed_at || new Date(tokenRecord.expires_at) <= new Date()) {
-    return NextResponse.redirect(new URL(`/${space}/portal?error=link_expired`, request.url));
+    return NextResponse.redirect(new URL(`/${space}/portal?error=link_expired`, origin));
   }
 
   // Consume token (atomic update)
@@ -50,7 +51,7 @@ export async function GET(
     .single();
 
   if (updateError || !updateData) {
-    return NextResponse.redirect(new URL(`/${space}/portal?error=link_expired`, request.url));
+    return NextResponse.redirect(new URL(`/${space}/portal?error=link_expired`, origin));
   }
 
   // Create session
@@ -65,16 +66,15 @@ export async function GET(
     expires_at: sessionExpiresAt,
   });
 
-  // Set cookie
-  const response = NextResponse.redirect(new URL(`/${space}/portal`, request.url));
-  
+  const response = NextResponse.redirect(new URL(`/${space}/portal`, origin));
+
   response.cookies.set({
     name: "portal_session",
     value: sessionTokenRaw,
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    path: `/${space}`, // Scoped to space path
+    secure: process.env["NODE_ENV"] === "production",
+    sameSite: "lax",
+    path: `/${space}`,
     maxAge: 48 * 3600,
   });
 
