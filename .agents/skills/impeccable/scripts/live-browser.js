@@ -81,39 +81,18 @@
     'html', 'head', 'body', 'script', 'style', 'link', 'meta', 'noscript', 'br', 'wbr',
   ]);
 
-  // SVG icons stack above each chip label. All strokes use currentColor so the
-  // icon recolors to C.brand when its chip is selected. 20x20 render, 24-viewBox,
-  // 1.5 stroke - visually consistent with the Foundation grid on the homepage.
-  const ICON_ATTRS = 'width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block"';
-  const ICONS = {
-    impeccable: `<svg ${ICON_ATTRS}><path d="M4 20l4-1L18 9l-3-3L5 16z"/><path d="M14 7l3 3"/></svg>`,
-    bolder:     `<svg ${ICON_ATTRS}><rect x="6" y="12" width="4" height="7" rx="0.5"/><rect x="14" y="5" width="4" height="14" rx="0.5"/></svg>`,
-    quieter:    `<svg ${ICON_ATTRS}><rect x="6" y="5" width="4" height="14" rx="0.5"/><rect x="14" y="12" width="4" height="7" rx="0.5"/></svg>`,
-    distill:    `<svg ${ICON_ATTRS}><path d="M4 5h16l-6 8v7l-4-2v-5z"/></svg>`,
-    polish:     `<svg ${ICON_ATTRS}><path d="M15 3l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/><path d="M7 13l0.6 1.8 1.8 0.6-1.8 0.6-0.6 1.8-0.6-1.8-1.8-0.6 1.8-0.6z"/></svg>`,
-    typeset:    `<svg ${ICON_ATTRS}><path d="M5 6h14" stroke-width="2.6"/><path d="M5 12h9" stroke-width="1.9"/><path d="M5 18h5" stroke-width="1.3"/></svg>`,
-    colorize:   `<svg ${ICON_ATTRS}><circle cx="9" cy="10" r="5"/><circle cx="15" cy="10" r="5"/><circle cx="12" cy="15" r="5"/></svg>`,
-    layout:     `<svg ${ICON_ATTRS}><rect x="3" y="4" width="8" height="16" rx="0.5"/><rect x="13" y="4" width="8" height="7" rx="0.5"/><rect x="13" y="13" width="8" height="7" rx="0.5"/></svg>`,
-    adapt:      `<svg ${ICON_ATTRS}><rect x="2.5" y="5" width="12" height="11" rx="1"/><line x1="2.5" y1="19" x2="14.5" y2="19"/><rect x="16.5" y="8" width="5" height="11" rx="1"/></svg>`,
-    animate:    `<svg ${ICON_ATTRS}><path d="M3 18c4-4 6-10 10-10"/><path d="M13 8c3 0 5 5 8 10"/><circle cx="13" cy="8" r="1.6" fill="currentColor" stroke="none"/></svg>`,
-    delight:    `<svg ${ICON_ATTRS}><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/></svg>`,
-    overdrive:  `<svg ${ICON_ATTRS}><path d="M13 3L5 13h5l-1 8 9-12h-6z"/></svg>`,
-  };
-
-  const ACTIONS = [
-    { value: 'impeccable', label: 'Freeform' },
-    { value: 'bolder',     label: 'Bolder' },
-    { value: 'quieter',    label: 'Quieter' },
-    { value: 'distill',    label: 'Distill' },
-    { value: 'polish',     label: 'Polish' },
-    { value: 'typeset',    label: 'Typeset' },
-    { value: 'colorize',   label: 'Colorize' },
-    { value: 'layout',     label: 'Layout' },
-    { value: 'adapt',      label: 'Adapt' },
-    { value: 'animate',    label: 'Animate' },
-    { value: 'delight',    label: 'Delight' },
-    { value: 'overdrive',  label: 'Overdrive' },
-  ];
+  // Command vocabulary (values + labels + icons) comes from the canonical source,
+  // skill/scripts/live/vocabulary.mjs, which live-server.mjs serializes into
+  // window.__IMPECCABLE_VOCAB__ when it serves /live.js (same injection path as
+  // the token/port above, so it is always present here). The icons stack above
+  // each chip label and recolor to C.brand when selected (strokes use
+  // currentColor). ACTIONS drives the picker grid; ICONS maps value -> svg.
+  const VOCAB = Array.isArray(window.__IMPECCABLE_VOCAB__) ? window.__IMPECCABLE_VOCAB__ : [];
+  const ICONS = {};
+  const ACTIONS = VOCAB.map((c) => {
+    ICONS[c.value] = c.icon;
+    return { value: c.value, label: c.label };
+  });
 
   const LIVE_CHROME_MOUNT_CONTRACT = ['root', 'transport', 'state', 'actions'];
   const LIVE_UI_SURFACES = [
@@ -216,93 +195,31 @@
   // Helpers
   //
 
-  function own(el) {
-    return el && (el.id?.startsWith(PREFIX) || el.closest?.('[id^="' + PREFIX + '"]'));
+  const domHelpers = window.__IMPECCABLE_LIVE_DOM__?.createLiveBrowserDomHelpers({
+    prefix: PREFIX,
+    skipTags: SKIP_TAGS,
+    document,
+  });
+  if (!domHelpers) {
+    console.error('[impeccable] live-browser-dom.js was not loaded. Live mode cannot start safely.');
+    window.__IMPECCABLE_LIVE_INIT__ = false;
+    return;
   }
-
-  function pickable(el) {
-    if (!el || el.nodeType !== 1) return false;
-    if (SKIP_TAGS.has(el.tagName.toLowerCase())) return false;
-    if (own(el)) return false;
-    const r = el.getBoundingClientRect();
-    return r.width >= 20 && r.height >= 20;
-  }
-
-  function desc(el) {
-    if (!el) return '';
-    let s = el.tagName.toLowerCase();
-    if (el.id) s += '#' + el.id;
-    else if (el.classList.length) s += '.' + [...el.classList].slice(0, 2).join('.');
-    return s;
-  }
-
-  function rectIsUsableAnchor(rect) {
-    return !!rect && rect.width > 0.5 && rect.height > 0.5;
-  }
-
-  function makeFrozenAnchor(el) {
-    if (!el || !el.getBoundingClientRect) return null;
-    const r = el.getBoundingClientRect();
-    if (!rectIsUsableAnchor(r)) return null;
-    const rect = {
-      x: r.x, y: r.y,
-      top: r.top, left: r.left,
-      right: r.right, bottom: r.bottom,
-      width: r.width, height: r.height,
-    };
-    return {
-      __impeccableFrozenAnchor: true,
-      tagName: el.tagName || 'DIV',
-      id: el.id || '',
-      classList: el.classList ? [...el.classList] : [],
-      hasAttribute: () => false,
-      getBoundingClientRect: () => rect,
-    };
-  }
-
-  function id8() { return crypto.randomUUID().replace(/-/g, '').slice(0, 8); }
-
-  function cssId(id) {
-    if (window.CSS?.escape) return CSS.escape(id);
-    return String(id).replace(/([ !"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, '\\$1');
-  }
-
-  function liveUiRoot() {
-    const root = window.__IMPECCABLE_LIVE_UI_ROOT__;
-    if (root && typeof root.appendChild === 'function') return root;
-    return document.body;
-  }
-
-  function uiAppend(el) {
-    liveUiRoot().appendChild(el);
-    return el;
-  }
-
-  function uiAppendStyle(styleEl) {
-    const root = liveUiRoot();
-    if (root && root !== document.body) root.appendChild(styleEl);
-    else document.head.appendChild(styleEl);
-    return styleEl;
-  }
-
-  function uiGetById(id) {
-    const root = liveUiRoot();
-    if (root?.getElementById) {
-      const found = root.getElementById(id);
-      if (found) return found;
-    }
-    if (root?.querySelector) {
-      const found = root.querySelector('#' + cssId(id));
-      if (found) return found;
-    }
-    return document.getElementById(id);
-  }
-
-  function activeElementDeep() {
-    let active = document.activeElement;
-    while (active?.shadowRoot?.activeElement) active = active.shadowRoot.activeElement;
-    return active;
-  }
+  const {
+    own,
+    pickable,
+    desc,
+    rectIsUsableAnchor,
+    makeFrozenAnchor,
+    id8,
+    cssId,
+    liveUiRoot,
+    uiAppend,
+    uiAppendStyle,
+    uiGetById,
+    activeElementDeep,
+    defangOutsideHandlers,
+  } = domHelpers;
 
   window.__IMPECCABLE_LIVE_CHROME_CORE__ = {
     version: 1,
@@ -334,45 +251,6 @@
       evtSourceReadyState: evtSource ? evtSource.readyState : null,
     }),
   };
-
-  // Modal-aware chrome: keep our floating UI clickable inside Radix /
-  // Headless UI / vaul portals.
-  //
-  // Two host-page behaviors break us when the picked element lives inside a
-  // modal dialog:
-  //
-  //   1. Modal scroll-lock disables outside pointer events. Radix's
-  //      `DismissableLayer` sets `document.body.style.pointerEvents = 'none'`
-  //      while a modal is open and only restores `auto` on the layer. Our
-  //      chrome inherits `none` from <body> and becomes unclickable.
-  //   2. The dialog's outside-interaction handler (Radix's
-  //      `usePointerDownOutside`) listens at document level and dismisses
-  //      the dialog whenever a `pointerdown` lands outside the layer node.
-  //      Our chrome is a sibling of <body>, so Radix classifies our clicks
-  //      as outside and tears the dialog down mid-task.
-  //
-  // We can't reliably re-parent our chrome into the dialog subtree (z-index
-  // stacking, scroll containers, theming all become host-page concerns), so
-  // we defang both behaviors at our root:
-  //
-  //   - `pointer-events: auto !important` overrides the inherited `none`.
-  //   - Stop `pointerdown` / `mousedown` propagation so the document-level
-  //     dismiss listener never fires for our clicks.
-  //   - Stop `focusin` propagation so any focus shifts inside our chrome
-  //     don't read as "focus moved outside the dialog" to focus traps.
-  //
-  // Click events still bubble normally - only the early pointer/focus
-  // signals that drive outside-interaction detection are silenced.
-  function defangOutsideHandlers(rootEl, { setPointerEvents = true } = {}) {
-    if (!rootEl) return;
-    if (setPointerEvents) {
-      rootEl.style.setProperty('pointer-events', 'auto', 'important');
-    }
-    const stop = (e) => e.stopPropagation();
-    rootEl.addEventListener('pointerdown', stop);
-    rootEl.addEventListener('mousedown', stop);
-    rootEl.addEventListener('focusin', stop);
-  }
 
   //
   // Highlight overlay
@@ -1237,7 +1115,7 @@
       : (focused ? BP.accentSoft : BP.hairline);
   }
 
-  // Insert mode helpers (mirrors skill/scripts/live-insert-ui.mjs)
+  // Insert mode helpers (mirrors skill/scripts/live/insert-ui.mjs)
 
   function detectInsertAxisFromStyle(style) {
     const display = style?.display || 'block';
@@ -4524,15 +4402,17 @@
     if (origContent.id) {
       liveEl = document.getElementById(origContent.id);
     } else if (cls) {
-      const candidates = document.querySelectorAll(tag + '.' + cls.split(' ')[0]);
+      const candidates = [...document.getElementsByTagName(tag)];
       for (const c of candidates) {
         if (c.className === cls && !own(c)) { liveEl = c; break; }
       }
       if (!liveEl) {
-        const expectedClasses = String(cls).split(/\s+/).filter(Boolean);
-        for (const c of candidates) {
-          if (own(c)) continue;
-          if (expectedClasses.every((name) => c.classList.contains(name))) { liveEl = c; break; }
+        const expectedClasses = String(cls).split(/\s+/).filter((name) => /^[A-Za-z_-][\w-]*$/.test(name));
+        if (expectedClasses.length > 0) {
+          for (const c of candidates) {
+            if (own(c)) continue;
+            if (expectedClasses.every((name) => c.classList.contains(name))) { liveEl = c; break; }
+          }
         }
       }
     }
@@ -4901,7 +4781,7 @@
         const block = startIdx !== -1 && endIdx !== -1 && endIdx > startIdx
           ? html.slice(startIdx + startMark.length, endIdx).trim()
           : html;
-        const doc = parser.parseFromString(block, 'text/html');
+        const doc = parser.parseFromString(normalizeSourceFallbackBlock(block, filePath), 'text/html');
         srcWrapper = doc.querySelector('[data-impeccable-variants="' + sessionId + '"]');
         if (!srcWrapper) {
           console.warn('[impeccable] Variant wrapper not found in source file.');
@@ -4968,6 +4848,44 @@
         console.error('[impeccable] Failed to fetch source:', err);
         showToast('Could not load variants. Try refreshing the page.', 5000);
       });
+  }
+
+  function normalizeSourceFallbackBlock(block, filePath) {
+    if (!/\.[cm]?[jt]sx$/i.test(String(filePath || ''))) return block;
+    return String(block)
+      .replace(
+        /<style\b([^>]*)>\s*\{\s*`([\s\S]*?)`\s*\}\s*<\/style>/g,
+        (_match, attrs, css) => '<style' + attrs + '>' + css + '</style>',
+      )
+      .replace(/\bclassName\s*=\s*\{\s*`([^`]*?)`\s*\}/g, (_match, value) => {
+        const literalClasses = value.replace(/\$\{[^}]*\}/g, ' ').replace(/\s+/g, ' ').trim();
+        return literalClasses ? 'class="' + escapeHtml(literalClasses) + '"' : '';
+      })
+      .replace(/\bclassName\s*=/g, 'class=')
+      .replace(/\sstyle=\{\{([\s\S]*?)\}\}/g, (_match, body) => {
+        const css = jsxStyleObjectToCss(body);
+        return css ? ' style="' + escapeHtml(css) + '"' : '';
+      });
+  }
+
+  function jsxStyleObjectToCss(body) {
+    const declarations = [];
+    const re = /(["'][^"']+["']|[A-Za-z_$][\w$-]*)\s*:\s*(?:"([^"]*)"|'([^']*)'|(-?\d+(?:\.\d+)?))/g;
+    let match;
+    while ((match = re.exec(String(body || '')))) {
+      const prop = jsxStylePropToCss(match[1]);
+      const value = match[2] ?? match[3] ?? match[4] ?? '';
+      if (!prop || value === '') continue;
+      declarations.push(prop + ': ' + value);
+    }
+    return declarations.join('; ');
+  }
+
+  function jsxStylePropToCss(prop) {
+    let out = String(prop || '').trim().replace(/^["']|["']$/g, '');
+    if (!out) return '';
+    if (out.startsWith('--')) return out;
+    return out.replace(/[A-Z]/g, (ch) => '-' + ch.toLowerCase()).replace(/^-ms-/, '-ms-');
   }
 
   function buildSvelteExpressionTextMap(sourceOriginal, liveOriginal) {
@@ -5443,7 +5361,11 @@
           }
           // Source fallback when HMR did not land variants in this tab.
           if (msg.file && msg.id && state === 'GENERATING' && msg.id === currentSessionId) {
-            injectVariantsFromSource(msg.file, msg.id);
+            setTimeout(() => {
+              if (arrivedVariants >= expectedVariants && expectedVariants > 0) return;
+              if (state !== 'GENERATING' || msg.id !== currentSessionId) return;
+              injectVariantsFromSource(msg.file, msg.id);
+            }, 750);
             break;
           }
           // Variants are in source but not in the DOM yet. Common when the
@@ -5535,8 +5457,11 @@
   function sendEvent(msg, opts) {
     msg.token = TOKEN;
     function handleFailure(err) {
-      console.error('[impeccable] Failed to send event:', err);
-      if (opts && opts.throwOnError) throw err;
+      if (opts && opts.throwOnError) {
+        console.error('[impeccable] Failed to send event:', err);
+        throw err;
+      }
+      console.debug('[impeccable] Dropped optional live event:', err);
       return null;
     }
     return fetch('http://localhost:' + PORT + '/events', {
@@ -6829,7 +6754,14 @@ void main() {
 
   function scheduleAcceptCleanup(accepted) {
     setTimeout(function() {
-      if (!accepted?.isSvelteComponent) ensureAcceptedDomClean(accepted);
+      if (!accepted?.isSvelteComponent && !acceptedDomAlreadyClean(accepted)) {
+        setTimeout(function() {
+          if (pendingAcceptedSession?.id !== accepted?.id) return;
+          if (!accepted?.isSvelteComponent) ensureAcceptedDomClean(accepted);
+          cleanupAcceptedSession();
+        }, 1800);
+        return;
+      }
       cleanupAcceptedSession();
     }, 1200);
   }
@@ -6858,29 +6790,42 @@ void main() {
   function acceptedDomAlreadyClean(pending) {
     if (!pending?.acceptedSelector) return false;
     const matches = [...document.querySelectorAll(pending.acceptedSelector)];
-    return matches.some((el) => !el.closest('[data-impeccable-variants],[data-impeccable-variant]'));
+    return matches.length > 0
+      && matches.every((el) => !el.closest('[data-impeccable-variants],[data-impeccable-variant],[data-impeccable-carbonize]'));
   }
 
   function ensureAcceptedDomClean(pending) {
+    if (acceptedDomAlreadyClean(pending)) return;
     const sessionId = pending?.id;
     const variantId = pending?.variant;
-    const wrapper = document.querySelector('[data-impeccable-variants="' + sessionId + '"]');
-    const accepted = wrapper?.querySelector?.('[data-impeccable-variant="' + variantId + '"]');
-    if (!wrapper) {
+    const wrappers = findAcceptedRuntimeWrappers(sessionId);
+    if (wrappers.length === 0) {
       restoreAcceptedDomFromSnapshot(pending);
       return;
     }
-    if (!accepted) {
+    for (const wrapper of wrappers) {
+      if (!wrapper?.isConnected) continue;
+      const accepted = wrapper.querySelector?.('[data-impeccable-variant="' + variantId + '"]');
+      if (!accepted) {
+        wrapper.remove();
+        continue;
+      }
+      const parent = wrapper.parentElement;
+      if (!parent) continue;
+      while (accepted.firstChild) {
+        parent.insertBefore(accepted.firstChild, wrapper);
+      }
       wrapper.remove();
-      restoreAcceptedDomFromSnapshot(pending);
-      return;
     }
-    const parent = wrapper.parentElement;
-    if (!parent) return;
-    while (accepted.firstChild) {
-      parent.insertBefore(accepted.firstChild, wrapper);
-    }
-    wrapper.remove();
+    if (!acceptedDomAlreadyClean(pending)) restoreAcceptedDomFromSnapshot(pending);
+  }
+
+  function findAcceptedRuntimeWrappers(sessionId) {
+    if (!sessionId) return [];
+    return [...new Set([
+      ...document.querySelectorAll('[data-impeccable-variants="' + sessionId + '"]'),
+      ...document.querySelectorAll('[data-impeccable-carbonize="' + sessionId + '"]'),
+    ])];
   }
 
   function restoreAcceptedDomFromSnapshot(pending) {

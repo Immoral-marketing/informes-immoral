@@ -1,6 +1,36 @@
 {
   "version": 1,
   "skills": {
+    "brianspec-archive": {
+      "source": "Immoral-marketing/brianspec",
+      "sourceType": "github",
+      "skillPath": "brianspec-archive/SKILL.md",
+      "computedHash": "76eae3958a036c9c4d05abbbd2cb9c6779faa1c28ae023cc207d63d167cfb4f1"
+    },
+    "brianspec-build": {
+      "source": "Immoral-marketing/brianspec",
+      "sourceType": "github",
+      "skillPath": "brianspec-build/SKILL.md",
+      "computedHash": "f39ae61bc2cec48df9d76bc7b13b71e311aedecb6d76559439008677236ee44a"
+    },
+    "brianspec-init": {
+      "source": "Immoral-marketing/brianspec",
+      "sourceType": "github",
+      "skillPath": "brianspec-init/SKILL.md",
+      "computedHash": "5d67aeca8d405cd22399bc36ff8438a51b4cead59b042ad0f8aef78c7fa1dc64"
+    },
+    "brianspec-spec": {
+      "source": "Immoral-marketing/brianspec",
+      "sourceType": "github",
+      "skillPath": "brianspec-spec/SKILL.md",
+      "computedHash": "5e11c0872b8b57bbfea913f7b2612f6378ab3066564757f3f6d7ba861debc5e1"
+    },
+    "brianspec-upgrade": {
+      "source": "Immoral-marketing/brianspec",
+      "sourceType": "github",
+      "skillPath": "brianspec-upgrade/SKILL.md",
+      "computedHash": "fc29ce5820b943fd24fdac0470c031f950c830876a1e8464679f5f714a4660ba"
+    },
     "emil-design-eng": {
       "source": "emilkowalski/skill",
       "sourceType": "github",
@@ -11,13 +41,13 @@
       "source": "anthropics/skills",
       "sourceType": "github",
       "skillPath": "skills/frontend-design/SKILL.md",
-      "computedHash": "516bd2154eb843a8240e43d5b285229129853114ad7075a5e141e1c08e408c84"
+      "computedHash": "93f53fd1c0352d3d7ec17b8f73d7351bf76f4821e55d123c9d2abc2c53ba48e4"
     },
     "impeccable": {
       "source": "pbakaus/impeccable",
       "sourceType": "github",
       "skillPath": ".agents/skills/impeccable/SKILL.md",
-      "computedHash": "912cdaf757fd66c618e8e67510680f0aea27b29aba019473ea1b832506e98942"
+      "computedHash": "e72a74ef2e6272cfcf8fce5923d10e9fe9bdb2b8adb11fa08ab274c9708a04af"
     },
     "nextjs-app-router-patterns": {
       "source": "wshobson/agents",
@@ -29,13 +59,13 @@
       "source": "supabase/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/supabase/SKILL.md",
-      "computedHash": "eca0b1b439e0d848fcfb4fcdffad4383f361fbb026a6757d9f33c19be229958d"
+      "computedHash": "61638e85394d2e39d1109cbf607593afb9733e0de19cdf0b52ec9bc32d95ea74"
     },
     "supabase-postgres-best-practices": {
       "source": "supabase/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/supabase-postgres-best-practices/SKILL.md",
-      "computedHash": "0c0c8712d840922143fe945c41d3181d99fef2819d53d5b075a42cf0153288c0"
+      "computedHash": "3639bed1f40b3fbadae79fee631c42c89b2d1f5c30b05d5aa3cca06422a6bbbc"
     },
     "tailwind-v4-shadcn": {
       "source": "secondsky/claude-skills",

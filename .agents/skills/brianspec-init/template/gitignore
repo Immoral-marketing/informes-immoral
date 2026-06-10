@@ -1,0 +1,33 @@
+# BrianSpec — .gitignore base
+
+# Sistemas operativos
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Editores
+.vscode/
+.idea/
+*.sublime-*
+
+# Claude Code: ignora settings locales de cada máquina,
+# pero NO las skills copiadas (.claude/skills/ y skills-lock.json SÍ se commitean).
+.claude/settings.local.json
+
+# Variables de entorno (proyectos generados con BrianSpec deben añadir las suyas)
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Carpetas que los proyectos generados pueden crear y que NO deben subirse al repo del template
+# (estos se borran del template; aparecen solo en proyectos concretos generados con brianspec-init)
+/node_modules/
+/dist/
+/build/
+/.next/
+/coverage/
