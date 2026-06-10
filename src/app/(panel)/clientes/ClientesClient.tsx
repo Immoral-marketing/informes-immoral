@@ -148,7 +148,7 @@ export default function ClientesClient({
           onClose={() => setShowForm(false)}
           onCreated={(r) => {
             setShowForm(false);
-            router.push(`/espacios/${r.spaceId}`);
+            router.push(`/clientes/${r.clientId}`);
           }}
         />
       )}

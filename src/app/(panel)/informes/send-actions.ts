@@ -4,8 +4,14 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateAndSendMagicLink } from "@/lib/magic-link/send";
 
-export async function sendMagicLinks(reportId: string, recipientIds: string[]) {
+export async function sendMagicLinks(
+  reportId: string,
+  recipientIds: string[],
+  options?: { subject?: string | undefined; note?: string | undefined }
+) {
   if (!recipientIds.length) return { error: "Selecciona al menos un destinatario" };
+  if (options?.subject && options.subject.length > 120) return { error: "El asunto no puede exceder los 120 caracteres" };
+  if (options?.note && options.note.length > 500) return { error: "La nota no puede exceder los 500 caracteres" };
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -23,8 +29,8 @@ export async function sendMagicLinks(reportId: string, recipientIds: string[]) {
   if (!r) return { error: "Informe no encontrado" };
 
   // Auth check
-  const { data: profile } = await supabaseAdmin.from("profiles").select("role").eq("id", user.id).single();
-  const p = profile as { role: string } | null;
+  const { data: profile } = await supabaseAdmin.from("profiles").select("role, full_name").eq("id", user.id).single();
+  const p = profile as { role: string; full_name: string | null } | null;
   if (r.created_by !== user.id && p?.role !== "admin") return { error: "Sin permiso" };
 
   const { data: space } = await supabaseAdmin
@@ -54,6 +60,9 @@ export async function sendMagicLinks(reportId: string, recipientIds: string[]) {
       clientName: s.clients?.name ?? "cliente",
       clientLogoUrl,
       createdBy: user.id,
+      subject: options?.subject,
+      note: options?.note,
+      senderName: p?.full_name ?? "El equipo",
     });
     results.push({ recipientId, ok: "ok" in result, error: "error" in result ? result.error : undefined });
   }
@@ -67,35 +76,54 @@ export async function sendMagicLinks(reportId: string, recipientIds: string[]) {
 export async function getReportRecipients(reportId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
+  if (!user) return { recipients: [], meta: null };
 
   const supabaseAdmin = createAdminClient();
 
   const { data: report } = await supabaseAdmin
     .from("reports")
-    .select("space_id")
+    .select("name, space_id")
     .eq("id", reportId)
     .single();
-  const r = report as { space_id: string } | null;
-  if (!r) return [];
+  const r = report as { name: string; space_id: string } | null;
+  if (!r) return { recipients: [], meta: null };
 
   const { data: space } = await supabaseAdmin
     .from("client_spaces")
-    .select("client_id")
+    .select("clients(id, name, logo_url)")
     .eq("id", r.space_id)
     .single();
-  const s = space as { client_id: string } | null;
-  if (!s) return [];
+  const s = space as unknown as { clients: { id: string; name: string; logo_url: string | null } | null } | null;
+  if (!s || !s.clients) return { recipients: [], meta: null };
+
+  let clientLogoUrl: string | null = null;
+  if (s.clients.logo_url) {
+    const { data } = await supabaseAdmin.storage.from("client-logos").createSignedUrl(s.clients.logo_url, 3600);
+    clientLogoUrl = data?.signedUrl ?? null;
+  }
+
+  const { data: profile } = await supabaseAdmin.from("profiles").select("full_name").eq("id", user.id).single();
+  const p = profile as { full_name: string | null } | null;
 
   const { data: recipients } = await supabaseAdmin
     .from("client_recipients")
     .select("id, email, full_name, role_label, is_primary")
-    .eq("client_id", s.client_id)
+    .eq("client_id", s.clients.id)
     .order("is_primary", { ascending: false })
     .order("created_at");
 
-  return (recipients as unknown as Array<{
+  const typedRecipients = (recipients as unknown as Array<{
     id: string; email: string; full_name: string | null;
     role_label: string | null; is_primary: boolean;
   }>) ?? [];
+
+  return {
+    recipients: typedRecipients,
+    meta: {
+      reportName: r.name,
+      clientName: s.clients.name,
+      clientLogoUrl,
+      senderName: p?.full_name ?? "El equipo",
+    }
+  };
 }

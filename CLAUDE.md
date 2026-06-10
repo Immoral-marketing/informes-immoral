@@ -205,6 +205,10 @@ informes-immoral/
 | [28-annotate-fix-and-clients-search](specs/28-annotate-fix-and-clients-search.md) | Fix Anotar (RLS recursiva en join con profiles, loader, overlay) + buscador y paginación de clientes | 3 | implementada |
 | [29-space-screen-and-annotate-drawer](specs/29-space-screen-and-annotate-drawer.md) | Pantalla de espacio (contacto responsive, filtro/paginación informes) + drawer lateral de Anotar | 2 | draft |
 | [30-folder-style-attachments-drag-and-drop](specs/30-folder-style-attachments-drag-and-drop.md) | Adjuntos estilo carpeta + subida interactiva Drag & Drop con progreso animado | 2 | draft |
+| [31-client-flat-reports](specs/31-client-flat-reports.md) | Vista plana de informes en cliente (tabla unificada multi-vertical desde /clientes/[id]) | 1 | implementada |
+| [32-email-personalizable](specs/32-email-personalizable.md) | Email de magic link personalizable: asunto, nota libre y preview antes de enviar | 2 | draft |
+| [33-client-portal](specs/33-client-portal.md) | Portal del cliente estilo Drive: acceso a todos sus informes por espacio con sesión de 48h | 3 | draft |
+| [34-post-spec23-fixes](specs/34-post-spec23-fixes.md) | Fix: 404 al redirigir tras crear cliente (post-impl SPEC-23) | 1 | draft |
 | 08-client-feedback | Comentarios anclados cliente↔empleado (NO implementado por 20; sigue futuro) | 2 | pendiente |
 | 09-presentation-mode | Modo presentación sincronizado (implementado por la spec 19) | 3 | reemplazada por 19 |
 | 10-notifications | Notificaciones in-app + email | 2 | pendiente |

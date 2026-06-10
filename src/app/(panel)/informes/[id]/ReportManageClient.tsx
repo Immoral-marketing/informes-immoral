@@ -289,7 +289,7 @@ export default function ReportManageClient({
       if ("error" in result) toast.error(result.error);
       else {
         toast.success("Informe eliminado");
-        router.push(`/espacios/${report.space_id}`);
+        router.push(report.client_spaces?.clients?.id ? `/clientes/${report.client_spaces.clients.id}` : "/clientes");
       }
     });
   }

@@ -173,7 +173,7 @@ export default function Navbar({ userEmail, userName, userRole }: NavbarProps) {
             onClose={() => setNewClient(false)}
             onCreated={(r) => {
               setNewClient(false);
-              router.push(`/espacios/${r.spaceId}`);
+              router.push(`/clientes/${r.clientId}`);
             }}
           />
         )}

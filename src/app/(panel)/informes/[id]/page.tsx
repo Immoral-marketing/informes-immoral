@@ -93,7 +93,7 @@ export default async function InformeDetailPage({
         { label: "Dashboard", href: "/" },
         { label: "Clientes", href: "/clientes" },
         { label: report.client_spaces?.clients?.name ?? "Cliente", href: `/clientes/${report.client_spaces?.clients?.id ?? ""}` },
-        { label: report.client_spaces?.verticals?.name ?? "Espacio", href: `/espacios/${report.space_id}` },
+
         { label: report.name }
       ]} />
 
