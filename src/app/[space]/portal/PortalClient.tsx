@@ -202,7 +202,7 @@ function AuthenticatedPortalView({ space, spaceSlug }: { space: PortalSpace; spa
             {paginatedReports.map((r) => (
               <a
                 key={r.id}
-                href={`/${space.slug}/${r.slug}`}
+                href={`/${space.slug}/portal/${r.slug}`}
                 className="group flex flex-col rounded-2xl p-5 transition-all"
                 style={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0" }}
                 onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.06)"; }}
