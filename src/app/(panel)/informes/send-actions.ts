@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateAndSendMagicLink } from "@/lib/magic-link/send";
+import { addRecipient } from "@/app/(panel)/clientes/actions";
 
 export async function sendMagicLinks(
   reportId: string,
@@ -124,6 +125,19 @@ export async function getReportRecipients(reportId: string) {
       clientName: s.clients.name,
       clientLogoUrl,
       senderName: p?.full_name ?? "El equipo",
+      clientId: s.clients.id,
     }
   };
+}
+
+export async function addRecipientInline(
+  clientId: string,
+  email: string,
+  fullName: string | undefined
+) {
+  const formData = new FormData();
+  formData.set("email", email);
+  if (fullName) formData.set("full_name", fullName);
+  formData.set("is_primary", "false");
+  return addRecipient(clientId, formData);
 }
