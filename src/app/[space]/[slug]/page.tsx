@@ -112,6 +112,7 @@ export default async function ViewerPage({
       report={report}
       sessionValid={sessionValid}
       linkExpired={errorParam === "link_expired"}
+      spaceSlug={space}
     />
   );
 }

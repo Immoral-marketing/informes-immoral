@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { CoBrandLockup } from "@/components/shared/CoBrandLockup";
-import { Mail, FileText, Calendar, ArrowRight } from "lucide-react";
+import { Mail, FileText, Calendar, ArrowRight, LogOut } from "lucide-react";
+import { logoutPortal } from "./actions";
 
 export interface PortalReport {
   id: string;
@@ -33,7 +35,7 @@ export default function PortalClient({
     return <RequestAccessView space={space} {...(errorParam ? { errorParam } : {})} />;
   }
 
-  return <AuthenticatedPortalView space={space} />;
+  return <AuthenticatedPortalView space={space} spaceSlug={space.slug} />;
 }
 
 function RequestAccessView({ space, errorParam }: { space: PortalSpace; errorParam?: string }) {
@@ -135,13 +137,21 @@ function RequestAccessView({ space, errorParam }: { space: PortalSpace; errorPar
   );
 }
 
-function AuthenticatedPortalView({ space }: { space: PortalSpace }) {
-  // Client pagination
+function AuthenticatedPortalView({ space, spaceSlug }: { space: PortalSpace; spaceSlug: string }) {
+  const router = useRouter();
   const [page, setPage] = useState(1);
+  const [isLoggingOut, startLogout] = useTransition();
   const itemsPerPage = 20;
-  
+
   const totalPages = Math.ceil(space.reports.length / itemsPerPage);
   const paginatedReports = space.reports.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+
+  function handleLogout() {
+    startLogout(async () => {
+      await logoutPortal(spaceSlug);
+      router.refresh();
+    });
+  }
 
   return (
     <div className="min-h-screen bg-[#111111] text-slate-100 flex flex-col">
@@ -153,9 +163,15 @@ function AuthenticatedPortalView({ space }: { space: PortalSpace }) {
             variant="header"
             theme="dark"
           />
-          <div className="text-sm text-slate-400 font-medium">
-            Portal de Documentos
-          </div>
+          <button
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 transition-colors disabled:opacity-50"
+            title="Cerrar sesión"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">{isLoggingOut ? "Saliendo…" : "Cerrar sesión"}</span>
+          </button>
         </div>
       </header>
 

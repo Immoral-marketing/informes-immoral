@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
+import Link from "next/link";
 import { CoBrandLockup } from "@/components/shared/CoBrandLockup";
 import AccessModal from "./AccessModal";
 import PdfViewer from "./PdfViewer";
 import AttachmentsModal from "./AttachmentsModal";
-import { Paperclip } from "lucide-react";
+import { Paperclip, LayoutGrid } from "lucide-react";
 
 interface Attachment {
   id: string;
@@ -32,10 +32,12 @@ export default function ViewerShell({
   report,
   sessionValid,
   linkExpired,
+  spaceSlug,
 }: {
   report: ReportInfo;
   sessionValid: boolean;
   linkExpired: boolean;
+  spaceSlug: string;
 }) {
   const [authenticated, setAuthenticated] = useState(sessionValid);
   const [docUrl, setDocUrl] = useState<string | null>(null);
@@ -145,8 +147,8 @@ export default function ViewerShell({
           />
         </div>
 
-        {report.attachments.length > 0 && (
-          <div className="relative shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
+          {report.attachments.length > 0 && (
             <button
               onClick={() => setShowAttachments((v) => !v)}
               className="flex items-center gap-2 text-sm font-medium transition-all rounded-xl px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50 hover:border-slate-300 shadow-sm"
@@ -154,8 +156,15 @@ export default function ViewerShell({
               <Paperclip className="w-4 h-4 text-slate-500" />
               <span>{report.attachments.length} {report.attachments.length === 1 ? "adjunto" : "adjuntos"}</span>
             </button>
-          </div>
-        )}
+          )}
+          <Link
+            href={`/${spaceSlug}/portal`}
+            className="flex items-center gap-2 text-sm font-medium transition-all rounded-xl px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50 hover:border-slate-300 shadow-sm"
+          >
+            <LayoutGrid className="w-4 h-4 text-slate-500" />
+            <span className="hidden sm:inline">Ver mi espacio</span>
+          </Link>
+        </div>
       </header>
 
       {/* Document area */}

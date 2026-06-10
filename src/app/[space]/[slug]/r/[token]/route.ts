@@ -77,16 +77,26 @@ export async function GET(
     return NextResponse.redirect(new URL(`/${base}?error=link_expired`, request.url));
   }
 
-  // Create session
-  const sessionToken = generateSessionToken();
-  const sessionHash = hashToken(sessionToken);
   const expiresAt = new Date(Date.now() + SESSION_HOURS * 3600 * 1000).toISOString();
 
+  // Create document session (informes_session)
+  const sessionToken = generateSessionToken();
+  const sessionHash = hashToken(sessionToken);
   await supabaseAdmin.from("report_sessions").insert({
     report_id: reportId,
     recipient_id: t.recipient_id,
     token_hash: sessionHash,
     session_type: "magic_link",
+    expires_at: expiresAt,
+  });
+
+  // Create portal session (portal_session) — CA-14: magic link grants space-wide access
+  const portalToken = generateSessionToken();
+  const portalHash = hashToken(portalToken);
+  await supabaseAdmin.from("portal_sessions").insert({
+    space_id: spaceId,
+    recipient_id: t.recipient_id,
+    session_token_hash: portalHash,
     expires_at: expiresAt,
   });
 
@@ -98,6 +108,13 @@ export async function GET(
     sameSite: "strict",
     maxAge: SESSION_HOURS * 3600,
     path: "/",
+  });
+  response.cookies.set("portal_session", portalToken, {
+    httpOnly: true,
+    secure: process.env["NODE_ENV"] === "production",
+    sameSite: "strict",
+    maxAge: SESSION_HOURS * 3600,
+    path: `/${space}`,
   });
   return response;
 }

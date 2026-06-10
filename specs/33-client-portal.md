@@ -1,6 +1,6 @@
 # SPEC-33: Portal del Cliente (Client Space Portal)
 
-**Versión:** 1.0
+**Versión:** 1.1
 **Estado:** draft
 **Tipo de proyecto:** web-app
 **Última actualización:** 2026-06-10
@@ -64,6 +64,16 @@ Actualmente el cliente solo puede acceder a un documento concreto mediante magic
 2. El viewer detecta que existe una cookie de sesión de portal válida para ese espacio.
 3. Si el informe pertenece al espacio de la sesión de portal → se carga el viewer directamente sin pedir PIN ni magic link.
 4. El viewer usa la sesión de portal para servir el contenido (endpoint `/api/reports/content` acepta sesiones de tipo `portal` además de `pin` y `magic_link`).
+5. En el header del viewer hay un botón "Ver mi espacio" que lleva de vuelta a `/[space-slug]/portal`.
+
+### Flujo 6: Acceso al portal vía magic link de informe (flujo unificado)
+
+El consumo de un magic link de **informe** (SPEC-07) ahora crea **también** una `portal_session`. Esto significa que tras hacer clic en el email de un informe concreto, el cliente:
+1. Accede al informe directamente sin PIN (comportamiento existente).
+2. También tiene acceso al portal sin necesidad de un token de portal separado — el botón "Ver mi espacio" en el viewer ya funciona.
+3. Puede navegar a `/[space-slug]/portal` y ver todos sus informes del espacio durante las 48h de sesión.
+
+No es necesario que el empleado envíe un "link de portal" separado si ya ha enviado un magic link de informe. Ambos mecanismos de acceso al portal son válidos y complementarios.
 
 ### Flujo 5: Acceso directo al portal (sin token, con sesión activa)
 
@@ -94,6 +104,9 @@ Actualmente el cliente solo puede acceder a un documento concreto mediante magic
 - [ ] CA-33.5: El portal muestra todos los informes del espacio con versión publicada, ordenados por `updated_at` descendente.
 - [ ] CA-33.6: Cada informe muestra nombre, fecha de última actualización y vertical (badge con color).
 - [ ] CA-33.7: Al hacer clic en un informe desde el portal, se abre el viewer sin pedir PIN (la sesión de portal es suficiente para ese espacio).
+- [ ] CA-33.7b: Al consumir un magic link de informe (SPEC-07), se crea automáticamente una `portal_session` válida para el espacio — el cliente puede acceder al portal sin token de portal separado.
+- [ ] CA-33.7c: El viewer muestra un botón "Ver mi espacio" en el header cuando el cliente tiene sesión activa; ese botón lleva a `/[space]/portal`.
+- [ ] CA-33.7d: El portal muestra un botón "Cerrar sesión" que borra la cookie `portal_session` y redirige a la pantalla de solicitud de acceso.
 - [ ] CA-33.8: El portal muestra co-branding: logo de Immoral + logo del cliente (si existe).
 - [ ] CA-33.9: El empleado puede generar y enviar el link de portal desde la ficha del cliente o desde la pantalla del espacio en el panel.
 - [ ] CA-33.10: Tokens de portal anteriores del mismo `(space_id, recipient_id)` se invalidan al generar uno nuevo.
@@ -294,3 +307,4 @@ El portal debe seguir la identidad visual de Immoral (`immoral_brand_guidelines.
 | Versión | Fecha | Cambio | Autor |
 |---------|-------|--------|-------|
 | 1.0 | 2026-06-10 | Versión inicial | Claude Code |
+| 1.1 | 2026-06-10 | Flujo 6 añadido: acceso al portal vía magic link de informe (sesión dual SPEC-07). CA-33.7b/7c/7d añadidos. | Claude Code |
