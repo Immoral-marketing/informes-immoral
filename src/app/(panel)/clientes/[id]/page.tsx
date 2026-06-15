@@ -118,6 +118,7 @@ export default async function ClientDetailPage({
         client={clientWithLogo}
         recipients={recipients}
         spaces={spaces}
+        reportsCount={reports.length}
         isAdmin={isAdmin}
         currentUserId={user.id}
       />

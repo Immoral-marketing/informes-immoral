@@ -341,21 +341,99 @@ export async function deleteClient(id: string) {
   const perm = await assertCanManageClient(id);
   if (perm.error || !perm.supabaseAdmin) return { error: perm.error ?? "No autorizado" };
 
-  const { count } = await perm.supabaseAdmin
+  // 1. Get all client_spaces of this client
+  const { data: spaces } = await perm.supabaseAdmin
     .from("client_spaces")
-    .select("id", { count: "exact", head: true })
+    .select("id")
     .eq("client_id", id);
+  const spaceIds = (spaces as Array<{ id: string }> ?? []).map((s) => s.id);
 
-  if ((count ?? 0) > 0) {
-    return { error: `Este cliente tiene ${count} espacio(s). Elimínalos antes de continuar.` };
+  // 2. Get all reports of those spaces, and their storage paths
+  let reportIds: string[] = [];
+  let docPaths: string[] = [];
+  let attPaths: string[] = [];
+
+  if (spaceIds.length > 0) {
+    const { data: reports } = await perm.supabaseAdmin
+      .from("reports")
+      .select("id")
+      .in("space_id", spaceIds);
+    reportIds = (reports as Array<{ id: string }> ?? []).map((r) => r.id);
+
+    if (reportIds.length > 0) {
+      const [{ data: versions }, { data: attachments }] = await Promise.all([
+        perm.supabaseAdmin.from("report_versions").select("storage_path").in("report_id", reportIds),
+        perm.supabaseAdmin.from("report_attachments").select("storage_path").in("report_id", reportIds),
+      ]);
+      docPaths = (versions as Array<{ storage_path: string }> ?? []).map((v) => v.storage_path);
+      attPaths = (attachments as Array<{ storage_path: string }> ?? []).map((a) => a.storage_path);
+    }
   }
 
+  // 3. Delete DB rows in reverse dependency order
+  if (reportIds.length > 0) {
+    // Delete report notes logs and notes first
+    const { data: versionsData } = await perm.supabaseAdmin
+      .from("report_versions")
+      .select("id")
+      .in("report_id", reportIds);
+    const versionIds = (versionsData as Array<{ id: string }> ?? []).map((v) => v.id);
+
+    if (versionIds.length > 0) {
+      const { data: notesData } = await perm.supabaseAdmin
+        .from("report_notes")
+        .select("id")
+        .in("report_version_id", versionIds);
+      const noteIds = (notesData as Array<{ id: string }> ?? []).map((n) => n.id);
+
+      if (noteIds.length > 0) {
+        await perm.supabaseAdmin.from("report_note_logs").delete().in("note_id", noteIds);
+        await perm.supabaseAdmin.from("report_notes").delete().in("id", noteIds);
+      }
+    }
+
+    // Delete reports tables references
+    await Promise.all([
+      perm.supabaseAdmin.from("report_sessions").delete().in("report_id", reportIds),
+      perm.supabaseAdmin.from("magic_link_tokens").delete().in("report_id", reportIds),
+      perm.supabaseAdmin.from("magic_link_requests").delete().in("report_id", reportIds),
+      perm.supabaseAdmin.from("pin_attempts").delete().in("report_id", reportIds),
+      perm.supabaseAdmin.from("report_attachments").delete().in("report_id", reportIds),
+      perm.supabaseAdmin.from("report_versions").delete().in("report_id", reportIds),
+    ]);
+
+    // Delete reports
+    await perm.supabaseAdmin.from("reports").delete().in("id", reportIds);
+  }
+
+  if (spaceIds.length > 0) {
+    // Delete portal sessions and space access tokens referencing client_spaces
+    await Promise.all([
+      perm.supabaseAdmin.from("portal_sessions").delete().in("space_id", spaceIds),
+      perm.supabaseAdmin.from("space_access_tokens").delete().in("space_id", spaceIds),
+    ]);
+    // Delete client_spaces
+    await perm.supabaseAdmin.from("client_spaces").delete().in("id", spaceIds);
+  }
+
+  // Delete recipients
+  await perm.supabaseAdmin.from("client_recipients").delete().eq("client_id", id);
+
+  // Get current client details for logo cleanup
   const { data: current } = await perm.supabaseAdmin.from("clients").select("logo_url").eq("id", id).single();
   const currentLogo = (current as { logo_url: string | null } | null)?.logo_url;
 
+  // Delete client
   const { error } = await perm.supabaseAdmin.from("clients").delete().eq("id", id);
   if (error) return { error: "Error al eliminar el cliente" };
 
+  // 4. Clean up Storage files asynchronously or at the end
+  if (docPaths.length > 0) {
+    await perm.supabaseAdmin.storage.from("report-documents").remove(docPaths);
+  }
+  if (attPaths.length > 0) {
+    await perm.supabaseAdmin.storage.from("report-attachments").remove(attPaths);
+  }
   if (currentLogo) {
     await perm.supabaseAdmin.storage.from(LOGO_BUCKET).remove([currentLogo]);
   }

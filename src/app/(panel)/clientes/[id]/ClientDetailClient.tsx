@@ -38,12 +38,14 @@ export default function ClientDetailClient({
   client,
   recipients: initial,
   spaces,
+  reportsCount = 0,
   isAdmin,
   currentUserId,
 }: {
   client: Client;
   recipients: Recipient[];
   spaces: { id: string; slug: string; vertical_name: string }[];
+  reportsCount?: number;
   isAdmin: boolean;
   currentUserId: string;
 }) {
@@ -66,6 +68,13 @@ export default function ClientDetailClient({
 
   const [clientToDelete, setClientToDelete] = useState<boolean>(false);
   const [recipientToDelete, setRecipientToDelete] = useState<Recipient | null>(null);
+  const [confirmCheckbox, setConfirmCheckbox] = useState(false);
+
+  useEffect(() => {
+    if (!clientToDelete) {
+      setConfirmCheckbox(false);
+    }
+  }, [clientToDelete]);
 
   function handleDeleteClient() {
     startTransition(async () => {
@@ -247,16 +256,48 @@ export default function ClientDetailClient({
 
       {/* Alert Dialogs for deletion */}
       <AlertDialog open={clientToDelete} onOpenChange={setClientToDelete}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl border border-border sm:max-w-[450px]">
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar cliente?</AlertDialogTitle>
-            <AlertDialogDescription>
-              ¿Estás seguro de que deseas eliminar el cliente "{client.name}"? Esta acción no se puede deshacer.
+            <AlertDialogDescription className="space-y-3 text-slate-600">
+              <p>
+                ¿Estás seguro de que deseas eliminar el cliente <strong>"{client.name}"</strong>? Esta acción no se puede deshacer.
+              </p>
+              {(spaces.length > 0 || reportsCount > 0 || recipients.length > 0) && (
+                <div className="bg-destructive/10 text-destructive border border-destructive/20 rounded-xl p-3 text-xs space-y-1 text-left">
+                  <p className="font-semibold text-destructive">⚠️ Se eliminarán de forma permanente:</p>
+                  <ul className="list-disc list-inside pl-1 space-y-0.5">
+                    {spaces.length > 0 && <li>{spaces.length} espacio(s)</li>}
+                    {reportsCount > 0 && <li>{reportsCount} informe(s) y sus adjuntos/versiones</li>}
+                    {recipients.length > 0 && <li>{recipients.length} destinatario(s)</li>}
+                  </ul>
+                </div>
+              )}
+              {(spaces.length > 0 || reportsCount > 0) && (
+                <div className="flex items-start space-x-2 pt-2 text-left">
+                  <Checkbox
+                    id="confirm-cascade-delete"
+                    checked={confirmCheckbox}
+                    onCheckedChange={(checked) => setConfirmCheckbox(checked as boolean)}
+                    className="mt-0.5 border-slate-300 data-[state=checked]:bg-destructive data-[state=checked]:border-destructive"
+                  />
+                  <Label
+                    htmlFor="confirm-cascade-delete"
+                    className="text-xs text-muted-foreground font-medium cursor-pointer leading-tight select-none"
+                  >
+                    Confirmo que deseo borrar todos los espacios, informes y destinatarios asociados a este cliente de forma permanente.
+                  </Label>
+                </div>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteClient} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteClient} 
+              disabled={isPending || ((spaces.length > 0 || reportsCount > 0) && !confirmCheckbox)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-semibold"
+            >
               {isPending ? "Eliminando..." : "Eliminar"}
             </AlertDialogAction>
           </AlertDialogFooter>
