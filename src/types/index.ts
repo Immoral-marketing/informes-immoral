@@ -34,11 +34,6 @@ export type Database = {
         Insert: Omit<ClientRecipient, "id" | "created_at">;
         Update: Partial<Omit<ClientRecipient, "id" | "created_at">>;
       };
-      client_spaces: {
-        Row: ClientSpace;
-        Insert: Omit<ClientSpace, "id" | "created_at">;
-        Update: Partial<Omit<ClientSpace, "id" | "created_at">>;
-      };
       reports: {
         Row: Report;
         Insert: Omit<Report, "id" | "created_at" | "updated_at">;
@@ -128,21 +123,12 @@ export interface ClientRecipient {
   created_at: string;
 }
 
-export interface ClientSpace {
-  id: string;
-  client_id: string;
-  vertical_id: string;
-  slug: string;
-  created_by: string;
-  created_at: string;
-}
-
 export interface Report {
   id: string;
-  space_id: string;
+  namespace_slug: string | null;
   name: string;
   slug: string;
-  pin_hash: string;
+  pin_hash: string | null;
   pin_encrypted: string | null;
   pin_updated_at: string;
   auto_send_on_publish: boolean;

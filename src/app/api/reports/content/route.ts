@@ -3,24 +3,51 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { hashToken } from "@/lib/tokens/hash";
 
 async function validateSession(request: NextRequest, reportId: string) {
-  const token = request.cookies.get("informes_session")?.value;
-  if (!token) return null;
-
-  const tokenHash = hashToken(token);
   const supabaseAdmin = createAdminClient();
 
-  const { data } = await supabaseAdmin
-    .from("report_sessions")
-    .select("id, expires_at")
-    .eq("report_id", reportId)
-    .eq("token_hash", tokenHash)
-    .single();
+  // 1. Try document session
+  const docToken = request.cookies.get("informes_session")?.value;
+  if (docToken) {
+    const docHash = hashToken(docToken);
+    const { data: docSession } = await supabaseAdmin
+      .from("report_sessions")
+      .select("id, expires_at")
+      .eq("report_id", reportId)
+      .eq("token_hash", docHash)
+      .single();
 
-  const session = data as { id: string; expires_at: string } | null;
-  if (!session) return null;
-  if (new Date(session.expires_at) <= new Date()) return null;
+    if (docSession && new Date(docSession.expires_at) > new Date()) {
+      return docSession;
+    }
+  }
 
-  return session;
+  // 2. Try portal session
+  const portalToken = request.cookies.get("portal_session")?.value;
+  if (portalToken) {
+    const portalHash = hashToken(portalToken);
+    
+    // Need namespace_slug of the report
+    const { data: rData } = await supabaseAdmin
+      .from("reports")
+      .select("namespace_slug")
+      .eq("id", reportId)
+      .single();
+
+    if (rData) {
+      const { data: pSession } = await supabaseAdmin
+        .from("portal_sessions")
+        .select("id, expires_at")
+        .eq("namespace_slug", rData.namespace_slug)
+        .eq("session_token_hash", portalHash)
+        .single();
+
+      if (pSession && new Date(pSession.expires_at) > new Date()) {
+        return pSession;
+      }
+    }
+  }
+
+  return null;
 }
 
 export async function GET(request: NextRequest) {
@@ -30,10 +57,21 @@ export async function GET(request: NextRequest) {
 
   if (!reportId) return new NextResponse("Bad request", { status: 400 });
 
-  const session = await validateSession(request, reportId);
-  if (!session) return new NextResponse("Unauthorized", { status: 401 });
-
   const supabaseAdmin = createAdminClient();
+
+  const { data: namespaceData } = await supabaseAdmin
+    .from("reports")
+    .select("pin_hash, report_namespaces(entity_type)")
+    .eq("id", reportId)
+    .single();
+
+  const rData = namespaceData as any;
+  const isVerticalNoPin = rData?.report_namespaces?.entity_type === "vertical" && rData?.pin_hash === null;
+
+  if (!isVerticalNoPin) {
+    const session = await validateSession(request, reportId);
+    if (!session) return new NextResponse("Unauthorized", { status: 401 });
+  }
 
   // Get report current version if not specified
   const { data: report } = await supabaseAdmin

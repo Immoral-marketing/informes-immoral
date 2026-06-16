@@ -10,8 +10,8 @@ async function assertCanManageReport(reportId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
   const supabaseAdmin = createAdminClient();
-  const { data: r } = await supabaseAdmin.from("reports").select("created_by, space_id").eq("id", reportId).single();
-  const report = r as { created_by: string; space_id: string } | null;
+  const { data: r } = await supabaseAdmin.from("reports").select("created_by").eq("id", reportId).single();
+  const report = r as { created_by: string } | null;
   if (!report) return { error: "Informe no encontrado" };
   const { data: p } = await supabaseAdmin.from("profiles").select("role").eq("id", user.id).single();
   const profile = p as { role: string } | null;

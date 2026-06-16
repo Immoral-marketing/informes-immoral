@@ -50,9 +50,10 @@ interface Attachment {
 
 interface Report {
   id: string; name: string; slug: string; current_version: number;
-  auto_send_on_publish: boolean; created_by: string; space_id: string;
+  auto_send_on_publish: boolean; created_by: string; namespace_slug: string;
   expiry_date: string | null; has_pin_encrypted: boolean;
-  client_spaces: { slug: string; clients: { id: string; name: string } | null; verticals: { name: string } | null } | null;
+  report_namespaces: { slug: string; clients: { id: string; name: string } | null } | null;
+  verticals: { name: string } | null;
 }
 
 export default function ReportManageClient({
@@ -289,7 +290,7 @@ export default function ReportManageClient({
       if ("error" in result) toast.error(result.error);
       else {
         toast.success("Informe eliminado");
-        router.push(`/espacios/${report.space_id}`);
+        router.push(report.report_namespaces?.clients?.id ? `/clientes/${report.report_namespaces.clients.id}` : "/clientes");
       }
     });
   }

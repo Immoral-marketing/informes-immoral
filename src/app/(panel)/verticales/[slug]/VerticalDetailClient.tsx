@@ -4,14 +4,14 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { User, Phone, Mail, FileText, Search, Plus, ChevronLeft, ChevronRight } from "lucide-react";
-import { ClientAutocomplete } from "@/components/shared/ClientAutocomplete";
 import { ClientTransitionLink } from "@/components/shared/ClientTransitionLink";
-import { createSpace } from "../../clientes/actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CreateClientlessReportForm } from "@/components/reports/CreateClientlessReportForm";
+import { PinModal } from "@/components/reports/PinModal";
 
 interface Space {
   id: string;
@@ -33,20 +33,28 @@ interface Vertical {
   color_hex: string;
 }
 
+interface DossierReport {
+  id: string;
+  name: string;
+  slug: string;
+  namespace_slug: string;
+  created_at: string;
+}
+
 export default function VerticalDetailClient({
   vertical,
   spaces,
+  dossiers,
 }: {
   vertical: Vertical;
   spaces: Space[];
+  dossiers: DossierReport[];
 }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [showAdd, setShowAdd] = useState(false);
-  const [addError, setAddError] = useState<string | null>(null);
-  const [duplicateSpaceId, setDuplicateSpaceId] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [pinData, setPinData] = useState<{ id: string; pin: string } | null>(null);
 
   const filtered = spaces.filter((s) => {
     const term = search.toLowerCase();
@@ -61,33 +69,7 @@ export default function VerticalDetailClient({
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const pageItems = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  function openAdd() {
-    setAddError(null);
-    setDuplicateSpaceId(null);
-    setShowAdd(true);
-  }
 
-  function handleSelectClient(client: { id: string; name: string }) {
-    setAddError(null);
-    setDuplicateSpaceId(null);
-
-    const existingSpace = spaces.find((s) => s.client_id === client.id);
-    if (existingSpace) {
-      setAddError(`${client.name} ya está en esta vertical.`);
-      setDuplicateSpaceId(existingSpace.client_id);
-      return;
-    }
-
-    startTransition(async () => {
-      const result = await createSpace(client.id, vertical.id, client.name);
-      if ("error" in result) {
-        setAddError(result.error);
-      } else {
-        setShowAdd(false);
-        router.push(`/clientes/${client.id}`);
-      }
-    });
-  }
 
   return (
     <div className="flex flex-col gap-8 pb-8">
@@ -97,32 +79,82 @@ export default function VerticalDetailClient({
           className="absolute top-0 right-0 w-2 h-full"
           style={{ backgroundColor: vertical.color_hex }}
         />
-        <div className="p-6 sm:p-8 flex items-center gap-6">
-          <div className="h-10 sm:h-12 w-10 sm:w-12 flex-shrink-0 flex items-center justify-center">
-            {vertical.logo_signed_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={vertical.logo_signed_url} alt={vertical.name} className="max-h-full max-w-full object-contain" />
-            ) : (
-              <span className="text-3xl font-extrabold" style={{ color: vertical.color_hex }}>
-                {vertical.name.charAt(0).toUpperCase()}
-              </span>
-            )}
+        <div className="p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div className="flex items-center gap-6">
+            <div className="h-10 sm:h-12 w-10 sm:w-12 flex-shrink-0 flex items-center justify-center">
+              {vertical.logo_signed_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={vertical.logo_signed_url} alt={vertical.name} className="max-h-full max-w-full object-contain" />
+              ) : (
+                <span className="text-3xl font-extrabold" style={{ color: vertical.color_hex }}>
+                  {vertical.name.charAt(0).toUpperCase()}
+                </span>
+              )}
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground">{vertical.name}</h1>
+              <p className="text-muted-foreground text-sm">
+                Administración de informes y espacios de cliente en esta vertical.
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">{vertical.name}</h1>
-            <p className="text-muted-foreground text-sm">
-              Administración de espacios de cliente en esta vertical.
-            </p>
-          </div>
+          <Button
+            onClick={() => setShowCreateForm(true)}
+            className="rounded-xl font-semibold gap-2 shrink-0 self-start sm:self-auto"
+          >
+            <Plus className="w-4 h-4" />
+            Nuevo informe sin cliente
+          </Button>
         </div>
       </div>
 
-      {/* ── Buscador y Controles ──────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full sm:w-96">
+      {/* ── Informes sin cliente ────────────────────────────────────────────────── */}
+      {dossiers.length > 0 && (
+        <div className="flex flex-col gap-4">
+          <h2 className="text-xl font-bold text-foreground">Informes de la vertical (sin cliente)</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {dossiers.map((d) => (
+              <Card key={d.id} className="p-5 flex flex-col gap-3 hover:border-primary/50 transition-colors">
+                <div className="flex justify-between items-start gap-4">
+                  <div className="flex flex-col">
+                    <h3 className="font-semibold text-foreground break-words">{d.name}</h3>
+                    <p className="text-xs text-muted-foreground font-mono truncate">
+                      /{d.namespace_slug}/{d.slug}
+                    </p>
+                  </div>
+                  <FileText className="w-5 h-5 text-muted-foreground shrink-0" />
+                </div>
+                <div className="flex justify-between items-center mt-2">
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(d.created_at).toLocaleDateString()}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button asChild variant="ghost" size="sm" className="rounded-xl">
+                      <Link href={`/${d.namespace_slug}/${d.slug}`} target="_blank">
+                        Ver
+                      </Link>
+                    </Button>
+                    <Button asChild variant="secondary" size="sm" className="rounded-xl">
+                      <Link href={`/informes/${d.id}`}>
+                        Gestionar
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Clientes con informes ──────────────────────────────────────────────── */}
+      <div className="flex flex-col gap-4 pt-4 border-t">
+        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+          <h2 className="text-xl font-bold text-foreground">Clientes con informes</h2>
+          <div className="relative w-full sm:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por cliente, contacto…"
+            placeholder="Buscar cliente…"
             className="pl-9 rounded-xl"
             value={search}
             onChange={(e) => {
@@ -131,18 +163,12 @@ export default function VerticalDetailClient({
             }}
           />
         </div>
-        <Button onClick={openAdd} className="rounded-xl font-semibold shrink-0 w-full sm:w-auto">
-          <Plus className="w-4 h-4 mr-1.5" /> Agregar cliente a esta vertical
-        </Button>
-      </div>
+        </div>
 
-      {/* ── Grid/Table de Espacios ────────────────────────────────────────────── */}
-      {spaces.length === 0 ? (
+        {/* ── Grid/Table de Espacios ────────────────────────────────────────────── */}
+        {spaces.length === 0 ? (
         <Card className="border-dashed py-16 flex flex-col items-center justify-center text-center gap-4">
-          <p className="text-muted-foreground text-sm">No hay espacios en esta vertical.</p>
-          <Button variant="link" onClick={openAdd} className="text-primary font-semibold">
-            Agregar primer cliente →
-          </Button>
+          <p className="text-muted-foreground text-sm">No hay clientes con informes en esta vertical.</p>
         </Card>
       ) : filtered.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground text-sm">
@@ -304,41 +330,34 @@ export default function VerticalDetailClient({
           )}
         </div>
       )}
+      </div>
 
-      {/* ── Agregar cliente a esta vertical ───────────────────────────────────── */}
-      <Dialog open={showAdd} onOpenChange={(open) => !open && setShowAdd(false)}>
-        <DialogContent className="sm:max-w-md rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>Agregar cliente a {vertical.name}</DialogTitle>
-            <DialogDescription>
-              Busca un cliente existente para agregarlo a esta vertical. Si no existe, créalo desde la pantalla de clientes.
-            </DialogDescription>
-          </DialogHeader>
+      {showCreateForm && (
+        <CreateClientlessReportForm
+          verticalId={vertical.id}
+          verticalSlug={vertical.slug}
+          onClose={() => setShowCreateForm(false)}
+          onCreated={(reportId, pin) => {
+            setShowCreateForm(false);
+            if (pin) {
+              setPinData({ id: reportId, pin });
+            } else {
+              router.push(`/informes/${reportId}`);
+            }
+          }}
+        />
+      )}
 
-          {addError && (
-            <div className="flex flex-col gap-2 text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
-              <p>{addError}</p>
-              {duplicateSpaceId && (
-                <Button asChild variant="link" className="p-0 h-auto text-destructive justify-start font-semibold">
-                  <Link href={`/clientes/${duplicateSpaceId}`}>Ir al cliente →</Link>
-                </Button>
-              )}
-            </div>
-          )}
-
-          <ClientAutocomplete
-            onSelect={handleSelectClient}
-            placeholder="Buscar cliente por nombre…"
-          />
-          <div className="text-xs text-muted-foreground text-center mt-[-8px]">
-            ¿No encuentras el cliente? Crea uno nuevo en la <Link href="/clientes" className="underline hover:text-foreground">sección de Clientes</Link>.
-          </div>
-
-          {isPending && (
-            <p className="text-sm text-muted-foreground text-center">Agregando cliente…</p>
-          )}
-        </DialogContent>
-      </Dialog>
+      {pinData && (
+        <PinModal
+          pin={pinData.pin}
+          warning="Este informe requiere PIN para ser visualizado."
+          onClose={() => {
+            setPinData(null);
+            router.push(`/informes/${pinData.id}`);
+          }}
+        />
+      )}
     </div>
   );
 }

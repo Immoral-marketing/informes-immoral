@@ -80,55 +80,6 @@ export type Database = {
           },
         ]
       }
-      client_spaces: {
-        Row: {
-          client_id: string
-          created_at: string
-          created_by: string
-          id: string
-          slug: string
-          vertical_id: string
-        }
-        Insert: {
-          client_id: string
-          created_at?: string
-          created_by: string
-          id?: string
-          slug: string
-          vertical_id: string
-        }
-        Update: {
-          client_id?: string
-          created_at?: string
-          created_by?: string
-          id?: string
-          slug?: string
-          vertical_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "client_spaces_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "client_spaces_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "client_spaces_vertical_id_fkey"
-            columns: ["vertical_id"]
-            isOneToOne: false
-            referencedRelation: "verticals"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       clients: {
         Row: {
           contact_name: string | null
@@ -139,6 +90,7 @@ export type Database = {
           id: string
           logo_url: string | null
           name: string
+          slug: string
         }
         Insert: {
           contact_name?: string | null
@@ -149,6 +101,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name: string
+          slug: string
         }
         Update: {
           contact_name?: string | null
@@ -159,6 +112,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name?: string
+          slug?: string
         }
         Relationships: [
           {
@@ -305,6 +259,51 @@ export type Database = {
           },
         ]
       }
+      portal_sessions: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          last_accessed_at: string | null
+          namespace_slug: string | null
+          recipient_id: string | null
+          session_token_hash: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          last_accessed_at?: string | null
+          namespace_slug?: string | null
+          recipient_id?: string | null
+          session_token_hash: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          last_accessed_at?: string | null
+          namespace_slug?: string | null
+          recipient_id?: string | null
+          session_token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_sessions_namespace_slug_fkey"
+            columns: ["namespace_slug"]
+            isOneToOne: false
+            referencedRelation: "report_namespaces"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "portal_sessions_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "client_recipients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -383,6 +382,145 @@ export type Database = {
           },
         ]
       }
+      report_namespaces: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          entity_type: string
+          slug: string
+          vertical_id: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          entity_type: string
+          slug: string
+          vertical_id?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          entity_type?: string
+          slug?: string
+          vertical_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_namespaces_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_namespaces_vertical_id_fkey"
+            columns: ["vertical_id"]
+            isOneToOne: false
+            referencedRelation: "verticals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_note_logs: {
+        Row: {
+          action: Database["public"]["Enums"]["report_note_action"]
+          id: string
+          note_id: string
+          performed_at: string
+          performed_by: string
+          previous_content: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["report_note_action"]
+          id?: string
+          note_id: string
+          performed_at?: string
+          performed_by: string
+          previous_content?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["report_note_action"]
+          id?: string
+          note_id?: string
+          performed_at?: string
+          performed_by?: string
+          previous_content?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_note_logs_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "report_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_note_logs_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_notes: {
+        Row: {
+          content: string
+          copied_from_note_id: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          dom_selector: string
+          id: string
+          is_orphan: boolean
+          report_version_id: string
+        }
+        Insert: {
+          content: string
+          copied_from_note_id?: string | null
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          dom_selector: string
+          id?: string
+          is_orphan?: boolean
+          report_version_id: string
+        }
+        Update: {
+          content?: string
+          copied_from_note_id?: string | null
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          dom_selector?: string
+          id?: string
+          is_orphan?: boolean
+          report_version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_notes_copied_from_note_id_fkey"
+            columns: ["copied_from_note_id"]
+            isOneToOne: false
+            referencedRelation: "report_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_notes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_notes_report_version_id_fkey"
+            columns: ["report_version_id"]
+            isOneToOne: false
+            referencedRelation: "report_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       report_sessions: {
         Row: {
           created_at: string
@@ -429,106 +567,6 @@ export type Database = {
             referencedRelation: "reports"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      report_notes: {
-        Row: {
-          id: string
-          report_version_id: string
-          dom_selector: string
-          content: string
-          is_orphan: boolean
-          copied_from_note_id: string | null
-          created_by: string
-          created_at: string
-          deleted_at: string | null
-        }
-        Insert: {
-          id?: string
-          report_version_id: string
-          dom_selector: string
-          content: string
-          is_orphan?: boolean
-          copied_from_note_id?: string | null
-          created_by: string
-          created_at?: string
-          deleted_at?: string | null
-        }
-        Update: {
-          id?: string
-          report_version_id?: string
-          dom_selector?: string
-          content?: string
-          is_orphan?: boolean
-          copied_from_note_id?: string | null
-          created_by?: string
-          created_at?: string
-          deleted_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "report_notes_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "report_notes_copied_from_note_id_fkey"
-            columns: ["copied_from_note_id"]
-            isOneToOne: false
-            referencedRelation: "report_notes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "report_notes_report_version_id_fkey"
-            columns: ["report_version_id"]
-            isOneToOne: false
-            referencedRelation: "report_versions"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      report_note_logs: {
-        Row: {
-          id: string
-          note_id: string
-          action: Database["public"]["Enums"]["report_note_action"]
-          previous_content: string | null
-          performed_by: string
-          performed_at: string
-        }
-        Insert: {
-          id?: string
-          note_id: string
-          action: Database["public"]["Enums"]["report_note_action"]
-          previous_content?: string | null
-          performed_by: string
-          performed_at?: string
-        }
-        Update: {
-          id?: string
-          note_id?: string
-          action?: Database["public"]["Enums"]["report_note_action"]
-          previous_content?: string | null
-          performed_by?: string
-          performed_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "report_note_logs_note_id_fkey"
-            columns: ["note_id"]
-            isOneToOne: false
-            referencedRelation: "report_notes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "report_note_logs_performed_by_fkey"
-            columns: ["performed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
         ]
       }
       report_versions: {
@@ -588,12 +626,13 @@ export type Database = {
           expiry_date: string | null
           id: string
           name: string
+          namespace_slug: string | null
           pin_encrypted: string | null
-          pin_hash: string
+          pin_hash: string | null
           pin_updated_at: string
           slug: string
-          space_id: string
           updated_at: string
+          vertical_id: string | null
         }
         Insert: {
           auto_send_on_publish?: boolean
@@ -603,12 +642,13 @@ export type Database = {
           expiry_date?: string | null
           id?: string
           name: string
+          namespace_slug?: string | null
           pin_encrypted?: string | null
-          pin_hash: string
+          pin_hash?: string | null
           pin_updated_at?: string
           slug: string
-          space_id: string
           updated_at?: string
+          vertical_id?: string | null
         }
         Update: {
           auto_send_on_publish?: boolean
@@ -618,12 +658,13 @@ export type Database = {
           expiry_date?: string | null
           id?: string
           name?: string
+          namespace_slug?: string | null
           pin_encrypted?: string | null
-          pin_hash?: string
+          pin_hash?: string | null
           pin_updated_at?: string
           slug?: string
-          space_id?: string
           updated_at?: string
+          vertical_id?: string | null
         }
         Relationships: [
           {
@@ -634,10 +675,62 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "reports_space_id_fkey"
-            columns: ["space_id"]
+            foreignKeyName: "reports_namespace_slug_fkey"
+            columns: ["namespace_slug"]
             isOneToOne: false
-            referencedRelation: "client_spaces"
+            referencedRelation: "report_namespaces"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "reports_vertical_id_fkey"
+            columns: ["vertical_id"]
+            isOneToOne: false
+            referencedRelation: "verticals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      space_access_tokens: {
+        Row: {
+          consumed_at: string | null
+          created_at: string | null
+          expires_at: string
+          id: string
+          namespace_slug: string | null
+          recipient_id: string | null
+          token_hash: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          namespace_slug?: string | null
+          recipient_id?: string | null
+          token_hash: string
+        }
+        Update: {
+          consumed_at?: string | null
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          namespace_slug?: string | null
+          recipient_id?: string | null
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "space_access_tokens_namespace_slug_fkey"
+            columns: ["namespace_slug"]
+            isOneToOne: false
+            referencedRelation: "report_namespaces"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "space_access_tokens_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "client_recipients"
             referencedColumns: ["id"]
           },
         ]

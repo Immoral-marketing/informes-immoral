@@ -55,10 +55,11 @@ export default async function ClientDetailPage({
     supabaseAdmin
       .from("reports")
       .select(`
-        id, name, slug, current_version, created_at, updated_at,
-        client_spaces!inner(slug, client_id, verticals(name, color_hex, logo_url))
+        id, name, slug, current_version, created_at, updated_at, namespace_slug, vertical_id,
+        report_namespaces!inner(client_id),
+        verticals(name, color_hex, logo_url)
       `)
-      .eq("client_spaces.client_id", id)
+      .eq("report_namespaces.client_id", id)
       .order("created_at", { ascending: false }),
     supabaseAdmin
       .from("verticals")
@@ -71,8 +72,13 @@ export default async function ClientDetailPage({
     role_label: string | null; is_primary: boolean; created_at: string;
   }>) ?? [];
 
-  const reports = await Promise.all((rawReports as any[] ?? []).map(async r => {
-    const logoUrl = r.client_spaces?.verticals?.logo_url;
+  type RawReport = {
+    id: string; name: string; slug: string; current_version: number;
+    created_at: string; updated_at: string; namespace_slug: string | null; vertical_id: string | null;
+    verticals: { name: string; color_hex: string; logo_url: string | null } | null;
+  };
+  const reports = await Promise.all((rawReports as unknown as RawReport[] ?? []).map(async r => {
+    const logoUrl = r.verticals?.logo_url;
     const signedLogoUrl = logoUrl ? await getSignedLogoUrl(logoUrl) : null;
     return {
       id: r.id,
@@ -81,12 +87,14 @@ export default async function ClientDetailPage({
       current_version: r.current_version,
       created_at: r.created_at,
       updated_at: r.updated_at,
-      vertical_name: r.client_spaces?.verticals?.name ?? "—",
-      vertical_color: r.client_spaces?.verticals?.color_hex ?? "#ccc",
+      vertical_name: r.verticals?.name ?? "—",
+      vertical_color: r.verticals?.color_hex ?? "#ccc",
       vertical_logo_url: signedLogoUrl,
-      space_slug: r.client_spaces?.slug ?? "",
+      space_slug: r.namespace_slug ?? "",
     };
   }));
+
+
 
   const verticals = (rawVerticals as unknown as Array<{
     id: string; name: string; color_hex: string;
@@ -102,8 +110,9 @@ export default async function ClientDetailPage({
         { label: client.name }
       ]} />
       <ClientDetailClient
-        client={clientWithLogo}
+        client={clientWithLogo as any}
         recipients={recipients}
+        reportsCount={reports.length}
         isAdmin={isAdmin}
         currentUserId={user.id}
       />

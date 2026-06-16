@@ -3,19 +3,51 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { hashToken } from "@/lib/tokens/hash";
 
 async function validateSession(request: NextRequest, reportId: string) {
-  const token = request.cookies.get("informes_session")?.value;
-  if (!token) return false;
-  const tokenHash = hashToken(token);
   const supabaseAdmin = createAdminClient();
-  const { data } = await supabaseAdmin
-    .from("report_sessions")
-    .select("expires_at")
-    .eq("report_id", reportId)
-    .eq("token_hash", tokenHash)
-    .single();
-  const session = data as { expires_at: string } | null;
-  if (!session) return false;
-  return new Date(session.expires_at) > new Date();
+
+  // 1. Try document session
+  const docToken = request.cookies.get("informes_session")?.value;
+  if (docToken) {
+    const docHash = hashToken(docToken);
+    const { data: docSession } = await supabaseAdmin
+      .from("report_sessions")
+      .select("expires_at")
+      .eq("report_id", reportId)
+      .eq("token_hash", docHash)
+      .single();
+
+    if (docSession && new Date(docSession.expires_at) > new Date()) {
+      return true;
+    }
+  }
+
+  // 2. Try portal session
+  const portalToken = request.cookies.get("portal_session")?.value;
+  if (portalToken) {
+    const portalHash = hashToken(portalToken);
+    
+    // Need namespace_slug of the report
+    const { data: rData } = await supabaseAdmin
+      .from("reports")
+      .select("namespace_slug")
+      .eq("id", reportId)
+      .single();
+
+    if (rData) {
+      const { data: pSession } = await supabaseAdmin
+        .from("portal_sessions")
+        .select("expires_at")
+        .eq("namespace_slug", rData.namespace_slug)
+        .eq("session_token_hash", portalHash)
+        .single();
+
+      if (pSession && new Date(pSession.expires_at) > new Date()) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 export async function GET(
@@ -34,9 +66,19 @@ export async function GET(
   const a = att as { report_id: string; filename: string; mime_type: string; storage_path: string } | null;
   if (!a) return new NextResponse("Not found", { status: 404 });
 
-  // Validate session is scoped to this attachment's report (CA-13)
-  const valid = await validateSession(request, a.report_id);
-  if (!valid) return new NextResponse("Unauthorized", { status: 401 });
+  const { data: namespaceData } = await supabaseAdmin
+    .from("reports")
+    .select("pin_hash, report_namespaces(entity_type)")
+    .eq("id", a.report_id)
+    .single();
+  const rData = namespaceData as any;
+  const isVerticalNoPin = rData?.report_namespaces?.entity_type === "vertical" && rData?.pin_hash === null;
+
+  if (!isVerticalNoPin) {
+    // Validate session is scoped to this attachment's report (CA-13)
+    const valid = await validateSession(request, a.report_id);
+    if (!valid) return new NextResponse("Unauthorized", { status: 401 });
+  }
 
   const { data: fileData, error } = await supabaseAdmin.storage
     .from("report-attachments")

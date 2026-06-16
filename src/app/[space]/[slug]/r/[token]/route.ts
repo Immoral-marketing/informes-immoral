@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hashToken } from "@/lib/tokens/hash";
 import { generateSessionToken } from "@/lib/tokens/generate";
+import legacyRedirects from "@/lib/legacy-redirects.json";
 
 const SESSION_HOURS = 48;
 
@@ -12,38 +13,45 @@ export async function GET(
   const { space, slug, token } = await params;
   const supabaseAdmin = createAdminClient();
 
-  // Resolve report from space+slug
-  const { data: spaceData } = await supabaseAdmin
-    .from("client_spaces")
-    .select("id")
-    .eq("slug", space)
-    .single();
-  const spaceId = (spaceData as { id: string } | null)?.id;
-
+  // Extract origin once — used for all redirects to avoid resolving relative to /r/[token]
+  const origin = new URL(request.url).origin;
   const base = `${space}/${slug}`;
 
-  if (!spaceId) {
-    return NextResponse.redirect(new URL(`/${base}?error=link_expired`, request.url));
+  // 1. Resolve namespace
+  const { data: namespace } = await supabaseAdmin
+    .from("report_namespaces")
+    .select("slug, entity_type")
+    .eq("slug", space)
+    .single();
+
+  let namespaceSlug = space;
+  let entityType = namespace?.entity_type;
+
+  // 2. Fallback 301 for legacy
+  if (!namespace) {
+    const redirects: Record<string, string> = legacyRedirects;
+    const clientSlug = redirects[space];
+    if (clientSlug) {
+      return NextResponse.redirect(new URL(`/${clientSlug}/${slug}/r/${token}`, origin), 301);
+    }
+    return NextResponse.redirect(new URL(`/${base}?error=link_expired`, origin));
   }
 
   const { data: reportData } = await supabaseAdmin
     .from("reports")
-    .select("id")
-    .eq("space_id", spaceId)
+    .select("id, namespace_slug")
+    .eq("namespace_slug", namespaceSlug)
     .eq("slug", slug)
     .single();
-  const reportId = (reportData as { id: string } | null)?.id;
+  const reportId = (reportData as any)?.id;
 
   if (!reportId) {
-    return NextResponse.redirect(new URL(`/${base}?error=link_expired`, request.url));
+    return NextResponse.redirect(new URL(`/${base}?error=link_expired`, origin));
   }
 
   // Hash the token from URL
   const tokenHash = hashToken(token);
 
-  // Atomic consumption: UPDATE where consumed_at IS NULL and not expired
-  // We first fetch, then update — Supabase doesn't support UPDATE ... RETURNING with WHERE in a single atomic step easily.
-  // To ensure atomicity: fetch + check, then update with the same conditions.
   const { data: tokenRecord } = await supabaseAdmin
     .from("magic_link_tokens")
     .select("id, recipient_id, expires_at, consumed_at")
@@ -56,12 +64,12 @@ export async function GET(
   } | null;
 
   if (!t) {
-    return NextResponse.redirect(new URL(`/${base}?error=link_expired`, request.url));
+    return NextResponse.redirect(new URL(`/${base}?error=link_expired`, origin));
   }
 
   // Check consumed or expired
   if (t.consumed_at || new Date(t.expires_at) <= new Date()) {
-    return NextResponse.redirect(new URL(`/${base}?error=link_expired`, request.url));
+    return NextResponse.redirect(new URL(`/${base}?error=link_expired`, origin));
   }
 
   // Atomic consumption — update only if consumed_at is still NULL (race condition guard)
@@ -74,14 +82,14 @@ export async function GET(
 
   // If updated is empty, another request consumed it first
   if (!updated || updated.length === 0) {
-    return NextResponse.redirect(new URL(`/${base}?error=link_expired`, request.url));
+    return NextResponse.redirect(new URL(`/${base}?error=link_expired`, origin));
   }
 
-  // Create session
-  const sessionToken = generateSessionToken();
-  const sessionHash = hashToken(sessionToken);
   const expiresAt = new Date(Date.now() + SESSION_HOURS * 3600 * 1000).toISOString();
 
+  // Create document session (informes_session)
+  const sessionToken = generateSessionToken();
+  const sessionHash = hashToken(sessionToken);
   await supabaseAdmin.from("report_sessions").insert({
     report_id: reportId,
     recipient_id: t.recipient_id,
@@ -90,14 +98,37 @@ export async function GET(
     expires_at: expiresAt,
   });
 
+  // Create portal session (portal_session) — CA-14: magic link grants space-wide access
+  // ONLY for clients
+  let portalToken: string | null = null;
+  if (entityType === "client") {
+    portalToken = generateSessionToken();
+    const portalHash = hashToken(portalToken);
+    await supabaseAdmin.from("portal_sessions").insert({
+      namespace_slug: namespaceSlug,
+      recipient_id: t.recipient_id,
+      session_token_hash: portalHash,
+      expires_at: expiresAt,
+    });
+  }
+
   // Redirect to clean URL (without token) — CA-07
-  const response = NextResponse.redirect(new URL(`/${base}`, request.url));
+  const response = NextResponse.redirect(new URL(`/${base}`, origin));
   response.cookies.set("informes_session", sessionToken, {
     httpOnly: true,
     secure: process.env["NODE_ENV"] === "production",
-    sameSite: "strict",
+    sameSite: "lax",
     maxAge: SESSION_HOURS * 3600,
     path: "/",
   });
+  if (portalToken) {
+    response.cookies.set("portal_session", portalToken, {
+      httpOnly: true,
+      secure: process.env["NODE_ENV"] === "production",
+      sameSite: "lax",
+      maxAge: SESSION_HOURS * 3600,
+      path: `/${space}`,
+    });
+  }
   return response;
 }

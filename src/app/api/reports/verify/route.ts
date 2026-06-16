@@ -42,13 +42,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: ERROR_MSG }, { status: 429 });
   }
 
-  // Get report PIN hash
+  // Get report PIN hash + namespace_slug (needed to create portal_session)
   const { data: report } = await supabaseAdmin
     .from("reports")
-    .select("pin_hash")
+    .select("pin_hash, namespace_slug")
     .eq("id", report_id)
     .single();
-  const r = report as { pin_hash: string } | null;
+  const r = report as { pin_hash: string; namespace_slug: string } | null;
   if (!r) return NextResponse.json({ error: ERROR_MSG }, { status: 400 });
 
   let valid = await bcrypt.compare(pin, r.pin_hash);
@@ -102,13 +102,33 @@ export async function POST(request: NextRequest) {
     expires_at: expiresAt,
   });
 
+  // Also create portal_session so "Ver mi espacio" works after PIN login (CA-14)
+  const portalToken = generateSessionToken();
+  const portalHash = hashToken(portalToken);
+  await supabaseAdmin.from("portal_sessions").insert({
+    namespace_slug: r.namespace_slug,
+    session_token_hash: portalHash,
+    expires_at: expiresAt,
+  });
+
+  const spaceSlug = r.namespace_slug;
+
   const response = NextResponse.json({ ok: true });
   response.cookies.set("informes_session", token, {
     httpOnly: true,
     secure: process.env["NODE_ENV"] === "production",
-    sameSite: "strict",
+    sameSite: "lax",
     maxAge: SESSION_HOURS * 3600,
     path: "/",
   });
+  if (spaceSlug) {
+    response.cookies.set("portal_session", portalToken, {
+      httpOnly: true,
+      secure: process.env["NODE_ENV"] === "production",
+      sameSite: "lax",
+      maxAge: SESSION_HOURS * 3600,
+      path: `/${spaceSlug}`,
+    });
+  }
   return response;
 }

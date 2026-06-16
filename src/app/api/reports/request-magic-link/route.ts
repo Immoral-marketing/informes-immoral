@@ -28,22 +28,22 @@ export async function POST(request: NextRequest) {
 
   const supabaseAdmin = createAdminClient();
 
-  // Resolve report → space → client
+  // Resolve report → namespace → client
   const { data: report } = await supabaseAdmin
     .from("reports")
-    .select("id, name, slug, space_id")
+    .select("id, name, slug, namespace_slug")
     .eq("id", report_id)
     .single();
-  const r = report as { id: string; name: string; slug: string; space_id: string } | null;
+  const r = report as { id: string; name: string; slug: string; namespace_slug: string } | null;
   if (!r) return NextResponse.json({ message: GENERIC_MSG });
 
-  const { data: space } = await supabaseAdmin
-    .from("client_spaces")
+  const { data: namespace } = await supabaseAdmin
+    .from("report_namespaces")
     .select("slug, client_id, clients(name, logo_url)")
-    .eq("id", r.space_id)
+    .eq("slug", r.namespace_slug)
     .single();
-  const s = space as unknown as { slug: string; client_id: string; clients: { name: string; logo_url: string | null } | null } | null;
-  if (!s) return NextResponse.json({ message: GENERIC_MSG });
+  const s = namespace as unknown as { slug: string; client_id: string; clients: { name: string; logo_url: string | null } | null } | null;
+  if (!s || !s.client_id) return NextResponse.json({ message: GENERIC_MSG });
 
   // Find recipient by email (case-insensitive)
   const { data: recipient } = await supabaseAdmin

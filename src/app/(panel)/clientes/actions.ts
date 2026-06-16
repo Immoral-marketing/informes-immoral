@@ -108,159 +108,29 @@ export async function searchClients(query: string): Promise<Array<{ id: string; 
   return (data as Array<{ id: string; name: string }>) ?? [];
 }
 
-export async function createClientWithSpace(formData: FormData, verticalId: string): Promise<{ clientId: string; spaceId: string; spaceSlug: string } | { error: string }> {
+export async function createClientWithSpace(formData: FormData): Promise<{ clientId: string; spaceSlug: string } | { error: string }> {
   const clientResult = await createClient_(formData);
   if ("error" in clientResult) return { error: clientResult.error };
 
-  const clientId = clientResult.id;
-  const clientName = formData.get("name") as string;
-
-  const spaceResult = await createSpace(clientId, verticalId, clientName);
-  if ("error" in spaceResult) return { error: spaceResult.error };
-
   return {
-    clientId,
-    spaceId: spaceResult.id,
-    spaceSlug: spaceResult.slug,
+    clientId: clientResult.id,
+    spaceSlug: clientResult.slug,
   };
-}
-
-// ─── Spaces (Moved from espacios) ──────────────────────────────────────────
-
-const RESERVED_SLUGS = new Set([
-  "admin", "login", "auth", "api", "clientes", "espacios",
-  "_next", "public", "favicon.ico", "sitemap.xml", "robots.txt",
-]);
-
-async function resolveSlug(baseName: string): Promise<{ slug: string } | { error: string }> {
-  const base = slugify(baseName);
-  if (!base) return { error: "El nombre del cliente no produce un slug válido" };
-  if (RESERVED_SLUGS.has(base)) {
-    return { error: `El slug "${base}" está reservado por el sistema. Cambia el nombre del cliente.` };
-  }
-
-  const supabaseAdmin = createAdminClient();
-
-  // Check against vertical slugs (slug collision with verticals)
-  const { data: vertical } = await supabaseAdmin
-    .from("verticals")
-    .select("id")
-    .eq("slug", base)
-    .single();
-  if (vertical) {
-    return { error: `El slug "${base}" coincide con un vertical existente. Cambia el nombre del cliente.` };
-  }
-
-  // Check global uniqueness in client_spaces, find available variant
-  let candidate = base;
-  let suffix = 2;
-  while (true) {
-    const { data: existing } = await supabaseAdmin
-      .from("client_spaces")
-      .select("id")
-      .eq("slug", candidate)
-      .single();
-    if (!existing) break;
-    candidate = `${base}-${suffix}`;
-    suffix++;
-    if (suffix > 99) return { error: "No se pudo generar un slug único. Contacta con soporte." };
-  }
-
-  return { slug: candidate };
-}
-
-export async function getSpacesForSelect(clientId: string) {
-  const auth = await getAuthenticatedUser();
-  if (auth.error || !auth.user) return [];
-  const supabaseAdmin = createAdminClient();
-  const { data } = await supabaseAdmin
-    .from("client_spaces")
-    .select("id, slug, verticals(name)")
-    .eq("client_id", clientId)
-    .order("created_at");
-  return (data as unknown as Array<{ id: string; slug: string; verticals: { name: string } | null }>) ?? [];
-}
-
-export async function createSpace(clientId: string, verticalId: string, clientName: string) {
-  const perm = await assertCanManageClient(clientId);
-  if (perm.error || !perm.supabaseAdmin) return { error: perm.error ?? "No autorizado" };
-
-  // Verify not already has space in this vertical (CA-07)
-  const { data: existing } = await perm.supabaseAdmin
-    .from("client_spaces")
-    .select("id")
-    .eq("client_id", clientId)
-    .eq("vertical_id", verticalId)
-    .single();
-  if (existing) return { error: "Este cliente ya tiene un espacio en el vertical seleccionado." };
-
-  // Resolve slug
-  const slugResult = await resolveSlug(clientName);
-  if ("error" in slugResult) return slugResult;
-
-  const { data, error } = await perm.supabaseAdmin
-    .from("client_spaces")
-    .insert({
-      client_id: clientId,
-      vertical_id: verticalId,
-      slug: slugResult.slug,
-      created_by: perm.user.id,
-    })
-    .select("id")
-    .single();
-
-  if (error) return { error: "Error al crear el espacio" };
-  return { success: true, id: (data as { id: string }).id, slug: slugResult.slug };
-}
-
-export async function deleteSpace(spaceId: string, clientId: string) {
-  const perm = await assertCanManageClient(clientId);
-  if (perm.error || !perm.supabaseAdmin) return { error: perm.error ?? "No autorizado" };
-
-  // Check for reports (CA-08)
-  const { count } = await perm.supabaseAdmin
-    .from("reports")
-    .select("id", { count: "exact", head: true })
-    .eq("space_id", spaceId);
-
-  if ((count ?? 0) > 0) {
-    return { error: `Este espacio tiene ${count} informe(s). Elimínalos antes de continuar.` };
-  }
-
-  const { error } = await perm.supabaseAdmin
-    .from("client_spaces")
-    .delete()
-    .eq("id", spaceId);
-
-  if (error) return { error: "Error al eliminar el espacio" };
-  return { success: true };
 }
 
 export async function createReportUnified(clientId: string, verticalId: string, formData: FormData) {
   const perm = await assertCanManageClient(clientId);
   if (perm.error || !perm.supabaseAdmin) return { error: perm.error ?? "No autorizado" };
 
-  // 1. Find or create space
-  const { data: space } = await perm.supabaseAdmin
-    .from("client_spaces")
-    .select("id")
-    .eq("client_id", clientId)
-    .eq("vertical_id", verticalId)
+  const { data: client } = await perm.supabaseAdmin
+    .from("clients")
+    .select("slug")
+    .eq("id", clientId)
     .single();
 
-  let spaceId = (space as { id: string } | null)?.id;
+  if (!client) return { error: "Cliente no encontrado" };
 
-  if (!spaceId) {
-    const { data: clientData } = await perm.supabaseAdmin.from("clients").select("name").eq("id", clientId).single();
-    const clientName = (clientData as { name: string } | null)?.name ?? "Cliente";
-    
-    const spaceResult = await createSpace(clientId, verticalId, clientName);
-    if ("error" in spaceResult) return { error: spaceResult.error };
-    spaceId = spaceResult.id;
-  }
-
-  // 2. create report using informes actions
-  return await createReport(spaceId, formData);
+  return await createReport(client.slug, verticalId, formData);
 }
 
 // ─── Clients ───────────────────────────────────────────────────────────────
@@ -281,6 +151,30 @@ export async function createClient_(formData: FormData) {
   }
 
   const supabaseAdmin = createAdminClient();
+
+  const slugBase = slugify(name);
+  if (!slugBase) {
+    if (logoPath) await supabaseAdmin.storage.from(LOGO_BUCKET).remove([logoPath]);
+    return { error: "El nombre no produce un slug válido" };
+  }
+
+  let candidate = slugBase;
+  let suffix = 2;
+  while (true) {
+    const { data: existing } = await supabaseAdmin
+      .from("clients")
+      .select("id")
+      .eq("slug", candidate)
+      .single();
+    if (!existing) break;
+    candidate = `${slugBase}-${suffix}`;
+    suffix++;
+    if (suffix > 99) {
+      if (logoPath) await supabaseAdmin.storage.from(LOGO_BUCKET).remove([logoPath]);
+      return { error: "No se pudo generar slug único" };
+    }
+  }
+
   const { data, error } = await supabaseAdmin.from("clients").insert({
     name,
     contact_name: (formData.get("contact_name") as string | null)?.trim() || null,
@@ -288,13 +182,20 @@ export async function createClient_(formData: FormData) {
     contact_whatsapp: (formData.get("contact_whatsapp") as string | null)?.trim() || null,
     logo_url: logoPath,
     created_by: auth.user.id,
-  }).select("id").single();
+    slug: candidate,
+  }).select("id, slug").single();
 
   if (error) {
     if (logoPath) await supabaseAdmin.storage.from(LOGO_BUCKET).remove([logoPath]);
     return { error: "Error al crear el cliente" };
   }
-  return { success: true, id: (data as { id: string }).id };
+
+  const client = data as { id: string; slug: string };
+  await supabaseAdmin
+    .from("report_namespaces")
+    .insert({ slug: client.slug, entity_type: "client", client_id: client.id });
+
+  return { success: true, id: client.id, slug: client.slug };
 }
 
 export async function updateClient(id: string, formData: FormData) {
@@ -341,21 +242,85 @@ export async function deleteClient(id: string) {
   const perm = await assertCanManageClient(id);
   if (perm.error || !perm.supabaseAdmin) return { error: perm.error ?? "No autorizado" };
 
-  const { count } = await perm.supabaseAdmin
-    .from("client_spaces")
-    .select("id", { count: "exact", head: true })
-    .eq("client_id", id);
+  const { data: clientInfo } = await perm.supabaseAdmin.from("clients").select("slug").eq("id", id).single();
+  const namespaceSlug = (clientInfo as { slug: string } | null)?.slug;
 
-  if ((count ?? 0) > 0) {
-    return { error: `Este cliente tiene ${count} espacio(s). Elimínalos antes de continuar.` };
+  // 2. Get all reports of this namespace, and their storage paths
+  let reportIds: string[] = [];
+  let docPaths: string[] = [];
+  let attPaths: string[] = [];
+
+  if (namespaceSlug) {
+    const { data: reports } = await perm.supabaseAdmin
+      .from("reports")
+      .select("id")
+      .eq("namespace_slug", namespaceSlug);
+    reportIds = (reports as Array<{ id: string }> ?? []).map((r) => r.id);
+
+    if (reportIds.length > 0) {
+      const [{ data: versions }, { data: attachments }] = await Promise.all([
+        perm.supabaseAdmin.from("report_versions").select("storage_path").in("report_id", reportIds),
+        perm.supabaseAdmin.from("report_attachments").select("storage_path").in("report_id", reportIds),
+      ]);
+      docPaths = (versions as Array<{ storage_path: string }> ?? []).map((v) => v.storage_path);
+      attPaths = (attachments as Array<{ storage_path: string }> ?? []).map((a) => a.storage_path);
+    }
   }
 
+  // 3. Delete DB rows in reverse dependency order
+  if (reportIds.length > 0) {
+    // Delete report notes logs and notes first
+    const { data: versionsData } = await perm.supabaseAdmin
+      .from("report_versions")
+      .select("id")
+      .in("report_id", reportIds);
+    const versionIds = (versionsData as Array<{ id: string }> ?? []).map((v) => v.id);
+
+    if (versionIds.length > 0) {
+      const { data: notesData } = await perm.supabaseAdmin
+        .from("report_notes")
+        .select("id")
+        .in("report_version_id", versionIds);
+      const noteIds = (notesData as Array<{ id: string }> ?? []).map((n) => n.id);
+
+      if (noteIds.length > 0) {
+        await perm.supabaseAdmin.from("report_note_logs").delete().in("note_id", noteIds);
+        await perm.supabaseAdmin.from("report_notes").delete().in("id", noteIds);
+      }
+    }
+
+    // Delete reports tables references
+    await Promise.all([
+      perm.supabaseAdmin.from("report_sessions").delete().in("report_id", reportIds),
+      perm.supabaseAdmin.from("magic_link_tokens").delete().in("report_id", reportIds),
+      perm.supabaseAdmin.from("magic_link_requests").delete().in("report_id", reportIds),
+      perm.supabaseAdmin.from("pin_attempts").delete().in("report_id", reportIds),
+      perm.supabaseAdmin.from("report_attachments").delete().in("report_id", reportIds),
+      perm.supabaseAdmin.from("report_versions").delete().in("report_id", reportIds),
+    ]);
+
+    // Delete reports
+    await perm.supabaseAdmin.from("reports").delete().in("id", reportIds);
+  }
+
+  // Delete recipients
+  await perm.supabaseAdmin.from("client_recipients").delete().eq("client_id", id);
+
+  // Get current client details for logo cleanup
   const { data: current } = await perm.supabaseAdmin.from("clients").select("logo_url").eq("id", id).single();
   const currentLogo = (current as { logo_url: string | null } | null)?.logo_url;
 
+  // Delete client
   const { error } = await perm.supabaseAdmin.from("clients").delete().eq("id", id);
   if (error) return { error: "Error al eliminar el cliente" };
 
+  // 4. Clean up Storage files asynchronously or at the end
+  if (docPaths.length > 0) {
+    await perm.supabaseAdmin.storage.from("report-documents").remove(docPaths);
+  }
+  if (attPaths.length > 0) {
+    await perm.supabaseAdmin.storage.from("report-attachments").remove(attPaths);
+  }
   if (currentLogo) {
     await perm.supabaseAdmin.storage.from(LOGO_BUCKET).remove([currentLogo]);
   }

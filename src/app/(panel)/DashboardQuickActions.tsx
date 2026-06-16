@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Users, FileText } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { NewClientWithVerticalDialog } from "@/components/clients/NewClientWithVerticalDialog";
+import { NewClientDialog } from "@/components/clients/NewClientDialog";
 import { NewReportFlow } from "@/components/shared/NewReportFlow";
 
 export default function DashboardQuickActions() {
@@ -37,11 +37,11 @@ export default function DashboardQuickActions() {
       </div>
 
       {newClient && (
-        <NewClientWithVerticalDialog
+        <NewClientDialog
           onClose={() => setNewClient(false)}
           onCreated={(r) => {
             setNewClient(false);
-            router.push(`/espacios/${r.spaceId}`);
+            router.push(`/clientes/${r.clientId}`);
           }}
         />
       )}

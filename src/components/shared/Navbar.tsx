@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ShieldCheck, UserPlus } from "lucide-react";
 import { signOut } from "@/app/(auth)/login/actions";
-import { NewClientWithVerticalDialog } from "@/components/clients/NewClientWithVerticalDialog";
+import { NewClientDialog } from "@/components/clients/NewClientDialog";
 import { NewReportFlow } from "./NewReportFlow";
 import ChangePinModal from "./ChangePinModal";
 import { Button } from "@/components/ui/button";
@@ -110,11 +110,11 @@ export default function Navbar({ userEmail, userName, userRole }: NavbarProps) {
         </div>
 
         {newClient && (
-          <NewClientWithVerticalDialog
+          <NewClientDialog
             onClose={() => setNewClient(false)}
             onCreated={(r) => {
               setNewClient(false);
-              router.push(`/espacios/${r.spaceId}`);
+              router.push(`/clientes/${r.clientId}`);
             }}
           />
         )}

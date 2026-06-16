@@ -35,8 +35,8 @@ async function assertCanManageReport(reportId: string) {
   const { user } = await getUser();
   if (!user) return { error: "No autenticado" as const };
   const supabaseAdmin = createAdminClient();
-  const { data: r } = await supabaseAdmin.from("reports").select("created_by, space_id").eq("id", reportId).single();
-  const report = r as { created_by: string; space_id: string } | null;
+  const { data: r } = await supabaseAdmin.from("reports").select("created_by, namespace_slug").eq("id", reportId).single();
+  const report = r as { created_by: string; namespace_slug: string } | null;
   if (!report) return { error: "Informe no encontrado" as const };
   const { data: p } = await supabaseAdmin.from("profiles").select("role").eq("id", user.id).single();
   const profile = p as { role: string } | null;
@@ -71,25 +71,155 @@ async function uploadDocument(
 
 // ─── Reports ─────────────────────────────────────────────────────────────────
 
-export async function checkReportSlug(spaceId: string, name: string): Promise<{ taken: boolean }> {
+export async function checkReportSlug(clientId: string, name: string): Promise<{ taken: boolean }> {
   const supabaseAdmin = createAdminClient();
   const slug = slugify(name);
-  const { data } = await supabaseAdmin.from("reports").select("id").eq("space_id", spaceId).eq("slug", slug).single();
+  const { data: client } = await supabaseAdmin.from("clients").select("slug").eq("id", clientId).single();
+  if (!client) return { taken: true };
+  const { data } = await supabaseAdmin.from("reports").select("id").eq("namespace_slug", client.slug).eq("slug", slug).single();
   return { taken: !!data };
 }
 
-export async function checkReportName(spaceId: string, name: string): Promise<{ taken: boolean }> {
+export async function checkReportName(clientId: string, name: string): Promise<{ taken: boolean }> {
   const supabaseAdmin = createAdminClient();
+  const { data: client } = await supabaseAdmin.from("clients").select("slug").eq("id", clientId).single();
+  if (!client) return { taken: true };
   const { data } = await supabaseAdmin
     .from("reports")
     .select("id")
-    .eq("space_id", spaceId)
+    .eq("namespace_slug", client.slug)
     .ilike("name", name.trim())
     .single();
   return { taken: !!data };
 }
 
-export async function createReport(spaceId: string, formData: FormData) {
+export async function checkVerticalReportSlug(verticalSlug: string, name: string): Promise<{ taken: boolean }> {
+  const supabaseAdmin = createAdminClient();
+  const slug = slugify(name);
+  const { data } = await supabaseAdmin
+    .from("reports")
+    .select("id")
+    .eq("namespace_slug", verticalSlug)
+    .eq("slug", slug)
+    .single();
+  return { taken: !!data };
+}
+
+export async function checkVerticalReportName(verticalSlug: string, name: string): Promise<{ taken: boolean }> {
+  const supabaseAdmin = createAdminClient();
+  const { data } = await supabaseAdmin
+    .from("reports")
+    .select("id")
+    .eq("namespace_slug", verticalSlug)
+    .ilike("name", name.trim())
+    .single();
+  return { taken: !!data };
+}
+
+export async function createClientlessReport(verticalId: string, verticalSlug: string, formData: FormData) {
+  const { user } = await getUser();
+  if (!user) return { error: "No autenticado" };
+
+  const name = (formData.get("name") as string | null)?.trim();
+  const customSlug = (formData.get("slug") as string | null)?.trim();
+  const docFile = formData.get("document") as File | null;
+  const pin = (formData.get("pin") as string | null)?.trim() || null;
+
+  if (!name) return { error: "El nombre es obligatorio" };
+  if (!docFile || docFile.size === 0) return { error: "El documento principal es obligatorio" };
+
+  const slug = customSlug ? slugify(customSlug) : slugify(name);
+  if (!slug) return { error: "El slug generado es inválido" };
+
+  const supabaseAdmin = createAdminClient();
+
+  // 1. Ensure report_namespaces has verticalSlug registered
+  const { data: existingNs } = await supabaseAdmin
+    .from("report_namespaces")
+    .select("slug")
+    .eq("slug", verticalSlug)
+    .maybeSingle();
+
+  if (!existingNs) {
+    const { error: nsInsertError } = await supabaseAdmin
+      .from("report_namespaces")
+      .insert({
+        slug: verticalSlug,
+        entity_type: "vertical",
+        vertical_id: verticalId,
+      });
+    if (nsInsertError) return { error: "Error al registrar el namespace de la vertical" };
+  }
+
+  // 2. Check name uniqueness
+  const { data: nameExists } = await supabaseAdmin
+    .from("reports")
+    .select("id")
+    .eq("namespace_slug", verticalSlug)
+    .ilike("name", name)
+    .single();
+  if (nameExists) return { error: `Ya existe un informe con el nombre "${name}" en esta vertical` };
+
+  // 3. Check slug uniqueness
+  const { data: slugExists } = await supabaseAdmin
+    .from("reports")
+    .select("id")
+    .eq("namespace_slug", verticalSlug)
+    .eq("slug", slug)
+    .single();
+  if (slugExists) return { error: `Ya existe un informe con el slug "${slug}" en esta vertical` };
+
+  // 4. Upload document
+  const uploadResult = await uploadDocument(docFile, DOC_BUCKET);
+  if ("error" in uploadResult) return uploadResult;
+
+  // 5. Hash PIN if provided
+  let pinHash: string | null = null;
+  let pinEncrypted: string | null = null;
+  if (pin) {
+    pinHash = await bcrypt.hash(pin, 12);
+    pinEncrypted = safeEncryptPin(pin);
+  }
+
+  // 6. Create report
+  const { data: reportData, error: reportError } = await supabaseAdmin
+    .from("reports")
+    .insert({
+      namespace_slug: verticalSlug,
+      vertical_id: verticalId,
+      name,
+      slug,
+      pin_hash: pinHash,
+      pin_encrypted: pinEncrypted,
+      auto_send_on_publish: false,
+      current_version: 1,
+      created_by: user.id,
+    })
+    .select("id")
+    .single();
+
+  if (reportError || !reportData) {
+    await supabaseAdmin.storage.from(DOC_BUCKET).remove([uploadResult.path]);
+    return { error: "Error al crear el informe" };
+  }
+
+  const reportId = (reportData as { id: string }).id;
+  const format = docFile.type === "application/pdf" ? "pdf" : "html";
+
+  // 7. Create version 1
+  await supabaseAdmin.from("report_versions").insert({
+    report_id: reportId,
+    version_number: 1,
+    format,
+    storage_path: uploadResult.path,
+    size_bytes: docFile.size,
+    created_by: user.id,
+  });
+
+  return { success: true, reportId, pin };
+}
+
+export async function createReport(namespaceSlug: string, verticalId: string, formData: FormData) {
   const { user } = await getUser();
   if (!user) return { error: "No autenticado" };
 
@@ -110,7 +240,7 @@ export async function createReport(spaceId: string, formData: FormData) {
   const { data: nameExists } = await supabaseAdmin
     .from("reports")
     .select("id")
-    .eq("space_id", spaceId)
+    .eq("namespace_slug", namespaceSlug)
     .ilike("name", name)
     .single();
   if (nameExists) return { error: `Ya existe un informe con el nombre "${name}" en este espacio` };
@@ -119,7 +249,7 @@ export async function createReport(spaceId: string, formData: FormData) {
   const { data: slugExists } = await supabaseAdmin
     .from("reports")
     .select("id")
-    .eq("space_id", spaceId)
+    .eq("namespace_slug", namespaceSlug)
     .eq("slug", slug)
     .single();
   if (slugExists) return { error: `Ya existe un informe con el slug "${slug}" en este espacio` };
@@ -136,7 +266,8 @@ export async function createReport(spaceId: string, formData: FormData) {
   const { data: reportData, error: reportError } = await supabaseAdmin
     .from("reports")
     .insert({
-      space_id: spaceId,
+      namespace_slug: namespaceSlug,
+      vertical_id: verticalId,
       name,
       slug,
       pin_hash: pinHash,
@@ -169,7 +300,7 @@ export async function createReport(spaceId: string, formData: FormData) {
   // Auto-send magic link if enabled (SPEC-07 integration placeholder)
   let autoSendWarning: string | undefined;
   if (autoSend) {
-    const primaryResult = await checkPrimaryRecipient(spaceId, supabaseAdmin);
+    const primaryResult = await checkPrimaryRecipient(namespaceSlug, supabaseAdmin);
     if (!primaryResult.hasPrimary) {
       autoSendWarning = "Auto-envío activado, pero el cliente no tiene destinatario primario. Añade uno en la ficha del cliente.";
     } else if (primaryResult.recipientId && primaryResult.spaceSlug && primaryResult.clientName) {
@@ -189,14 +320,14 @@ export async function createReport(spaceId: string, formData: FormData) {
   return { success: true, reportId, pin, autoSendWarning };
 }
 
-async function checkPrimaryRecipient(spaceId: string, supabaseAdmin: ReturnType<typeof createAdminClient>) {
-  const { data: space } = await supabaseAdmin
-    .from("client_spaces")
-    .select("client_id, slug, clients(name, logo_url)")
-    .eq("id", spaceId)
+async function checkPrimaryRecipient(namespaceSlug: string, supabaseAdmin: ReturnType<typeof createAdminClient>) {
+  const { data: namespace } = await supabaseAdmin
+    .from("report_namespaces")
+    .select("entity_type, client_id, clients(name, logo_url)")
+    .eq("slug", namespaceSlug)
     .single();
-  if (!space) return { hasPrimary: false };
-  const s = space as unknown as { client_id: string; slug: string; clients: { name: string; logo_url: string | null } | null };
+  if (!namespace || namespace.entity_type !== "client") return { hasPrimary: false };
+  const s = namespace as unknown as { client_id: string; clients: { name: string; logo_url: string | null } | null };
   const { data } = await supabaseAdmin
     .from("client_recipients")
     .select("id")
@@ -214,7 +345,7 @@ async function checkPrimaryRecipient(spaceId: string, supabaseAdmin: ReturnType<
   return {
     hasPrimary: !!rec,
     recipientId: rec?.id,
-    spaceSlug: s.slug,
+    spaceSlug: namespaceSlug,
     clientName: s.clients?.name ?? "cliente",
     clientLogoUrl,
   };
@@ -232,10 +363,10 @@ export async function addVersion(reportId: string, formData: FormData) {
 
   const { data: current } = await perm.supabaseAdmin
     .from("reports")
-    .select("current_version, auto_send_on_publish, space_id")
+    .select("current_version, auto_send_on_publish, namespace_slug")
     .eq("id", reportId)
     .single();
-  const r = current as { current_version: number; auto_send_on_publish: boolean; space_id: string } | null;
+  const r = current as { current_version: number; auto_send_on_publish: boolean; namespace_slug: string } | null;
   if (!r) return { error: "Informe no encontrado" };
 
   const nextVersion = r.current_version + 1;
@@ -275,7 +406,7 @@ export async function addVersion(reportId: string, formData: FormData) {
 
   let autoSendWarning: string | undefined;
   if (r.auto_send_on_publish) {
-    const primary = await checkPrimaryRecipient(r.space_id, perm.supabaseAdmin);
+    const primary = await checkPrimaryRecipient(r.namespace_slug, perm.supabaseAdmin);
     if (!primary.hasPrimary) {
       autoSendWarning = "Auto-envío activado, pero el cliente no tiene destinatario primario.";
     } else if (primary.recipientId && primary.spaceSlug) {

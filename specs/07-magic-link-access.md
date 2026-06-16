@@ -1,8 +1,8 @@
 # SPEC-07: Acceso por Magic Link
 
-**Versión:** 1.0
+**Versión:** 1.2
 **Estado:** aprobada
-**Última actualización:** 2026-06-02
+**Última actualización:** 2026-06-10
 **Owner:** David (immoralia)
 
 ---
@@ -67,8 +67,10 @@ Sistema de acceso por magic link para destinatarios de informes. El empleado env
    d. Si no válido: redirige a `/[space]/[slug]?error=link_expired` (se muestra error en el modal de acceso)
    e. Si válido: marca `consumed_at = now()` de forma atómica
    f. Crea sesión en `report_sessions` con `session_type='magic_link'` y `recipient_id` del token
-   g. Establece cookie `informes_session` (HttpOnly, Secure, SameSite=Strict, 48h)
-   h. Redirige a `/[space]/[slug]` (sin el token en la URL — la URL queda limpia en el historial del navegador)
+   g. **Además**, crea sesión de portal en `portal_sessions` scoped al espacio — esto permite al cliente acceder al portal y a cualquier otro informe del espacio sin PIN durante las siguientes 48h
+   h. Establece cookie `informes_session` (HttpOnly, Secure, SameSite=Strict, 48h, `path: "/"`)
+   i. Establece cookie `portal_session` (HttpOnly, Secure, SameSite=Strict, 48h, `path: "/[space]"`)
+   j. Redirige a `/[space]/[slug]` (sin el token en la URL — la URL queda limpia en el historial del navegador)
 
 ---
 
@@ -93,6 +95,8 @@ Sistema de acceso por magic link para destinatarios de informes. El empleado env
 - [ ] CA-06: Un magic link solo puede consumirse una vez
 - [ ] CA-07: Tras el consumo, la redirección va a `/[space]/[slug]` sin el token en la URL (URL limpia)
 - [ ] CA-08: La sesión creada por magic link tiene `session_type='magic_link'` y `recipient_id` poblado
+- [ ] CA-14: Al consumir el magic link, además de `informes_session`, se crea una `portal_session` válida para el espacio del informe, de modo que el cliente puede acceder al portal y a otros informes del espacio sin PIN
+- [ ] CA-15: El viewer muestra un botón "Ver mi espacio" en el header cuando hay sesión de portal activa; ese botón lleva a `/[space]/portal`
 - [ ] CA-09: El endpoint de solicitud de magic link siempre devuelve el mismo mensaje independientemente de si el email está registrado o no
 - [ ] CA-10: Rate limiting de solicitudes: máx 3 por `(IP, recipient_id)` en 10 min
 - [ ] CA-11: El email enviado contiene el nombre del informe, el nombre del cliente y el link de acceso
@@ -234,6 +238,16 @@ En desarrollo sin `RESEND_API_KEY`, `generateAndSendMagicLink` imprime la URL de
 ### `linkExpired` como prop de `ViewerShell` y `AccessModal`
 El servidor renderiza `linkExpired=true` cuando `searchParams.error === "link_expired"`. El `AccessModal` inicializa su `feedback` state con el mensaje de caducidad directamente en la construcción del estado — no necesita `useEffect`.
 
+### Magic link crea sesión dual: `informes_session` + `portal_session`
+Al consumir el magic link de informe, el route handler crea dos sesiones simultáneamente:
+1. `informes_session` (tabla `report_sessions`, scope global `path: "/"`) — para el viewer de ese informe concreto.
+2. `portal_session` (tabla `portal_sessions`, scope de espacio `path: "/[space]"`) — para acceder al portal y a cualquier otro informe del espacio.
+
+Ambas sesiones usan el mismo `recipient_id` y la misma expiración de 48h. La `portal_session` se crea con el `space_id` del espacio del informe. Esto unifica los dos flows de acceso (magic link de informe y portal) sin necesidad de tokens separados. El PIN sigue creando solo `informes_session` (sin `portal_session`) — el PIN da acceso al documento específico, no al espacio completo.
+
+### Botón "Ver mi espacio" en `ViewerShell`
+El `ViewerShell` recibe la prop `spaceSlug: string` (ya disponible en la page) y muestra un botón en el header cuando el usuario tiene sesión activa (`authenticated === true`). El botón lleva a `/{spaceSlug}/portal`. Se muestra solo cuando `authenticated` es true para no revelar la existencia del portal a usuarios no autenticados.
+
 ---
 
 ## Historial
@@ -242,3 +256,4 @@ El servidor renderiza `linkExpired=true` cuando `searchParams.error === "link_ex
 |---------|-------|--------|-------|
 | 1.0 | 2026-06-02 | Versión inicial | Claude Code |
 | 1.1 | 2026-06-02 | Expiración cambiada de 30 min a 48 horas. Añadidas Notas de Implementación: atomicidad, token expiry, auto-send extendido, Resend fallback, linkExpired prop | Claude Code |
+| 1.2 | 2026-06-10 | Flujo 4 extendido: magic link crea sesión dual (informes_session + portal_session). CA-14, CA-15 añadidos. Nota de implementación: sesión dual y botón "Ver mi espacio" en ViewerShell | Claude Code |
