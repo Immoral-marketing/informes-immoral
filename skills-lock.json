@@ -31,6 +31,12 @@
       "skillPath": "brianspec-upgrade/SKILL.md",
       "computedHash": "fc29ce5820b943fd24fdac0470c031f950c830876a1e8464679f5f714a4660ba"
     },
+    "brianspec-design": {
+      "source": "Immoral-marketing/brianspec",
+      "sourceType": "github",
+      "skillPath": "brianspec-design/SKILL.md",
+      "computedHash": ""
+    },
     "emil-design-eng": {
       "source": "emilkowalski/skill",
       "sourceType": "github",
