@@ -128,11 +128,18 @@ export default function VerticalDetailClient({
                   <p className="text-xs text-muted-foreground">
                     {new Date(d.created_at).toLocaleDateString()}
                   </p>
-                  <Button asChild variant="secondary" size="sm" className="rounded-xl">
-                    <Link href={`/${d.namespace_slug}/${d.slug}`}>
-                      Ver informe
-                    </Link>
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button asChild variant="ghost" size="sm" className="rounded-xl">
+                      <Link href={`/${d.namespace_slug}/${d.slug}`} target="_blank">
+                        Ver
+                      </Link>
+                    </Button>
+                    <Button asChild variant="secondary" size="sm" className="rounded-xl">
+                      <Link href={`/informes/${d.id}`}>
+                        Gestionar
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
               </Card>
             ))}
