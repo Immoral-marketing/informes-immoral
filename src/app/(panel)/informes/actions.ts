@@ -93,6 +93,132 @@ export async function checkReportName(clientId: string, name: string): Promise<{
   return { taken: !!data };
 }
 
+export async function checkVerticalReportSlug(verticalSlug: string, name: string): Promise<{ taken: boolean }> {
+  const supabaseAdmin = createAdminClient();
+  const slug = slugify(name);
+  const { data } = await supabaseAdmin
+    .from("reports")
+    .select("id")
+    .eq("namespace_slug", verticalSlug)
+    .eq("slug", slug)
+    .single();
+  return { taken: !!data };
+}
+
+export async function checkVerticalReportName(verticalSlug: string, name: string): Promise<{ taken: boolean }> {
+  const supabaseAdmin = createAdminClient();
+  const { data } = await supabaseAdmin
+    .from("reports")
+    .select("id")
+    .eq("namespace_slug", verticalSlug)
+    .ilike("name", name.trim())
+    .single();
+  return { taken: !!data };
+}
+
+export async function createClientlessReport(verticalId: string, verticalSlug: string, formData: FormData) {
+  const { user } = await getUser();
+  if (!user) return { error: "No autenticado" };
+
+  const name = (formData.get("name") as string | null)?.trim();
+  const customSlug = (formData.get("slug") as string | null)?.trim();
+  const docFile = formData.get("document") as File | null;
+  const pin = (formData.get("pin") as string | null)?.trim() || null;
+
+  if (!name) return { error: "El nombre es obligatorio" };
+  if (!docFile || docFile.size === 0) return { error: "El documento principal es obligatorio" };
+
+  const slug = customSlug ? slugify(customSlug) : slugify(name);
+  if (!slug) return { error: "El slug generado es inválido" };
+
+  const supabaseAdmin = createAdminClient();
+
+  // 1. Ensure report_namespaces has verticalSlug registered
+  const { data: existingNs } = await supabaseAdmin
+    .from("report_namespaces")
+    .select("slug")
+    .eq("slug", verticalSlug)
+    .maybeSingle();
+
+  if (!existingNs) {
+    const { error: nsInsertError } = await supabaseAdmin
+      .from("report_namespaces")
+      .insert({
+        slug: verticalSlug,
+        entity_type: "vertical",
+        vertical_id: verticalId,
+      });
+    if (nsInsertError) return { error: "Error al registrar el namespace de la vertical" };
+  }
+
+  // 2. Check name uniqueness
+  const { data: nameExists } = await supabaseAdmin
+    .from("reports")
+    .select("id")
+    .eq("namespace_slug", verticalSlug)
+    .ilike("name", name)
+    .single();
+  if (nameExists) return { error: `Ya existe un informe con el nombre "${name}" en esta vertical` };
+
+  // 3. Check slug uniqueness
+  const { data: slugExists } = await supabaseAdmin
+    .from("reports")
+    .select("id")
+    .eq("namespace_slug", verticalSlug)
+    .eq("slug", slug)
+    .single();
+  if (slugExists) return { error: `Ya existe un informe con el slug "${slug}" en esta vertical` };
+
+  // 4. Upload document
+  const uploadResult = await uploadDocument(docFile, DOC_BUCKET);
+  if ("error" in uploadResult) return uploadResult;
+
+  // 5. Hash PIN if provided
+  let pinHash: string | null = null;
+  let pinEncrypted: string | null = null;
+  if (pin) {
+    pinHash = await bcrypt.hash(pin, 12);
+    pinEncrypted = safeEncryptPin(pin);
+  }
+
+  // 6. Create report
+  const { data: reportData, error: reportError } = await supabaseAdmin
+    .from("reports")
+    .insert({
+      namespace_slug: verticalSlug,
+      vertical_id: verticalId,
+      name,
+      slug,
+      pin_hash: pinHash,
+      pin_encrypted: pinEncrypted,
+      auto_send_on_publish: false,
+      current_version: 1,
+      created_by: user.id,
+    })
+    .select("id")
+    .single();
+
+  if (reportError || !reportData) {
+    await supabaseAdmin.storage.from(DOC_BUCKET).remove([uploadResult.path]);
+    return { error: "Error al crear el informe" };
+  }
+
+  const reportId = (reportData as { id: string }).id;
+  const format = docFile.type === "application/pdf" ? "pdf" : "html";
+
+  // 7. Create version 1
+  await supabaseAdmin.from("report_versions").insert({
+    report_id: reportId,
+    version_number: 1,
+    format,
+    storage_path: uploadResult.path,
+    size_bytes: docFile.size,
+    created_by: user.id,
+  });
+
+  return { success: true, reportId, pin };
+}
+
 export async function createReport(namespaceSlug: string, verticalId: string, formData: FormData) {
   const { user } = await getUser();
   if (!user) return { error: "No autenticado" };

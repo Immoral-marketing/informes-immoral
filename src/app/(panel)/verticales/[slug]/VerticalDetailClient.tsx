@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CreateClientlessReportForm } from "@/components/reports/CreateClientlessReportForm";
+import { PinModal } from "@/components/reports/PinModal";
 
 interface Space {
   id: string;
@@ -51,6 +53,8 @@ export default function VerticalDetailClient({
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [pinData, setPinData] = useState<{ id: string; pin: string } | null>(null);
 
   const filtered = spaces.filter((s) => {
     const term = search.toLowerCase();
@@ -75,32 +79,39 @@ export default function VerticalDetailClient({
           className="absolute top-0 right-0 w-2 h-full"
           style={{ backgroundColor: vertical.color_hex }}
         />
-        <div className="p-6 sm:p-8 flex items-center gap-6">
-          <div className="h-10 sm:h-12 w-10 sm:w-12 flex-shrink-0 flex items-center justify-center">
-            {vertical.logo_signed_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={vertical.logo_signed_url} alt={vertical.name} className="max-h-full max-w-full object-contain" />
-            ) : (
-              <span className="text-3xl font-extrabold" style={{ color: vertical.color_hex }}>
-                {vertical.name.charAt(0).toUpperCase()}
-              </span>
-            )}
+        <div className="p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div className="flex items-center gap-6">
+            <div className="h-10 sm:h-12 w-10 sm:w-12 flex-shrink-0 flex items-center justify-center">
+              {vertical.logo_signed_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={vertical.logo_signed_url} alt={vertical.name} className="max-h-full max-w-full object-contain" />
+              ) : (
+                <span className="text-3xl font-extrabold" style={{ color: vertical.color_hex }}>
+                  {vertical.name.charAt(0).toUpperCase()}
+                </span>
+              )}
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground">{vertical.name}</h1>
+              <p className="text-muted-foreground text-sm">
+                Administración de informes y espacios de cliente en esta vertical.
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">{vertical.name}</h1>
-            <p className="text-muted-foreground text-sm">
-              Administración de espacios de cliente en esta vertical.
-            </p>
-          </div>
+          <Button
+            onClick={() => setShowCreateForm(true)}
+            className="rounded-xl font-semibold gap-2 shrink-0 self-start sm:self-auto"
+          >
+            <Plus className="w-4 h-4" />
+            Nuevo informe sin cliente
+          </Button>
         </div>
       </div>
 
-      {/* ── Dossiers ──────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-4">
-        <h2 className="text-xl font-bold text-foreground">Dossiers de la vertical</h2>
-        {dossiers.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No hay dossiers vinculados a esta vertical.</p>
-        ) : (
+      {/* ── Informes sin cliente ────────────────────────────────────────────────── */}
+      {dossiers.length > 0 && (
+        <div className="flex flex-col gap-4">
+          <h2 className="text-xl font-bold text-foreground">Informes de la vertical (sin cliente)</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {dossiers.map((d) => (
               <Card key={d.id} className="p-5 flex flex-col gap-3 hover:border-primary/50 transition-colors">
@@ -119,15 +130,15 @@ export default function VerticalDetailClient({
                   </p>
                   <Button asChild variant="secondary" size="sm" className="rounded-xl">
                     <Link href={`/${d.namespace_slug}/${d.slug}`}>
-                      Ver Dossier
+                      Ver informe
                     </Link>
                   </Button>
                 </div>
               </Card>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ── Clientes con informes ──────────────────────────────────────────────── */}
       <div className="flex flex-col gap-4 pt-4 border-t">
@@ -314,7 +325,32 @@ export default function VerticalDetailClient({
       )}
       </div>
 
+      {showCreateForm && (
+        <CreateClientlessReportForm
+          verticalId={vertical.id}
+          verticalSlug={vertical.slug}
+          onClose={() => setShowCreateForm(false)}
+          onCreated={(reportId, pin) => {
+            setShowCreateForm(false);
+            if (pin) {
+              setPinData({ id: reportId, pin });
+            } else {
+              router.push(`/informes/${reportId}`);
+            }
+          }}
+        />
+      )}
 
+      {pinData && (
+        <PinModal
+          pin={pinData.pin}
+          warning="Este informe requiere PIN para ser visualizado."
+          onClose={() => {
+            setPinData(null);
+            router.push(`/informes/${pinData.id}`);
+          }}
+        />
+      )}
     </div>
   );
 }
