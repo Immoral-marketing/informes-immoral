@@ -22,7 +22,7 @@ export default async function ClientesPage() {
       id, name, logo_url, contact_name, created_by, created_at,
       profiles(full_name),
       client_recipients(count),
-      client_spaces(count)
+      report_namespaces(reports(count))
     `)
     .order("created_at", { ascending: false });
 
@@ -40,14 +40,18 @@ export default async function ClientesPage() {
     created_at: string;
     profiles: { full_name: string | null } | null;
     client_recipients: [{ count: number }];
-    client_spaces: [{ count: number }];
+    report_namespaces: [{ reports: [{ count: number }] }];
   }>) ?? [];
 
   const clients = await Promise.all(
-    clientsRaw.map(async (c) => ({
-      ...c,
-      logo_signed_url: await getSignedClientLogoUrl(c.logo_url),
-    }))
+    clientsRaw.map(async (c) => {
+      const informesCount = c.report_namespaces?.[0]?.reports?.[0]?.count ?? 0;
+      return {
+        ...c,
+        informes_count: informesCount,
+        logo_signed_url: await getSignedClientLogoUrl(c.logo_url),
+      };
+    })
   );
 
   return (

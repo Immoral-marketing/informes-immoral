@@ -26,10 +26,10 @@ async function validateSession(request: NextRequest, reportId: string) {
   if (portalToken) {
     const portalHash = hashToken(portalToken);
     
-    // Need space_id of the report
+    // Need namespace_slug of the report
     const { data: rData } = await supabaseAdmin
       .from("reports")
-      .select("space_id")
+      .select("namespace_slug")
       .eq("id", reportId)
       .single();
 
@@ -37,7 +37,7 @@ async function validateSession(request: NextRequest, reportId: string) {
       const { data: pSession } = await supabaseAdmin
         .from("portal_sessions")
         .select("id, expires_at")
-        .eq("space_id", rData.space_id)
+        .eq("namespace_slug", rData.namespace_slug)
         .eq("session_token_hash", portalHash)
         .single();
 
@@ -57,10 +57,21 @@ export async function GET(request: NextRequest) {
 
   if (!reportId) return new NextResponse("Bad request", { status: 400 });
 
-  const session = await validateSession(request, reportId);
-  if (!session) return new NextResponse("Unauthorized", { status: 401 });
-
   const supabaseAdmin = createAdminClient();
+
+  const { data: namespaceData } = await supabaseAdmin
+    .from("reports")
+    .select("pin_hash, report_namespaces(entity_type)")
+    .eq("id", reportId)
+    .single();
+
+  const rData = namespaceData as any;
+  const isVerticalNoPin = rData?.report_namespaces?.entity_type === "vertical" && rData?.pin_hash === null;
+
+  if (!isVerticalNoPin) {
+    const session = await validateSession(request, reportId);
+    if (!session) return new NextResponse("Unauthorized", { status: 401 });
+  }
 
   // Get report current version if not specified
   const { data: report } = await supabaseAdmin

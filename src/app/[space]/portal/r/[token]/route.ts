@@ -12,24 +12,22 @@ export async function GET(
   const tokenHash = hashToken(token);
   const supabaseAdmin = createAdminClient();
 
-  // Find space ID
-  const { data: spaceData } = await supabaseAdmin
-    .from("client_spaces")
-    .select("id")
+  // Find namespace
+  const { data: namespace } = await supabaseAdmin
+    .from("report_namespaces")
+    .select("slug, entity_type")
     .eq("slug", space)
     .single();
 
-  if (!spaceData) {
+  if (!namespace || namespace.entity_type !== "client") {
     return NextResponse.redirect(new URL(`/${space}/portal?error=invalid_space`, origin));
   }
-
-  const spaceId = spaceData.id;
 
   // Find token
   const { data: tokenRecord } = await supabaseAdmin
     .from("space_access_tokens")
-    .select("id, recipient_id, consumed_at, expires_at")
-    .eq("space_id", spaceId)
+    .select("id, recipient_id, consumed_at, expires_at, namespace_slug")
+    .eq("namespace_slug", namespace.slug)
     .eq("token_hash", tokenHash)
     .single();
 
@@ -59,9 +57,17 @@ export async function GET(
   const sessionTokenHash = hashToken(sessionTokenRaw);
   const sessionExpiresAt = new Date(Date.now() + 48 * 3600 * 1000).toISOString();
 
+  const tokenRaw = tokenRecord as unknown as {
+    id: string;
+    recipient_id: string | null;
+    consumed_at: string | null;
+    expires_at: string;
+    namespace_slug: string | null;
+  };
+
   await supabaseAdmin.from("portal_sessions").insert({
-    space_id: spaceId,
-    recipient_id: tokenRecord.recipient_id,
+    namespace_slug: tokenRaw.namespace_slug,
+    recipient_id: tokenRaw.recipient_id,
     session_token_hash: sessionTokenHash,
     expires_at: sessionExpiresAt,
   });

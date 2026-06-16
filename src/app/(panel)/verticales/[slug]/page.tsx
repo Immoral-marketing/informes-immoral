@@ -27,54 +27,71 @@ export default async function VerticalDetailPage({ params }: { params: Promise<{
 
   const logoUrl = vertical.logo_url ? await getSignedLogoUrl(vertical.logo_url) : null;
 
-  let spacesQuery = supabaseAdmin
-    .from("client_spaces")
-    .select("id, slug, created_by, clients(id, name, logo_url, contact_name, contact_phone), client_recipients:clients(client_recipients(email, is_primary)), reports(count)")
+  let reportsQuery = supabaseAdmin
+    .from("reports")
+    .select(`
+      id, name, slug, created_at, namespace_slug,
+      report_namespaces (
+        entity_type,
+        clients (
+          id, name, logo_url, contact_name, contact_phone,
+          client_recipients ( email, is_primary )
+        )
+      )
+    `)
     .eq("vertical_id", vertical.id)
     .order("created_at", { ascending: false });
 
   if (!isAdmin) {
-    spacesQuery = spacesQuery.eq("created_by", user.id);
+    reportsQuery = reportsQuery.eq("created_by", user.id);
   }
 
-  const { data: spacesRaw } = await spacesQuery;
+  const { data: reportsRaw } = await reportsQuery;
+  const reportsList = (reportsRaw as any[]) || [];
 
-  // Format spaces
-  const spaces = (spacesRaw as unknown as Array<{
-    id: string;
-    slug: string;
-    created_by: string;
-    clients: {
-      id: string;
-      name: string;
-      logo_url: string | null;
-      contact_name: string | null;
-      contact_phone: string | null;
-    } | null;
-    client_recipients: Array<{ email: string; is_primary: boolean }> | null;
-    reports: [{ count: number }] | null;
-  }> | null) ?? [];
+  const clientGroups = new Map<string, any>();
+  const dossiers: Array<{ id: string; name: string; slug: string; namespace_slug: string; created_at: string }> = [];
 
-  const formattedSpaces = await Promise.all(spaces.map(async (s) => {
-    // Attempt to extract primary email
+  for (const r of reportsList) {
+    const ns = r.report_namespaces;
+    if (!ns) continue;
+    if (ns.entity_type === "vertical") {
+      dossiers.push({
+        id: r.id,
+        name: r.name,
+        slug: r.slug,
+        namespace_slug: r.namespace_slug,
+        created_at: r.created_at,
+      });
+    } else if (ns.entity_type === "client" && ns.clients) {
+      if (!clientGroups.has(ns.clients.id)) {
+        clientGroups.set(ns.clients.id, {
+          client: ns.clients,
+          count: 0,
+        });
+      }
+      clientGroups.get(ns.clients.id).count++;
+    }
+  }
+
+  const formattedSpaces = await Promise.all(Array.from(clientGroups.values()).map(async (g) => {
+    const c = g.client;
     let email = null;
-    if (s.client_recipients && Array.isArray(s.client_recipients)) {
-      const primary = s.client_recipients.find(r => r.is_primary) || s.client_recipients[0];
+    if (c.client_recipients && Array.isArray(c.client_recipients)) {
+      const primary = c.client_recipients.find((r: any) => r.is_primary) || c.client_recipients[0];
       if (primary) email = primary.email;
     }
-
-    const clientLogoUrl = await getSignedClientLogoUrl(s.clients?.logo_url || null);
-
+    const clientLogoUrl = await getSignedClientLogoUrl(c.logo_url || null);
     return {
-      id: s.id,
-      slug: s.slug,
-      client_id: s.clients?.id ?? "",
-      client_name: s.clients?.name ?? "Cliente Desconocido",
+      id: c.id,
+      slug: c.id,
+      client_id: c.id,
+      client_name: c.name ?? "Cliente Desconocido",
       client_logo_signed_url: clientLogoUrl,
-      contact_name: s.clients?.contact_name ?? null,
-      contact_phone: s.clients?.contact_phone ?? null,
+      contact_name: c.contact_name ?? null,
+      contact_phone: c.contact_phone ?? null,
       contact_email: email,
-      reports_count: s.reports?.[0]?.count ?? 0,
+      reports_count: g.count,
     };
   }));
 
@@ -88,6 +105,7 @@ export default async function VerticalDetailPage({ params }: { params: Promise<{
       <VerticalDetailClient
         vertical={{ ...vertical, logo_signed_url: logoUrl }}
         spaces={formattedSpaces}
+        dossiers={dossiers}
       />
     </div>
   );

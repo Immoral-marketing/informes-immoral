@@ -41,11 +41,11 @@ export async function POST(
   const supabaseAdmin = createAdminClient()
   const { data: r } = await supabaseAdmin
     .from("reports")
-    .select("created_by, space_id")
+    .select("created_by")
     .eq("id", reportId)
     .single()
 
-  const report = r as { created_by: string; space_id: string } | null
+  const report = r as { created_by: string } | null
   if (!report) {
     return NextResponse.json({ error: "Informe no encontrado" }, { status: 404 })
   }

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
-import { NewClientWithVerticalDialog } from "@/components/clients/NewClientWithVerticalDialog";
+import { NewClientDialog } from "@/components/clients/NewClientDialog";
 import { ClientTransitionLink } from "@/components/shared/ClientTransitionLink";
 
 interface ClientRow {
@@ -18,7 +18,7 @@ interface ClientRow {
   created_at: string;
   profiles: { full_name: string | null } | null;
   client_recipients: [{ count: number }];
-  client_spaces: [{ count: number }];
+  informes_count?: number;
 }
 
 export default function ClientesClient({
@@ -107,7 +107,7 @@ export default function ClientesClient({
               </div>
               <div className="flex gap-4 text-xs text-muted-foreground shrink-0">
                 <span>{c.client_recipients[0]?.count ?? 0} dest.</span>
-                <span>{c.client_spaces[0]?.count ?? 0} espacios</span>
+                <span>{c.informes_count ?? 0} informes</span>
               </div>
             </ClientTransitionLink>
           ))}
@@ -144,7 +144,7 @@ export default function ClientesClient({
       )}
 
       {showForm && (
-        <NewClientWithVerticalDialog
+        <NewClientDialog
           onClose={() => setShowForm(false)}
           onCreated={(r) => {
             setShowForm(false);

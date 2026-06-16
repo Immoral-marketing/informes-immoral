@@ -15,7 +15,6 @@ export interface PortalReport {
 }
 
 interface PortalSpace {
-  id: string;
   slug: string;
   clientName: string;
   clientLogoUrl: string | null;

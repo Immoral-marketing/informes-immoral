@@ -42,13 +42,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: ERROR_MSG }, { status: 429 });
   }
 
-  // Get report PIN hash + space_id (space_id needed to create portal_session)
+  // Get report PIN hash + namespace_slug (needed to create portal_session)
   const { data: report } = await supabaseAdmin
     .from("reports")
-    .select("pin_hash, space_id")
+    .select("pin_hash, namespace_slug")
     .eq("id", report_id)
     .single();
-  const r = report as { pin_hash: string; space_id: string } | null;
+  const r = report as { pin_hash: string; namespace_slug: string } | null;
   if (!r) return NextResponse.json({ error: ERROR_MSG }, { status: 400 });
 
   let valid = await bcrypt.compare(pin, r.pin_hash);
@@ -106,18 +106,12 @@ export async function POST(request: NextRequest) {
   const portalToken = generateSessionToken();
   const portalHash = hashToken(portalToken);
   await supabaseAdmin.from("portal_sessions").insert({
-    space_id: r.space_id,
+    namespace_slug: r.namespace_slug,
     session_token_hash: portalHash,
     expires_at: expiresAt,
   });
 
-  // Resolve the space slug to scope the portal_session cookie path
-  const { data: spaceRow } = await supabaseAdmin
-    .from("client_spaces")
-    .select("slug")
-    .eq("id", r.space_id)
-    .single();
-  const spaceSlug = (spaceRow as { slug: string } | null)?.slug;
+  const spaceSlug = r.namespace_slug;
 
   const response = NextResponse.json({ ok: true });
   response.cookies.set("informes_session", token, {

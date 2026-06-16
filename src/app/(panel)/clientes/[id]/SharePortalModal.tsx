@@ -19,24 +19,21 @@ interface Recipient {
   is_primary: boolean;
 }
 
-interface Space {
-  id: string;
-  slug: string;
-  vertical_name: string;
-}
+
 
 export default function SharePortalModal({
   clientName,
-  spaces,
+  clientId,
+  clientSlug,
   recipients,
   onClose,
 }: {
+  clientId: string;
+  clientSlug: string;
   clientName: string;
-  spaces: Space[];
   recipients: Recipient[];
   onClose: () => void;
 }) {
-  const [selectedSpaceId, setSelectedSpaceId] = useState<string>(spaces[0]?.id ?? "");
   const [selectedRecipients, setSelectedRecipients] = useState<Set<string>>(
     new Set(recipients.filter((r) => r.is_primary).map((r) => r.id))
   );
@@ -46,8 +43,7 @@ export default function SharePortalModal({
 
   const [isPending, startTransition] = useTransition();
 
-  const selectedSpace = spaces.find((s) => s.id === selectedSpaceId);
-  const portalUrl = selectedSpace ? `informes.immoral.es/${selectedSpace.slug}/portal` : "";
+  const portalUrl = `informes.immoral.es/${clientSlug}/portal`;
 
   function toggleRecipient(id: string) {
     const next = new Set(selectedRecipients);
@@ -58,7 +54,6 @@ export default function SharePortalModal({
 
   function handleSend() {
     if (selectedRecipients.size === 0) return;
-    if (!selectedSpaceId) return;
 
     startTransition(async () => {
       const options: { subject?: string; note?: string } = {};
@@ -66,7 +61,7 @@ export default function SharePortalModal({
       if (note.trim() !== "") options.note = note.trim();
 
       const result = await sendPortalLinks(
-        selectedSpaceId, 
+        clientId, 
         Array.from(selectedRecipients),
         options
       );
@@ -105,21 +100,7 @@ export default function SharePortalModal({
             <span className="text-sm font-medium text-foreground truncate">{portalUrl}</span>
           </div>
 
-          {/* Space Selection */}
-          {spaces.length > 1 && (
-            <div className="flex flex-col gap-2">
-              <Label className="text-sm font-medium">Selecciona el espacio a compartir</Label>
-              <select
-                value={selectedSpaceId}
-                onChange={(e) => setSelectedSpaceId(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--brand)] focus:border-transparent transition-shadow cursor-pointer"
-              >
-                {spaces.map(s => (
-                  <option key={s.id} value={s.id}>Espacio: {s.vertical_name}</option>
-                ))}
-              </select>
-            </div>
-          )}
+
 
           {/* Recipients Selection */}
           <div className="flex flex-col gap-2">
@@ -192,7 +173,7 @@ export default function SharePortalModal({
           <Button variant="ghost" onClick={onClose} className="rounded-xl">Cancelar</Button>
           <Button
             onClick={handleSend}
-            disabled={isPending || selectedRecipients.size === 0 || !selectedSpaceId || spaces.length === 0}
+            disabled={isPending || selectedRecipients.size === 0}
             className="rounded-xl gap-2 font-semibold"
             style={{ backgroundColor: "var(--brand)" }}
           >

@@ -20,7 +20,6 @@ interface ReportInfo {
   name: string;
   slug: string;
   current_version: number;
-  space_id: string;
   client_name: string;
   client_logo_signed_url: string | null;
   attachments: Attachment[];
@@ -33,11 +32,13 @@ export default function ViewerShell({
   sessionValid,
   linkExpired,
   spaceSlug,
+  hidePortalLink,
 }: {
   report: ReportInfo;
   sessionValid: boolean;
   linkExpired: boolean;
   spaceSlug: string;
+  hidePortalLink?: boolean;
 }) {
   const [authenticated, setAuthenticated] = useState(sessionValid);
   const [docUrl, setDocUrl] = useState<string | null>(null);
@@ -157,13 +158,15 @@ export default function ViewerShell({
               <span>{report.attachments.length} {report.attachments.length === 1 ? "adjunto" : "adjuntos"}</span>
             </button>
           )}
-          <Link
-            href={`/${spaceSlug}/portal`}
-            className="flex items-center gap-2 text-sm font-medium transition-all rounded-xl px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50 hover:border-slate-300 shadow-sm"
-          >
-            <LayoutGrid className="w-4 h-4 text-slate-500" />
-            <span className="hidden sm:inline">Ver mi espacio</span>
-          </Link>
+          {!hidePortalLink && (
+            <Link
+              href={`/${spaceSlug}/portal`}
+              className="flex items-center gap-2 text-sm font-medium transition-all rounded-xl px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50 hover:border-slate-300 shadow-sm"
+            >
+              <LayoutGrid className="w-4 h-4 text-slate-500" />
+              <span className="hidden sm:inline">Ver mi espacio</span>
+            </Link>
+          )}
         </div>
       </header>
 

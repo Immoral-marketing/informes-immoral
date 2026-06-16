@@ -17,6 +17,7 @@ import SharePortalModal from "./SharePortalModal";
 
 interface Client {
   id: string;
+  slug: string;
   name: string;
   logo_signed_url?: string | null;
   contact_name: string | null;
@@ -37,14 +38,12 @@ interface Recipient {
 export default function ClientDetailClient({
   client,
   recipients: initial,
-  spaces,
   reportsCount = 0,
   isAdmin,
   currentUserId,
 }: {
   client: Client;
   recipients: Recipient[];
-  spaces: { id: string; slug: string; vertical_name: string }[];
   reportsCount?: number;
   isAdmin: boolean;
   currentUserId: string;
@@ -169,17 +168,15 @@ export default function ClientDetailClient({
         </div>
 
         <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-          {spaces.length > 0 && (
-            <Button
-              variant="outline"
-              className="rounded-xl flex items-center gap-2"
-              onClick={() => setShowSharePortal(true)}
-              style={{ color: "var(--brand)", borderColor: "var(--brand)" }}
-            >
-              <Layout className="w-4 h-4" />
-              <span>Compartir portal</span>
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            className="rounded-xl flex items-center gap-2"
+            onClick={() => setShowSharePortal(true)}
+            style={{ color: "var(--brand)", borderColor: "var(--brand)" }}
+          >
+            <Layout className="w-4 h-4" />
+            <span>Compartir portal</span>
+          </Button>
           
           <Button 
             variant="outline" 
@@ -214,7 +211,8 @@ export default function ClientDetailClient({
       {showSharePortal && (
         <SharePortalModal
           clientName={client.name}
-          spaces={spaces}
+          clientId={client.id}
+          clientSlug={client.slug as string}
           recipients={recipients}
           onClose={() => setShowSharePortal(false)}
         />
@@ -263,17 +261,16 @@ export default function ClientDetailClient({
               <p>
                 ¿Estás seguro de que deseas eliminar el cliente <strong>"{client.name}"</strong>? Esta acción no se puede deshacer.
               </p>
-              {(spaces.length > 0 || reportsCount > 0 || recipients.length > 0) && (
+              {(reportsCount > 0 || recipients.length > 0) && (
                 <div className="bg-destructive/10 text-destructive border border-destructive/20 rounded-xl p-3 text-xs space-y-1 text-left">
                   <p className="font-semibold text-destructive">⚠️ Se eliminarán de forma permanente:</p>
                   <ul className="list-disc list-inside pl-1 space-y-0.5">
-                    {spaces.length > 0 && <li>{spaces.length} espacio(s)</li>}
                     {reportsCount > 0 && <li>{reportsCount} informe(s) y sus adjuntos/versiones</li>}
                     {recipients.length > 0 && <li>{recipients.length} destinatario(s)</li>}
                   </ul>
                 </div>
               )}
-              {(spaces.length > 0 || reportsCount > 0) && (
+              {reportsCount > 0 && (
                 <div className="flex items-start space-x-2 pt-2 text-left">
                   <Checkbox
                     id="confirm-cascade-delete"
@@ -285,7 +282,7 @@ export default function ClientDetailClient({
                     htmlFor="confirm-cascade-delete"
                     className="text-xs text-muted-foreground font-medium cursor-pointer leading-tight select-none"
                   >
-                    Confirmo que deseo borrar todos los espacios, informes y destinatarios asociados a este cliente de forma permanente.
+                    Confirmo que deseo borrar todos los informes y destinatarios asociados a este cliente de forma permanente.
                   </Label>
                 </div>
               )}
@@ -295,7 +292,7 @@ export default function ClientDetailClient({
             <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteClient} 
-              disabled={isPending || ((spaces.length > 0 || reportsCount > 0) && !confirmCheckbox)}
+              disabled={isPending || (reportsCount > 0 && !confirmCheckbox)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-semibold"
             >
               {isPending ? "Eliminando..." : "Eliminar"}

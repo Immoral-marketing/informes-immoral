@@ -80,55 +80,6 @@ export type Database = {
           },
         ]
       }
-      client_spaces: {
-        Row: {
-          client_id: string
-          created_at: string
-          created_by: string
-          id: string
-          slug: string
-          vertical_id: string
-        }
-        Insert: {
-          client_id: string
-          created_at?: string
-          created_by: string
-          id?: string
-          slug: string
-          vertical_id: string
-        }
-        Update: {
-          client_id?: string
-          created_at?: string
-          created_by?: string
-          id?: string
-          slug?: string
-          vertical_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "client_spaces_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "client_spaces_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "client_spaces_vertical_id_fkey"
-            columns: ["vertical_id"]
-            isOneToOne: false
-            referencedRelation: "verticals"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       clients: {
         Row: {
           contact_name: string | null
@@ -139,6 +90,7 @@ export type Database = {
           id: string
           logo_url: string | null
           name: string
+          slug: string
         }
         Insert: {
           contact_name?: string | null
@@ -149,6 +101,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name: string
+          slug: string
         }
         Update: {
           contact_name?: string | null
@@ -159,6 +112,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name?: string
+          slug?: string
         }
         Relationships: [
           {
@@ -311,41 +265,41 @@ export type Database = {
           expires_at: string
           id: string
           last_accessed_at: string | null
+          namespace_slug: string | null
           recipient_id: string | null
           session_token_hash: string
-          space_id: string | null
         }
         Insert: {
           created_at?: string | null
           expires_at: string
           id?: string
           last_accessed_at?: string | null
+          namespace_slug?: string | null
           recipient_id?: string | null
           session_token_hash: string
-          space_id?: string | null
         }
         Update: {
           created_at?: string | null
           expires_at?: string
           id?: string
           last_accessed_at?: string | null
+          namespace_slug?: string | null
           recipient_id?: string | null
           session_token_hash?: string
-          space_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "portal_sessions_namespace_slug_fkey"
+            columns: ["namespace_slug"]
+            isOneToOne: false
+            referencedRelation: "report_namespaces"
+            referencedColumns: ["slug"]
+          },
           {
             foreignKeyName: "portal_sessions_recipient_id_fkey"
             columns: ["recipient_id"]
             isOneToOne: false
             referencedRelation: "client_recipients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "portal_sessions_space_id_fkey"
-            columns: ["space_id"]
-            isOneToOne: false
-            referencedRelation: "client_spaces"
             referencedColumns: ["id"]
           },
         ]
@@ -424,6 +378,45 @@ export type Database = {
             columns: ["report_id"]
             isOneToOne: false
             referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_namespaces: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          entity_type: string
+          slug: string
+          vertical_id: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          entity_type: string
+          slug: string
+          vertical_id?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          entity_type?: string
+          slug?: string
+          vertical_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_namespaces_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_namespaces_vertical_id_fkey"
+            columns: ["vertical_id"]
+            isOneToOne: false
+            referencedRelation: "verticals"
             referencedColumns: ["id"]
           },
         ]
@@ -633,12 +626,13 @@ export type Database = {
           expiry_date: string | null
           id: string
           name: string
+          namespace_slug: string | null
           pin_encrypted: string | null
-          pin_hash: string
+          pin_hash: string | null
           pin_updated_at: string
           slug: string
-          space_id: string
           updated_at: string
+          vertical_id: string | null
         }
         Insert: {
           auto_send_on_publish?: boolean
@@ -648,12 +642,13 @@ export type Database = {
           expiry_date?: string | null
           id?: string
           name: string
+          namespace_slug?: string | null
           pin_encrypted?: string | null
-          pin_hash: string
+          pin_hash?: string | null
           pin_updated_at?: string
           slug: string
-          space_id: string
           updated_at?: string
+          vertical_id?: string | null
         }
         Update: {
           auto_send_on_publish?: boolean
@@ -663,12 +658,13 @@ export type Database = {
           expiry_date?: string | null
           id?: string
           name?: string
+          namespace_slug?: string | null
           pin_encrypted?: string | null
-          pin_hash?: string
+          pin_hash?: string | null
           pin_updated_at?: string
           slug?: string
-          space_id?: string
           updated_at?: string
+          vertical_id?: string | null
         }
         Relationships: [
           {
@@ -679,10 +675,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "reports_space_id_fkey"
-            columns: ["space_id"]
+            foreignKeyName: "reports_namespace_slug_fkey"
+            columns: ["namespace_slug"]
             isOneToOne: false
-            referencedRelation: "client_spaces"
+            referencedRelation: "report_namespaces"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "reports_vertical_id_fkey"
+            columns: ["vertical_id"]
+            isOneToOne: false
+            referencedRelation: "verticals"
             referencedColumns: ["id"]
           },
         ]
@@ -693,8 +696,8 @@ export type Database = {
           created_at: string | null
           expires_at: string
           id: string
+          namespace_slug: string | null
           recipient_id: string | null
-          space_id: string | null
           token_hash: string
         }
         Insert: {
@@ -702,8 +705,8 @@ export type Database = {
           created_at?: string | null
           expires_at: string
           id?: string
+          namespace_slug?: string | null
           recipient_id?: string | null
-          space_id?: string | null
           token_hash: string
         }
         Update: {
@@ -711,23 +714,23 @@ export type Database = {
           created_at?: string | null
           expires_at?: string
           id?: string
+          namespace_slug?: string | null
           recipient_id?: string | null
-          space_id?: string | null
           token_hash?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "space_access_tokens_namespace_slug_fkey"
+            columns: ["namespace_slug"]
+            isOneToOne: false
+            referencedRelation: "report_namespaces"
+            referencedColumns: ["slug"]
+          },
           {
             foreignKeyName: "space_access_tokens_recipient_id_fkey"
             columns: ["recipient_id"]
             isOneToOne: false
             referencedRelation: "client_recipients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "space_access_tokens_space_id_fkey"
-            columns: ["space_id"]
-            isOneToOne: false
-            referencedRelation: "client_spaces"
             referencedColumns: ["id"]
           },
         ]

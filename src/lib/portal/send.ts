@@ -7,9 +7,8 @@ import { getLogoHtml, getMagicLinkEmailHtml } from "@/lib/magic-link/template";
 const TOKEN_HOURS = 48;
 
 export async function generateAndSendPortalLink({
-  spaceId,
+  namespaceSlug,
   recipientId,
-  spaceSlug,
   clientName,
   clientLogoUrl,
   createdBy,
@@ -17,9 +16,8 @@ export async function generateAndSendPortalLink({
   note,
   senderName = "El equipo",
 }: {
-  spaceId: string;
+  namespaceSlug: string;
   recipientId: string;
-  spaceSlug: string;
   clientName: string;
   clientLogoUrl: string | null;
   createdBy: string | null;
@@ -38,11 +36,11 @@ export async function generateAndSendPortalLink({
   const r = recipient as { email: string; full_name: string | null } | null;
   if (!r) return { error: "Destinatario no encontrado" };
 
-  // Invalidate previous unconsumed tokens for same (space_id, recipient_id)
+  // Invalidate previous unconsumed tokens for same (namespace_slug, recipient_id)
   await supabaseAdmin
     .from("space_access_tokens")
     .update({ consumed_at: new Date().toISOString() })
-    .eq("space_id", spaceId)
+    .eq("namespace_slug", namespaceSlug)
     .eq("recipient_id", recipientId)
     .is("consumed_at", null);
 
@@ -52,7 +50,7 @@ export async function generateAndSendPortalLink({
   const expiresAt = new Date(Date.now() + TOKEN_HOURS * 3600 * 1000).toISOString();
 
   await supabaseAdmin.from("space_access_tokens").insert({
-    space_id: spaceId,
+    namespace_slug: namespaceSlug,
     recipient_id: recipientId,
     token_hash: tokenHash,
     expires_at: expiresAt,
@@ -60,7 +58,7 @@ export async function generateAndSendPortalLink({
 
   // Build URL
   const appUrl = process.env["NEXT_PUBLIC_APP_URL"] ?? "https://informes.immoral.es";
-  const url = `${appUrl}/${spaceSlug}/portal/r/${token}`;
+  const url = `${appUrl}/${namespaceSlug}/portal/r/${token}`;
 
   // Send email via Resend
   const resendKey = process.env["RESEND_API_KEY"];

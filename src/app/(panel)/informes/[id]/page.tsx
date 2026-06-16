@@ -26,21 +26,21 @@ export default async function InformeDetailPage({
     .from("reports")
     .select(`
       id, name, slug, current_version, auto_send_on_publish, created_by,
-      space_id, expiry_date, pin_encrypted,
-      client_spaces(slug, clients(id, name), verticals(name))
+      namespace_slug, expiry_date, pin_encrypted,
+      report_namespaces(slug, clients(id, name)), verticals(name)
     `)
     .eq("id", id)
     .single();
 
   const report = rawReport as unknown as {
     id: string; name: string; slug: string; current_version: number;
-    auto_send_on_publish: boolean; created_by: string; space_id: string;
+    auto_send_on_publish: boolean; created_by: string; namespace_slug: string;
     expiry_date: string | null; pin_encrypted: string | null;
-    client_spaces: {
+    report_namespaces: {
       slug: string;
       clients: { id: string; name: string } | null;
-      verticals: { name: string } | null;
     } | null;
+    verticals: { name: string } | null;
   } | null;
 
   if (!report) notFound();
@@ -84,7 +84,7 @@ export default async function InformeDetailPage({
     }))
   );
 
-  const spaceSlug = report.client_spaces?.slug ?? "";
+  const spaceSlug = report.namespace_slug ?? "";
   const fullUrl = `https://informes.immoral.es/${spaceSlug}/${report.slug}`;
 
   return (
@@ -92,7 +92,7 @@ export default async function InformeDetailPage({
       <Breadcrumbs items={[
         { label: "Dashboard", href: "/" },
         { label: "Clientes", href: "/clientes" },
-        { label: report.client_spaces?.clients?.name ?? "Cliente", href: `/clientes/${report.client_spaces?.clients?.id ?? ""}` },
+        { label: report.report_namespaces?.clients?.name ?? "Cliente", href: `/clientes/${report.report_namespaces?.clients?.id ?? ""}` },
 
         { label: report.name }
       ]} />

@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { generateAndSendPortalLink } from "@/lib/portal/send";
 
 export async function sendPortalLinks(
-  spaceId: string,
+  clientId: string,
   recipientIds: string[],
   options?: { subject?: string; note?: string }
 ) {
@@ -19,21 +19,21 @@ export async function sendPortalLinks(
 
   const supabaseAdmin = createAdminClient();
 
-  const { data: space } = await supabaseAdmin
-    .from("client_spaces")
-    .select("slug, created_by, clients(name, logo_url)")
-    .eq("id", spaceId)
+  const { data: client } = await supabaseAdmin
+    .from("clients")
+    .select("slug, name, logo_url, created_by")
+    .eq("id", clientId)
     .single();
-  const s = space as unknown as { slug: string; created_by: string; clients: { name: string; logo_url: string | null } | null } | null;
-  if (!s) return { error: "Espacio no encontrado" };
+  
+  if (!client) return { error: "Cliente no encontrado" };
 
   const { data: profile } = await supabaseAdmin.from("profiles").select("role, full_name").eq("id", user.id).single();
   const p = profile as { role: string; full_name: string | null } | null;
-  if (s.created_by !== user.id && p?.role !== "admin") return { error: "Sin permiso" };
+  if (client.created_by !== user.id && p?.role !== "admin") return { error: "Sin permiso" };
 
   let clientLogoUrl: string | null = null;
-  if (s.clients?.logo_url) {
-    const { data } = await supabaseAdmin.storage.from("client-logos").createSignedUrl(s.clients.logo_url, 3600);
+  if (client.logo_url) {
+    const { data } = await supabaseAdmin.storage.from("client-logos").createSignedUrl(client.logo_url, 3600);
     clientLogoUrl = data?.signedUrl ?? null;
   }
 
@@ -41,10 +41,9 @@ export async function sendPortalLinks(
 
   for (const recipientId of recipientIds) {
     const opts: any = {
-      spaceId,
+      namespaceSlug: client.slug,
       recipientId,
-      spaceSlug: s.slug,
-      clientName: s.clients?.name ?? "cliente",
+      clientName: client.name,
       clientLogoUrl,
       createdBy: user.id,
       senderName: p?.full_name ?? "El equipo",
@@ -62,24 +61,24 @@ export async function sendPortalLinks(
   return { success: true, results };
 }
 
-export async function getSpaceRecipients(spaceId: string) {
+export async function getSpaceRecipients(clientId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { recipients: [], meta: null };
 
   const supabaseAdmin = createAdminClient();
 
-  const { data: space } = await supabaseAdmin
-    .from("client_spaces")
-    .select("client_id, clients(id, name, logo_url)")
-    .eq("id", spaceId)
+  const { data: client } = await supabaseAdmin
+    .from("clients")
+    .select("id, name, logo_url")
+    .eq("id", clientId)
     .single();
-  const s = space as unknown as { client_id: string; clients: { id: string; name: string; logo_url: string | null } | null } | null;
-  if (!s || !s.clients) return { recipients: [], meta: null };
+  
+  if (!client) return { recipients: [], meta: null };
 
   let clientLogoUrl: string | null = null;
-  if (s.clients.logo_url) {
-    const { data } = await supabaseAdmin.storage.from("client-logos").createSignedUrl(s.clients.logo_url, 3600);
+  if (client.logo_url) {
+    const { data } = await supabaseAdmin.storage.from("client-logos").createSignedUrl(client.logo_url, 3600);
     clientLogoUrl = data?.signedUrl ?? null;
   }
 
@@ -89,7 +88,7 @@ export async function getSpaceRecipients(spaceId: string) {
   const { data: recipients } = await supabaseAdmin
     .from("client_recipients")
     .select("id, email, full_name, role_label, is_primary")
-    .eq("client_id", s.client_id)
+    .eq("client_id", clientId)
     .order("is_primary", { ascending: false })
     .order("created_at");
 
@@ -102,7 +101,7 @@ export async function getSpaceRecipients(spaceId: string) {
     recipients: typedRecipients,
     meta: {
       reportName: "tu espacio de documentos",
-      clientName: s.clients.name,
+      clientName: client.name,
       clientLogoUrl,
       senderName: p?.full_name ?? "El equipo",
     }

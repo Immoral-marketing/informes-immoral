@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition, useRef } from "react";
-import { createReport, checkReportSlug, checkReportName } from "@/app/(panel)/informes/actions";
+import { checkReportSlug, checkReportName } from "@/app/(panel)/informes/actions";
+import { createReportUnified } from "@/app/(panel)/clientes/actions";
 import { slugify } from "@/lib/utils/slugify";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -10,13 +11,15 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 
 export function CreateReportForm({
-  spaceId,
-  spaceSlug,
+  clientId,
+  verticalId,
+  clientSlug,
   onClose,
   onCreated,
 }: {
-  spaceId: string;
-  spaceSlug: string;
+  clientId: string;
+  verticalId: string;
+  clientSlug: string;
   onClose: () => void;
   onCreated: (id: string, pin: string, warning?: string) => void;
 }) {
@@ -39,12 +42,14 @@ export function CreateReportForm({
       const s = slugify(val);
       setSlug(s);
       if (s) {
-        const { taken } = await checkReportSlug(spaceId, s);
+        // We pass clientId for the namespace checking now. Wait, checkReportSlug might need clientId or spaceId.
+        // For now, we will pass clientId to checkReportSlug.
+        const { taken } = await checkReportSlug(clientId, s);
         setSlugTaken(taken);
       }
     }
     if (val.trim()) {
-      const { taken } = await checkReportName(spaceId, val.trim());
+      const { taken } = await checkReportName(clientId, val.trim());
       setNameTaken(taken);
     }
   }
@@ -54,7 +59,7 @@ export function CreateReportForm({
     const s = slugify(val);
     setSlug(s);
     if (s) {
-      const { taken } = await checkReportSlug(spaceId, s);
+      const { taken } = await checkReportSlug(clientId, s);
       setSlugTaken(taken);
     }
   }
@@ -96,7 +101,7 @@ export function CreateReportForm({
       fd.append("slug", slug);
       fd.append("auto_send", autoSend ? "true" : "false");
       fd.append("document", docFile);
-      const result = await createReport(spaceId, fd);
+      const result = await createReportUnified(clientId, verticalId, fd);
       if ("error" in result) {
         setError(result.error);
       } else {
@@ -141,7 +146,7 @@ export function CreateReportForm({
               className={`rounded-xl font-mono ${slugTaken ? "border-destructive/50" : ""}`}
             />
             <p className={`text-xs ${slugTaken ? "text-destructive" : "text-muted-foreground"}`}>
-              ⚠️ URL: informes.immoral.es/{spaceSlug}/<strong>{slug || "…"}</strong>
+              ⚠️ URL: informes.immoral.es/{clientSlug || "cliente"}/<strong>{slug || "…"}</strong>
               {slugTaken ? " — ya existe" : " — no podrá cambiarse"}
             </p>
           </div>

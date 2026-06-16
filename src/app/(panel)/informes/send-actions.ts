@@ -20,13 +20,13 @@ export async function sendMagicLinks(
 
   const supabaseAdmin = createAdminClient();
 
-  // Get report + space + client info
+  // Get report + namespace + client info
   const { data: report } = await supabaseAdmin
     .from("reports")
-    .select("id, name, slug, space_id, created_by")
+    .select("id, name, slug, namespace_slug, created_by")
     .eq("id", reportId)
     .single();
-  const r = report as { id: string; name: string; slug: string; space_id: string; created_by: string } | null;
+  const r = report as { id: string; name: string; slug: string; namespace_slug: string; created_by: string } | null;
   if (!r) return { error: "Informe no encontrado" };
 
   // Auth check
@@ -34,12 +34,12 @@ export async function sendMagicLinks(
   const p = profile as { role: string; full_name: string | null } | null;
   if (r.created_by !== user.id && p?.role !== "admin") return { error: "Sin permiso" };
 
-  const { data: space } = await supabaseAdmin
-    .from("client_spaces")
+  const { data: namespace } = await supabaseAdmin
+    .from("report_namespaces")
     .select("slug, clients(name, logo_url)")
-    .eq("id", r.space_id)
+    .eq("slug", r.namespace_slug)
     .single();
-  const s = space as unknown as { slug: string; clients: { name: string; logo_url: string | null } | null } | null;
+  const s = namespace as unknown as { slug: string; clients: { name: string; logo_url: string | null } | null } | null;
   if (!s) return { error: "Espacio no encontrado" };
 
   let clientLogoUrl: string | null = null;
@@ -83,18 +83,18 @@ export async function getReportRecipients(reportId: string) {
 
   const { data: report } = await supabaseAdmin
     .from("reports")
-    .select("name, space_id")
+    .select("name, namespace_slug")
     .eq("id", reportId)
     .single();
-  const r = report as { name: string; space_id: string } | null;
+  const r = report as { name: string; namespace_slug: string } | null;
   if (!r) return { recipients: [], meta: null };
 
-  const { data: space } = await supabaseAdmin
-    .from("client_spaces")
+  const { data: namespace } = await supabaseAdmin
+    .from("report_namespaces")
     .select("clients(id, name, logo_url)")
-    .eq("id", r.space_id)
+    .eq("slug", r.namespace_slug)
     .single();
-  const s = space as unknown as { clients: { id: string; name: string; logo_url: string | null } | null } | null;
+  const s = namespace as unknown as { clients: { id: string; name: string; logo_url: string | null } | null } | null;
   if (!s || !s.clients) return { recipients: [], meta: null };
 
   let clientLogoUrl: string | null = null;

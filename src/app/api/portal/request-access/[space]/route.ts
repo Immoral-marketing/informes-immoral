@@ -38,17 +38,25 @@ export async function POST(
 
   const supabaseAdmin = createAdminClient();
 
-  const { data: spaceData } = await supabaseAdmin
-    .from("client_spaces")
-    .select("id, slug, client_id, clients(name, logo_url)")
+  const { data: namespace } = await supabaseAdmin
+    .from("report_namespaces")
+    .select("slug, entity_type, client_id")
     .eq("slug", space)
     .single();
 
-  const s = spaceData as unknown as { id: string; slug: string; client_id: string; clients: { name: string; logo_url: string | null } | null } | null;
-  if (!s) return NextResponse.json({ message: GENERIC_MSG });
+  if (!namespace || namespace.entity_type !== "client" || !namespace.client_id) {
+    return NextResponse.json({ message: GENERIC_MSG });
+  }
+
+  const { data: client } = await supabaseAdmin
+    .from("clients")
+    .select("name, logo_url")
+    .eq("id", namespace.client_id)
+    .single();
+  const c = client as any;
 
   // Rate Limiting (in-memory)
-  const rateKey = `${s.id}-${emailTrimmed}-${ip}`;
+  const rateKey = `${namespace.slug}-${emailTrimmed}-${ip}`;
   const now = Date.now();
   const windowMs = WINDOW_MINUTES * 60 * 1000;
   let rateData = rateLimitMap.get(rateKey);
@@ -68,7 +76,7 @@ export async function POST(
   const { data: recipient } = await supabaseAdmin
     .from("client_recipients")
     .select("id")
-    .eq("client_id", s.client_id)
+    .eq("client_id", namespace.client_id)
     .ilike("email", emailTrimmed)
     .single();
   
@@ -76,17 +84,16 @@ export async function POST(
   if (!rec) return NextResponse.json({ error: "El email no está registrado como acceso a este cliente." }, { status: 400 });
 
   let clientLogoUrl: string | null = null;
-  if (s.clients?.logo_url) {
-    const { data } = await supabaseAdmin.storage.from("client-logos").createSignedUrl(s.clients.logo_url, 3600);
+  if (c?.logo_url) {
+    const { data } = await supabaseAdmin.storage.from("client-logos").createSignedUrl(c.logo_url, 3600);
     clientLogoUrl = data?.signedUrl ?? null;
   }
 
   // Send
   await generateAndSendPortalLink({
-    spaceId: s.id,
+    namespaceSlug: namespace.slug,
     recipientId: rec.id,
-    spaceSlug: s.slug,
-    clientName: s.clients?.name ?? "cliente",
+    clientName: c?.name ?? "cliente",
     clientLogoUrl,
     createdBy: null,
   });

@@ -13,18 +13,18 @@ export async function generateMetadata({
   const { space, slug } = await params;
   const supabaseAdmin = createAdminClient();
   
-  const { data: spaceData } = await supabaseAdmin
-    .from("client_spaces")
-    .select("id")
+  const { data: namespace } = await supabaseAdmin
+    .from("report_namespaces")
+    .select("slug")
     .eq("slug", space)
     .single();
     
-  if (!spaceData) return { title: "Carpeta | Immoral" };
+  if (!namespace) return { title: "Carpeta | Immoral" };
 
   const { data } = await supabaseAdmin
     .from("reports")
     .select("name")
-    .eq("space_id", spaceData.id)
+    .eq("namespace_slug", namespace.slug)
     .eq("slug", slug)
     .single();
 
@@ -42,23 +42,23 @@ export default async function ReportFolderPage({
   const { space, slug } = await params;
   const supabaseAdmin = createAdminClient();
 
-  // 1. Obtener spaceId + vertical (la vertical pertenece al espacio, no al informe)
-  const { data: spaceData } = await supabaseAdmin
-    .from("client_spaces")
-    .select("id, clients(name, logo_url), verticals(name, color_hex)")
+  // 1. Obtener namespace + cliente (y vertical del informe luego)
+  const { data: namespace } = await supabaseAdmin
+    .from("report_namespaces")
+    .select("slug, client_id, clients(name, logo_url)")
     .eq("slug", space)
     .single();
 
-  if (!spaceData) notFound();
+  if (!namespace || !namespace.client_id) notFound();
 
-  const s = spaceData as unknown as {
-    id: string;
+  const n = namespace as unknown as {
+    slug: string;
+    client_id: string;
     clients: { name: string; logo_url: string | null } | null;
-    verticals: { name: string; color_hex: string } | null;
   };
 
   // 2. Verificar sesión
-  const isValidSession = await hasValidPortalSession(s.id);
+  const isValidSession = await hasValidPortalSession(n.slug);
   if (!isValidSession) {
     redirect(`/${space}/portal`);
   }
@@ -66,8 +66,8 @@ export default async function ReportFolderPage({
   // 3. Obtener datos del informe
   const { data: reportData } = await supabaseAdmin
     .from("reports")
-    .select("id, name, slug, updated_at")
-    .eq("space_id", s.id)
+    .select("id, name, slug, updated_at, verticals(name, color_hex)")
+    .eq("namespace_slug", n.slug)
     .eq("slug", slug)
     .not("current_version", "is", null)
     .single();
@@ -82,8 +82,8 @@ export default async function ReportFolderPage({
     .order("display_order", { ascending: true })
     .order("created_at", { ascending: true });
 
-  const clientName = s.clients?.name ?? "Cliente";
-  const clientLogoUrl = await getSignedClientLogoUrl(s.clients?.logo_url ?? null);
+  const clientName = n.clients?.name ?? "Cliente";
+  const clientLogoUrl = await getSignedClientLogoUrl(n.clients?.logo_url ?? null);
 
   const data = {
     report: {
@@ -91,7 +91,7 @@ export default async function ReportFolderPage({
       name: reportData.name,
       slug: reportData.slug,
       updated_at: reportData.updated_at,
-      verticals: s.verticals,
+      verticals: reportData.verticals as unknown as { name: string; color_hex: string } | null,
     },
     attachments: (attachmentsData ?? []) as Array<{
       id: string;

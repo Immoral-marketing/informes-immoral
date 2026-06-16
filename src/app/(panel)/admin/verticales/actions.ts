@@ -141,14 +141,14 @@ export async function deleteVertical(id: string) {
 
   const supabaseAdmin = createAdminClient();
 
-  // Check associated client_spaces
+  // Check associated reports
   const { count } = await supabaseAdmin
-    .from("client_spaces")
+    .from("reports")
     .select("id", { count: "exact", head: true })
     .eq("vertical_id", id);
 
   if ((count ?? 0) > 0) {
-    return { error: `Este vertical tiene ${count} espacio(s) de cliente. Elimínalos antes de continuar.` };
+    return { error: `Este vertical tiene ${count} informe(s) asociado(s). Elimínalos antes de continuar.` };
   }
 
   const { data: vertical } = await supabaseAdmin.from("verticals").select("logo_url").eq("id", id).single();

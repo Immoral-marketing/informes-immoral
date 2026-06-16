@@ -209,6 +209,8 @@ informes-immoral/
 | [32-email-personalizable](specs/32-email-personalizable.md) | Email de magic link personalizable: asunto, nota libre y preview antes de enviar | 2 | draft |
 | [33-client-portal](specs/33-client-portal.md) | Portal del cliente estilo Drive: acceso a todos sus informes por espacio con sesión de 48h | 3 | draft |
 | [34-post-spec23-fixes](specs/34-post-spec23-fixes.md) | Fix: 404 al redirigir tras crear cliente (post-impl SPEC-23) | 1 | draft |
+| [35-multitenant-db-refactor](specs/35-multitenant-db-refactor.md) | Refactor DB: report_namespaces + clients.slug + namespace_slug en reports/sesiones (aditivo, sin romper) | 5 | aprobada |
+| [36-multitenant-routing-refactor](specs/36-multitenant-routing-refactor.md) | Refactor routing + portales + panel: eliminar client_spaces, resolver [space] contra namespaces | 5 | aprobada |
 | 08-client-feedback | Comentarios anclados cliente↔empleado (NO implementado por 20; sigue futuro) | 2 | pendiente |
 | 09-presentation-mode | Modo presentación sincronizado (implementado por la spec 19) | 3 | reemplazada por 19 |
 | 10-notifications | Notificaciones in-app + email | 2 | pendiente |

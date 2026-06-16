@@ -30,30 +30,29 @@ export default async function DashboardPage() {
     id: string; name: string; slug: string; logo_url: string | null; color_hex: string;
   }>) ?? [];
 
-  // Contar espacios por vertical (cada espacio = un cliente en ese vertical)
-  const { data: spaceCounts } = await supabaseAdmin
-    .from("client_spaces")
-    .select("vertical_id");
-  const spacesByVertical: Record<string, number> = {};
-  for (const s of (spaceCounts as Array<{ vertical_id: string }> ?? [])) {
-    spacesByVertical[s.vertical_id] = (spacesByVertical[s.vertical_id] ?? 0) + 1;
-  }
-
-  // Contar informes por vertical
-  const { data: reportCounts } = await supabaseAdmin
+  // Contar clientes únicos y reportes por vertical
+  const { data: reportSpaces } = await supabaseAdmin
     .from("reports")
-    .select("space_id, client_spaces(vertical_id)");
+    .select("namespace_slug, vertical_id");
+
+  const spacesByVertical: Record<string, Set<string>> = {};
   const reportsByVertical: Record<string, number> = {};
-  for (const r of (reportCounts as unknown as Array<{ client_spaces: { vertical_id: string } | null }> ?? [])) {
-    const vid = r.client_spaces?.vertical_id;
-    if (vid) reportsByVertical[vid] = (reportsByVertical[vid] ?? 0) + 1;
+
+  for (const r of (reportSpaces ?? [])) {
+    const vid = r.vertical_id;
+    if (vid) {
+      if (!spacesByVertical[vid]) spacesByVertical[vid] = new Set();
+      spacesByVertical[vid].add(r.namespace_slug);
+
+      reportsByVertical[vid] = (reportsByVertical[vid] ?? 0) + 1;
+    }
   }
 
   const verticals = await Promise.all(
     rawV.map(async (v) => ({
       ...v,
       logo_signed_url: v.logo_url ? await getSignedLogoUrl(v.logo_url) : null,
-      espacios: spacesByVertical[v.id] ?? 0,
+      espacios: spacesByVertical[v.id]?.size ?? 0,
       informes: reportsByVertical[v.id] ?? 0,
     }))
   );
@@ -62,8 +61,7 @@ export default async function DashboardPage() {
   const reportsQuery = supabaseAdmin
     .from("reports")
     .select(`
-      id, name, slug, updated_at, created_by,
-      client_spaces(slug, clients(name))
+      id, name, slug, updated_at, created_by, namespace_slug
     `)
     .order("updated_at", { ascending: false })
     .limit(8);
@@ -73,7 +71,7 @@ export default async function DashboardPage() {
   const { data: rawReports } = await reportsQuery;
   const recentReports = (rawReports as unknown as Array<{
     id: string; name: string; slug: string; updated_at: string;
-    client_spaces: { slug: string; clients: { name: string } | null } | null;
+    namespace_slug: string;
   }>) ?? [];
 
   return (
@@ -149,8 +147,7 @@ export default async function DashboardPage() {
         ) : (
           <Card className="overflow-hidden">
             {recentReports.map((r, i) => {
-              const spaceSlug = r.client_spaces?.slug ?? "";
-              const clientName = r.client_spaces?.clients?.name ?? "—";
+              const spaceSlug = r.namespace_slug ?? "";
               const updatedAt = new Date(r.updated_at).toLocaleDateString("es-ES", {
                 day: "numeric", month: "short", year: "numeric",
               });
@@ -166,7 +163,7 @@ export default async function DashboardPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate text-foreground">{r.name}</p>
                     <p className="text-xs mt-0.5 text-muted-foreground">
-                      {clientName} · {spaceSlug}
+                      Namespace: {spaceSlug}
                     </p>
                   </div>
                   <div className="shrink-0 text-right">

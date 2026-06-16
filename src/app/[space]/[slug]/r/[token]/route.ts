@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hashToken } from "@/lib/tokens/hash";
 import { generateSessionToken } from "@/lib/tokens/generate";
+import legacyRedirects from "@/lib/legacy-redirects.json";
 
 const SESSION_HOURS = 48;
 
@@ -16,25 +17,33 @@ export async function GET(
   const origin = new URL(request.url).origin;
   const base = `${space}/${slug}`;
 
-  // Resolve report from space+slug
-  const { data: spaceData } = await supabaseAdmin
-    .from("client_spaces")
-    .select("id")
+  // 1. Resolve namespace
+  const { data: namespace } = await supabaseAdmin
+    .from("report_namespaces")
+    .select("slug, entity_type")
     .eq("slug", space)
     .single();
-  const spaceId = (spaceData as { id: string } | null)?.id;
 
-  if (!spaceId) {
+  let namespaceSlug = space;
+  let entityType = namespace?.entity_type;
+
+  // 2. Fallback 301 for legacy
+  if (!namespace) {
+    const redirects: Record<string, string> = legacyRedirects;
+    const clientSlug = redirects[space];
+    if (clientSlug) {
+      return NextResponse.redirect(new URL(`/${clientSlug}/${slug}/r/${token}`, origin), 301);
+    }
     return NextResponse.redirect(new URL(`/${base}?error=link_expired`, origin));
   }
 
   const { data: reportData } = await supabaseAdmin
     .from("reports")
-    .select("id")
-    .eq("space_id", spaceId)
+    .select("id, namespace_slug")
+    .eq("namespace_slug", namespaceSlug)
     .eq("slug", slug)
     .single();
-  const reportId = (reportData as { id: string } | null)?.id;
+  const reportId = (reportData as any)?.id;
 
   if (!reportId) {
     return NextResponse.redirect(new URL(`/${base}?error=link_expired`, origin));
@@ -90,14 +99,18 @@ export async function GET(
   });
 
   // Create portal session (portal_session) — CA-14: magic link grants space-wide access
-  const portalToken = generateSessionToken();
-  const portalHash = hashToken(portalToken);
-  await supabaseAdmin.from("portal_sessions").insert({
-    space_id: spaceId,
-    recipient_id: t.recipient_id,
-    session_token_hash: portalHash,
-    expires_at: expiresAt,
-  });
+  // ONLY for clients
+  let portalToken: string | null = null;
+  if (entityType === "client") {
+    portalToken = generateSessionToken();
+    const portalHash = hashToken(portalToken);
+    await supabaseAdmin.from("portal_sessions").insert({
+      namespace_slug: namespaceSlug,
+      recipient_id: t.recipient_id,
+      session_token_hash: portalHash,
+      expires_at: expiresAt,
+    });
+  }
 
   // Redirect to clean URL (without token) — CA-07
   const response = NextResponse.redirect(new URL(`/${base}`, origin));
@@ -108,12 +121,14 @@ export async function GET(
     maxAge: SESSION_HOURS * 3600,
     path: "/",
   });
-  response.cookies.set("portal_session", portalToken, {
-    httpOnly: true,
-    secure: process.env["NODE_ENV"] === "production",
-    sameSite: "lax",
-    maxAge: SESSION_HOURS * 3600,
-    path: `/${space}`,
-  });
+  if (portalToken) {
+    response.cookies.set("portal_session", portalToken, {
+      httpOnly: true,
+      secure: process.env["NODE_ENV"] === "production",
+      sameSite: "lax",
+      maxAge: SESSION_HOURS * 3600,
+      path: `/${space}`,
+    });
+  }
   return response;
 }
