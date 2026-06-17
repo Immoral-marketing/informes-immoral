@@ -1136,3 +1136,200 @@ El sidebar siempre lleva iconos de Lucide (`size={15} strokeWidth={1.8}`). Nunca
   Clientes
 </Link>
 ```
+
+---
+
+## 22. Responsive — Sidebar colapsable y drawer mobile
+
+El layout del panel tiene dos comportamientos responsivos gestionados por `PanelShell`.
+
+### Breakpoints usados
+
+| Breakpoint | Clase Tailwind | Uso en el panel |
+|---|---|---|
+| < 768px (mobile) | (default) | Sidebar oculto, drawer sobre el contenido |
+| ≥ 768px (md) | `md:` | Sidebar fijo en la izquierda, animado |
+
+---
+
+### PanelShell — shell del panel con estado colapsado
+
+`src/components/shared/PanelShell.tsx` gestiona el estado del sidebar.
+
+```tsx
+'use client'
+
+import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Sidebar } from '@/components/Sidebar'
+import { MotionMain } from '@/components/shared/MotionMain'
+import { Navbar } from '@/components/Navbar'
+import { transition } from '@/lib/motion'
+
+export function PanelShell({ children, user, verticals, initialUnreadCount, pinSetup }) {
+  const [collapsed, setCollapsed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  // Persistir estado en localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('sidebar-collapsed')
+    if (stored !== null) setCollapsed(stored === 'true')
+  }, [])
+
+  const toggleCollapsed = () => {
+    setCollapsed(v => {
+      localStorage.setItem('sidebar-collapsed', String(!v))
+      return !v
+    })
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen bg-background">
+      <Navbar user={user} initialUnreadCount={initialUnreadCount} onMenuToggle={() => setMobileOpen(v => !v)} />
+
+      <div className="flex flex-1 min-h-0">
+        {/* Desktop sidebar — width animado entre 56px (icono) y 224px (expandido) */}
+        <motion.div
+          className="hidden md:block flex-shrink-0 border-r border-border overflow-hidden"
+          animate={{ width: collapsed ? 56 : 224 }}
+          transition={transition.smooth}
+        >
+          <Sidebar userRole={user.role} verticals={verticals} collapsed={collapsed} onToggle={toggleCollapsed} />
+        </motion.div>
+
+        {/* Mobile: backdrop semitransparente */}
+        <AnimatePresence>
+          {mobileOpen && (
+            <motion.div
+              className="fixed inset-0 bg-black/50 z-40 md:hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={transition.fast}
+              onClick={() => setMobileOpen(false)}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Mobile: drawer deslizante desde la izquierda */}
+        <AnimatePresence>
+          {mobileOpen && (
+            <motion.div
+              className="fixed left-0 top-16 bottom-0 z-50 md:hidden"
+              initial={{ x: -224 }}
+              animate={{ x: 0 }}
+              exit={{ x: -224 }}
+              transition={transition.smooth}
+            >
+              <Sidebar userRole={user.role} verticals={verticals} collapsed={false} onToggle={() => setMobileOpen(false)} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <MotionMain>
+          {children}
+          {pinSetup}
+        </MotionMain>
+      </div>
+    </div>
+  )
+}
+```
+
+---
+
+### Sidebar — props collapsed + onToggle
+
+```tsx
+interface SidebarProps {
+  userRole: 'admin' | 'employee'
+  verticals: Vertical[]
+  collapsed?: boolean    // si es true: w-14, solo iconos con title tooltip
+  onToggle?: () => void  // botón al final del sidebar para colapsar/expandir
+}
+```
+
+**Modo expandido** (`collapsed=false`): `w-56`, texto + icono, `ChevronLeft` al fondo.
+**Modo colapsado** (`collapsed=true`): `w-14`, solo iconos centrados (`h-9 w-9 mx-auto`), `title` con tooltip nativo, `ChevronRight` al fondo.
+
+```tsx
+// Botón toggle al fondo del sidebar
+<div className="mt-auto pt-3 border-t border-border">
+  <button
+    onClick={onToggle}
+    title={collapsed ? 'Expandir menú' : 'Cerrar menú'}
+    className="w-full h-9 flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+  >
+    {collapsed ? <ChevronRight size={15} strokeWidth={1.8} /> : <ChevronLeft size={15} strokeWidth={1.8} />}
+  </button>
+</div>
+```
+
+---
+
+### Navbar — prop onMenuToggle
+
+Muestra un botón hamburguesa solo en mobile (`md:hidden`):
+
+```tsx
+interface NavbarProps {
+  user: { ... }
+  initialUnreadCount?: number
+  onMenuToggle?: () => void   // si se pasa, aparece el botón hamburguesa en mobile
+}
+
+// En el JSX, antes del logo:
+{onMenuToggle && (
+  <button
+    onClick={onMenuToggle}
+    className="md:hidden flex items-center justify-center w-9 h-9 rounded-md text-muted-foreground hover:bg-white/10 transition-colors"
+    aria-label="Abrir menú"
+  >
+    <Menu size={18} />
+  </button>
+)}
+```
+
+---
+
+### Grids responsivos usados en las páginas
+
+```tsx
+// Lista de cards (clientes, espacios, etc.)
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
+// Página de detalle con sidebar de info
+<div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+  <div className="lg:col-span-2 space-y-6">  {/* contenido principal */}
+  <div className="space-y-6">                {/* sidebar de info */}
+</div>
+
+// Header de página — columna en mobile, fila en desktop
+<div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
+
+// Texto que se trunca en mobile
+<span className="truncate capitalize">{name}</span>
+```
+
+---
+
+### Regla: el layout.tsx del panel NO renderiza Navbar/Sidebar directamente
+
+`layout.tsx` es un server component. Solo llama a `<PanelShell>` pasándole los datos.
+`PanelShell` es un client component que maneja toda la interactividad.
+
+```tsx
+// MAL — layout.tsx renderizando directamente
+<div className="flex flex-col min-h-screen">
+  <Navbar user={userData} />
+  <div className="flex flex-1 min-h-0">
+    <Sidebar userRole={...} verticals={...} />
+    <MotionMain>{children}</MotionMain>
+  </div>
+</div>
+
+// BIEN — layout.tsx delega a PanelShell
+<PanelShell user={userData} verticals={verticals ?? []} initialUnreadCount={count ?? 0} pinSetup={pinSetup}>
+  {children}
+</PanelShell>
+```
