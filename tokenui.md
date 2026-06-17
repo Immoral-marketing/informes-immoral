@@ -950,3 +950,119 @@ Stepper de 4 fases con `layoutId` para animación de indicador activo.
 8. **Sidebar items de info** nunca usan `<CardTitle>` ni `<CardDescription>`. Siempre el patrón `<p className="text-xs font-semibold uppercase...">`.
 9. **Imágenes del logo** siempre con `className="invert"` en contextos de fondo oscuro.
 10. **Fechas y textos en español**: `toLocaleDateString('es-ES')`, mensajes en español.
+11. **Sin breadcrumbs.** Nunca usar `Dashboard > Sección > Subsección`. No existe este patrón en el sistema.
+12. **Sin botones de acción en el Navbar.** El Navbar solo lleva: logo izquierda, notificaciones + avatar derecha. Los CTAs van en el contenido de la página.
+13. **El header de una vertical/sección nunca es una Card.** Es siempre el patrón `pb-6 border-b` con `h1` + descripción en `text-sm text-muted-foreground`.
+
+---
+
+## 21. Anti-patrones — detectar y corregir
+
+### ❌ Breadcrumbs
+
+```tsx
+// MAL — no existe este patrón
+<nav>Dashboard &gt; Verticales &gt; immoralia</nav>
+<Breadcrumb>...</Breadcrumb>
+```
+
+```tsx
+// BIEN — el título de página ya da contexto suficiente
+<h1 className="text-xl font-bold capitalize">immoralia</h1>
+```
+
+---
+
+### ❌ Botón de acción en el Navbar
+
+```tsx
+// MAL — el Navbar no lleva acciones de negocio
+<header className="...">
+  <div>Logo</div>
+  <Button>Nuevo cliente</Button>   {/* ← ELIMINAR */}
+  <Avatar />
+</header>
+```
+
+```tsx
+// BIEN — el CTA va en el header de la página
+<div className="flex items-start justify-between pb-6 border-b">
+  <h1 className="text-xl font-bold">Clientes</h1>
+  <Button className="bg-brand hover:bg-brand/90 text-white">
+    <Plus className="w-4 h-4 mr-2" /> Nuevo cliente
+  </Button>
+</div>
+```
+
+---
+
+### ❌ Header de vertical/sección como Card
+
+```tsx
+// MAL — la vertical no es una Card con logo + descripción flotante
+<Card>
+  <CardHeader>
+    <Image src={logo} />
+    <CardTitle>immoralia</CardTitle>
+    <CardDescription>Administración de informes...</CardDescription>
+  </CardHeader>
+  <Button>+ Nuevo informe sin cliente</Button>
+</Card>
+```
+
+```tsx
+// BIEN — mismo patrón que todos los headers de página
+<div className="flex items-start justify-between pb-6 border-b">
+  <div>
+    <h1 className="text-xl font-bold capitalize">{verticalName}</h1>
+    <p className="text-sm text-muted-foreground mt-1">
+      Administración de informes y espacios de cliente en esta vertical.
+    </p>
+  </div>
+  <Button className="bg-brand hover:bg-brand/90 text-white">
+    <Plus className="w-4 h-4 mr-2" /> Nuevo informe sin cliente
+  </Button>
+</div>
+```
+
+---
+
+### ❌ Título de sección sin `border-b`
+
+```tsx
+// MAL — título suelto, sin separador visual
+<h2 className="font-bold text-lg">Clientes con informes</h2>
+<Input placeholder="Buscar cliente..." />
+```
+
+```tsx
+// BIEN — sección con border-b y CTA/search alineados
+<div className="flex items-center justify-between pb-4 border-b">
+  <h2 className="text-base font-semibold flex items-center gap-2">
+    <Users className="h-4 w-4 text-muted-foreground" />
+    Clientes con informes
+  </h2>
+  <div className="relative max-w-sm">
+    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+    <Input placeholder="Buscar cliente..." className="pl-9 border-2" />
+  </div>
+</div>
+```
+
+---
+
+### ❌ Sidebar con solo 2 items sin iconos consistentes
+
+El sidebar siempre lleva iconos de Lucide (`size={15} strokeWidth={1.8}`). Nunca texto solo. Los items mínimos son los que estén en la navegación principal definida en el proyecto.
+
+```tsx
+// BIEN — cada item con su icono Lucide
+<Link className="px-3 py-2 rounded-md text-sm flex items-center gap-2.5 ...">
+  <LayoutDashboard size={15} strokeWidth={1.8} className="flex-shrink-0" />
+  Dashboard
+</Link>
+<Link className="px-3 py-2 rounded-md text-sm flex items-center gap-2.5 ...">
+  <Briefcase size={15} strokeWidth={1.8} className="flex-shrink-0" />
+  Clientes
+</Link>
+```
