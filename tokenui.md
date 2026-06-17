@@ -996,7 +996,7 @@ Stepper de 4 fases con `layoutId` para animación de indicador activo.
 
 ---
 
-### ❌ Header de vertical/sección como Card
+### ❌ Header de vertical como Card
 
 ```tsx
 // MAL — la vertical no es una Card con logo + descripción flotante
@@ -1011,17 +1011,87 @@ Stepper de 4 fases con `layoutId` para animación de indicador activo.
 ```
 
 ```tsx
-// BIEN — mismo patrón que todos los headers de página
-<div className="flex items-start justify-between pb-6 border-b">
+// BIEN — logo inline + barra de color + back link (código exacto de propuestas)
+
+{/* Back link */}
+<Link
+  href="/"
+  className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+>
+  <ArrowLeft className="mr-2 h-4 w-4" /> Volver al Dashboard
+</Link>
+
+{/* Header de vertical */}
+<div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
+  <div className="flex items-center gap-4">
+    {vertical.logo_url && (
+      <img
+        src={vertical.logo_url}
+        alt={vertical.name}
+        className="h-12 w-auto object-contain"
+      />
+    )}
+    <div>
+      {!vertical.logo_url && (
+        <h1 className="text-3xl font-extrabold tracking-tight capitalize">
+          {vertical.name}
+        </h1>
+      )}
+      <p className="text-muted-foreground mt-1">
+        Administración de espacios de cliente en esta línea de negocio.
+      </p>
+    </div>
+  </div>
+  {/* Barra de color de la vertical */}
+  <div
+    className="w-24 h-1.5 rounded-full shrink-0"
+    style={{ backgroundColor: vertical.color_hex }}
+  />
+</div>
+```
+
+**Claves de este patrón:**
+- Back link siempre arriba, `text-sm text-muted-foreground hover:text-foreground`
+- Logo con `h-12 w-auto object-contain` — NO `<Image>` de Next.js, usar `<img>`
+- Si no hay logo: `h1` es `text-3xl font-extrabold tracking-tight capitalize`
+- Barra de color: `w-24 h-1.5 rounded-full` con `style={{ backgroundColor: color_hex }}`
+- El CTA ("Nuevo informe sin cliente") va en la sección de contenido debajo, NO en este header
+
+---
+
+### Header de espacio de cliente (página `/{client-slug}`)
+
+```tsx
+{/* Back link hacia la vertical */}
+<Link
+  href={`/${vertical.slug}`}
+  className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+>
+  <ArrowLeft className="mr-2 h-4 w-4" /> Volver a {vertical.name}
+</Link>
+
+{/* Header del cliente */}
+<div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
   <div>
-    <h1 className="text-xl font-bold capitalize">{verticalName}</h1>
-    <p className="text-sm text-muted-foreground mt-1">
-      Administración de informes y espacios de cliente en esta vertical.
+    {/* Dot + label de vertical en uppercase */}
+    <div className="flex items-center gap-2 mb-2">
+      <span
+        className="w-3 h-3 rounded-full inline-block"
+        style={{ backgroundColor: vertical.color_hex }}
+      />
+      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        {vertical.name}
+      </span>
+    </div>
+    {/* Nombre del cliente */}
+    <h1 className="text-3xl font-bold tracking-tight capitalize flex items-center gap-3">
+      {client.name}
+      <Badge variant="outline" className="font-mono text-xs font-normal">cliente</Badge>
+    </h1>
+    <p className="text-muted-foreground">
+      Espacio de cliente. Propuestas comerciales y datos de contacto.
     </p>
   </div>
-  <Button className="bg-brand hover:bg-brand/90 text-white">
-    <Plus className="w-4 h-4 mr-2" /> Nuevo informe sin cliente
-  </Button>
 </div>
 ```
 
