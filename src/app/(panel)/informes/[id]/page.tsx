@@ -54,7 +54,7 @@ export default async function InformeDetailPage({
       .order("version_number", { ascending: false }),
     supabaseAdmin
       .from("report_attachments")
-      .select("id, filename, mime_type, storage_path, size_bytes, display_order, created_at")
+      .select("id, filename, mime_type, storage_path, url, size_bytes, display_order, created_at")
       .eq("report_id", id)
       .order("created_at"),
   ]);
@@ -66,8 +66,8 @@ export default async function InformeDetailPage({
   }>) ?? [];
 
   const attachments = (rawAttachments as unknown as Array<{
-    id: string; filename: string; mime_type: string; storage_path: string;
-    size_bytes: number; display_order: number; created_at: string;
+    id: string; filename: string; mime_type: string; storage_path: string | null;
+    url: string | null; size_bytes: number; display_order: number; created_at: string;
   }>) ?? [];
 
   // Signed URLs for active version preview
@@ -76,11 +76,13 @@ export default async function InformeDetailPage({
     ? await getSignedDocUrl(activeVersion.storage_path)
     : null;
 
-  // Signed URLs for attachments
+  // Signed URLs for attachments (URL attachments reuse their url field directly)
   const attachmentsWithUrls = await Promise.all(
     attachments.map(async (a) => ({
       ...a,
-      signed_url: await getSignedAttachmentUrl(a.storage_path),
+      signed_url: a.storage_path
+        ? await getSignedAttachmentUrl(a.storage_path)
+        : (a.url ?? null),
     }))
   );
 

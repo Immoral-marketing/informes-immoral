@@ -10,13 +10,18 @@ import {
   Download,
   FolderOpen,
   UploadCloud,
+  Link,
+  ExternalLink,
+  X,
+  Check,
 } from "lucide-react"
 
 interface Attachment {
   id: string
   filename: string
   mime_type: string
-  storage_path: string
+  storage_path: string | null
+  url: string | null
   size_bytes: number
   display_order: number
   created_at: string
@@ -29,10 +34,18 @@ interface FolderAttachmentListProps {
   isUploading: boolean
   onDelete: (attachment: Attachment) => void
   onUploadFile: (file: File) => void
+  onAddUrl: (url: string, displayName: string) => void
 }
 
 function getFileIcon(mimeType: string) {
   const mt = mimeType.toLowerCase()
+  if (mt === "text/uri-list") {
+    return {
+      Icon: Link,
+      colorClass: "text-sky-500",
+      bgClass: "bg-sky-500/10 border-sky-500/20",
+    }
+  }
   if (mt === "application/pdf") {
     return {
       Icon: FileText,
@@ -92,7 +105,7 @@ function getFileIcon(mimeType: string) {
 }
 
 function formatBytes(bytes: number) {
-  if (bytes === 0) return "0 Bytes"
+  if (bytes === 0) return "—"
   const k = 1024
   const sizes = ["Bytes", "KB", "MB"]
   const i = Math.floor(Math.log(bytes) / Math.log(k))
@@ -105,8 +118,13 @@ export function FolderAttachmentList({
   isUploading,
   onDelete,
   onUploadFile,
+  onAddUrl,
 }: FolderAttachmentListProps) {
   const [isDragging, setIsDragging] = useState(false)
+  const [showUrlForm, setShowUrlForm] = useState(false)
+  const [urlInput, setUrlInput] = useState("")
+  const [urlName, setUrlName] = useState("")
+  const [urlError, setUrlError] = useState<string | null>(null)
   const dragCounter = useRef(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -144,7 +162,7 @@ export function FolderAttachmentList({
 
     const files = e.dataTransfer.files
     if (files && files.length > 0) {
-      const file = files[0] // Upload the first dropped file
+      const file = files[0]
       if (file) onUploadFile(file)
     }
   }
@@ -157,9 +175,28 @@ export function FolderAttachmentList({
     }
   }
 
+  function handleUrlSubmit() {
+    const trimUrl = urlInput.trim()
+    const trimName = urlName.trim()
+    if (!trimUrl) { setUrlError("Introduce una URL"); return }
+    if (!trimName) { setUrlError("Introduce un nombre para el enlace"); return }
+    try { new URL(trimUrl) } catch { setUrlError("La URL no es válida (debe empezar por https://)"); return }
+    setUrlError(null)
+    onAddUrl(trimUrl, trimName)
+    setUrlInput("")
+    setUrlName("")
+    setShowUrlForm(false)
+  }
+
+  function handleUrlCancel() {
+    setUrlInput("")
+    setUrlName("")
+    setUrlError(null)
+    setShowUrlForm(false)
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      {/* Folder Container Wrapper */}
       <div
         onDragEnter={handleDragEnter}
         onDragOver={handleDragOver}
@@ -171,7 +208,7 @@ export function FolderAttachmentList({
             : "border-border bg-card shadow-sm"
         }`}
       >
-        {/* Physical Folder tab effect */}
+        {/* Folder tab */}
         <div className="flex items-center gap-2 px-5 py-3 border-b border-border bg-muted/30">
           <FolderOpen className="w-5 h-5 text-primary shrink-0 animate-pulse" />
           <h3 className="font-bold text-sm text-foreground">Carpeta de Adjuntos</h3>
@@ -180,7 +217,7 @@ export function FolderAttachmentList({
           </span>
         </div>
 
-        {/* Dropzone Overlay for Drag State */}
+        {/* Drag overlay */}
         {isDragging && (
           <div className="absolute inset-0 bg-primary/10 flex flex-col items-center justify-center gap-2 backdrop-blur-[2px] z-10 animate-in fade-in duration-200 pointer-events-none">
             <UploadCloud className="w-12 h-12 text-primary animate-bounce" />
@@ -189,20 +226,21 @@ export function FolderAttachmentList({
         )}
 
         <div className="p-5 flex flex-col gap-4">
-          {/* File Grid/List */}
+          {/* File list */}
           {attachments.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 text-center gap-2">
               <FolderOpen className="w-12 h-12 text-muted-foreground/40" />
               <p className="text-sm text-muted-foreground">La carpeta está vacía.</p>
               {canEdit && (
                 <p className="text-xs text-muted-foreground/60">
-                  Arrastra un archivo aquí o utiliza el botón inferior.
+                  Arrastra un archivo aquí, sube uno o adjunta una URL.
                 </p>
               )}
             </div>
           ) : (
             <div className="flex flex-col gap-2">
               {attachments.map((a) => {
+                const isUrl = a.mime_type === "text/uri-list"
                 const { Icon, colorClass, bgClass } = getFileIcon(a.mime_type)
                 return (
                   <div
@@ -210,37 +248,45 @@ export function FolderAttachmentList({
                     className="group flex items-center justify-between p-3 rounded-xl border border-border bg-background/50 hover:bg-muted/30 hover:border-primary/20 transition-all duration-200"
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      {/* Icon wrapper */}
-                      <div
-                        className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border ${bgClass}`}
-                      >
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border ${bgClass}`}>
                         <Icon className={`w-5 h-5 ${colorClass}`} />
                       </div>
-                      
                       <div className="min-w-0 flex-1">
-                        <p
-                          className="text-sm font-semibold text-foreground truncate"
-                          title={a.filename}
-                        >
+                        <p className="text-sm font-semibold text-foreground truncate" title={a.filename}>
                           {a.filename}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatBytes(a.size_bytes)}
-                        </p>
+                        {isUrl ? (
+                          <p className="text-xs text-muted-foreground truncate" title={a.url ?? ""}>
+                            {a.url}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">{formatBytes(a.size_bytes)}</p>
+                        )}
                       </div>
                     </div>
 
-                    {/* Actions */}
                     <div className="flex items-center gap-1 shrink-0 ml-2">
-                      {a.signed_url && (
+                      {isUrl && a.url ? (
                         <a
-                          href={a.signed_url}
-                          download={a.filename}
-                          title="Descargar"
-                          className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                          href={a.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Abrir enlace"
+                          className="p-1.5 text-muted-foreground hover:text-sky-500 hover:bg-sky-500/10 rounded-lg transition-colors"
                         >
-                          <Download className="w-4 h-4" />
+                          <ExternalLink className="w-4 h-4" />
                         </a>
+                      ) : (
+                        a.signed_url && (
+                          <a
+                            href={a.signed_url}
+                            download={a.filename}
+                            title="Descargar"
+                            className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                          >
+                            <Download className="w-4 h-4" />
+                          </a>
+                        )
                       )}
                       {canEdit && (
                         <button
@@ -259,9 +305,10 @@ export function FolderAttachmentList({
             </div>
           )}
 
-          {/* Trigger Input UI (Optional trigger button inside Folder card) */}
+          {/* Actions */}
           {canEdit && (
-            <div className="pt-2 border-t border-border/60">
+            <div className="pt-2 border-t border-border/60 flex flex-col gap-2">
+              {/* Upload file button */}
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -271,8 +318,68 @@ export function FolderAttachmentList({
                 <UploadCloud className="w-4 h-4 text-primary" />
                 <span>Subir archivo...</span>
               </button>
-              <p className="text-[10px] text-muted-foreground text-center mt-2">
-                Formatos permitidos: PDF, Word, Excel, PowerPoint, PNG, JPG, ZIP (Máx. 25 MB)
+
+              {/* Add URL button / inline form */}
+              {showUrlForm ? (
+                <div className="flex flex-col gap-2 p-3 rounded-xl border border-sky-500/30 bg-sky-500/5">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <Link className="w-3.5 h-3.5 text-sky-500" /> Adjuntar URL
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleUrlCancel}
+                      className="p-0.5 text-muted-foreground hover:text-foreground rounded transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={urlName}
+                    onChange={(e) => { setUrlName(e.target.value); setUrlError(null); }}
+                    placeholder="Nombre del enlace (ej: Presentación Mayo)"
+                    className="w-full text-xs rounded-lg border border-border bg-background px-3 py-2 focus:outline-none focus:border-sky-500 placeholder:text-muted-foreground/50"
+                  />
+                  <input
+                    type="url"
+                    value={urlInput}
+                    onChange={(e) => { setUrlInput(e.target.value); setUrlError(null); }}
+                    placeholder="https://..."
+                    onKeyDown={(e) => { if (e.key === "Enter") handleUrlSubmit(); if (e.key === "Escape") handleUrlCancel(); }}
+                    className="w-full text-xs rounded-lg border border-border bg-background px-3 py-2 focus:outline-none focus:border-sky-500 placeholder:text-muted-foreground/50"
+                  />
+                  {urlError && <p className="text-xs text-destructive">{urlError}</p>}
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      type="button"
+                      onClick={handleUrlCancel}
+                      className="text-xs px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleUrlSubmit}
+                      className="text-xs px-3 py-1.5 rounded-lg bg-sky-500 text-white hover:bg-sky-600 transition-colors flex items-center gap-1"
+                    >
+                      <Check className="w-3 h-3" /> Añadir
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowUrlForm(true)}
+                  className="w-full py-2.5 px-4 rounded-xl border-2 border-dashed border-border hover:border-sky-500 hover:bg-sky-500/5 text-xs font-semibold text-muted-foreground hover:text-sky-600 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Link className="w-4 h-4 text-sky-500" />
+                  <span>Adjuntar URL...</span>
+                </button>
+              )}
+
+              <p className="text-[10px] text-muted-foreground text-center">
+                Archivos: PDF, Word, Excel, PowerPoint, PNG, JPG, ZIP (máx. 25 MB)
               </p>
               <input
                 ref={fileInputRef}

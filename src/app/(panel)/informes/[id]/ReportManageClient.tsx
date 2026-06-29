@@ -3,7 +3,7 @@
 import { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  addVersion, deleteAttachment,
+  addVersion, deleteAttachment, addUrlAttachment,
   regeneratePin, deleteReport, setReportExpiry, getDecryptedReportPin, getSignedDocUrl
 } from "../actions";
 import SendMagicLinkModal from "./SendMagicLinkModal";
@@ -32,7 +32,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Monitor, Smartphone, Tablet, Eye, EyeOff, Copy, RefreshCw, Send, Upload, Calendar, Edit3, Presentation, Trash2, X
+  Monitor, Smartphone, Tablet, Eye, EyeOff, Copy, RefreshCw, Send, Upload, Calendar, Edit3, Presentation, Trash2, X, Download
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -43,8 +43,8 @@ interface Version {
 }
 
 interface Attachment {
-  id: string; filename: string; mime_type: string; storage_path: string;
-  size_bytes: number; display_order: number; created_at: string;
+  id: string; filename: string; mime_type: string; storage_path: string | null;
+  url: string | null; size_bytes: number; display_order: number; created_at: string;
   signed_url: string | null;
 }
 
@@ -250,6 +250,18 @@ export default function ReportManageClient({
     xhr.send(formData);
   }
 
+  function handleAddUrl(url: string, displayName: string) {
+    startTransition(async () => {
+      const result = await addUrlAttachment(report.id, url, displayName);
+      if ("error" in result) {
+        toast.error(result.error);
+      } else {
+        toast.success("Enlace añadido");
+        setAtts((prev) => [...prev, result.attachment as unknown as Attachment]);
+      }
+    });
+  }
+
   function handleDeleteAttachment(att: Attachment) {
     setAttToDelete(att);
     setShowDeleteAttDialog(true);
@@ -348,6 +360,12 @@ export default function ReportManageClient({
               Nueva versión
             </Button>
           )}
+          <a href={`/api/reports/${report.id}/download`}>
+            <Button variant="outline" size="sm" disabled={isPending}>
+              <Download className="w-4 h-4 mr-1.5" />
+              Descargar
+            </Button>
+          </a>
           {canEdit && (
             <Button variant="outline" size="sm" onClick={() => setShowRegenerateDialog(true)} disabled={isPending}>
               <RefreshCw className="w-4 h-4 mr-1.5" />
@@ -473,6 +491,7 @@ export default function ReportManageClient({
             isUploading={isUploadingAtt}
             onDelete={handleDeleteAttachment}
             onUploadFile={handleUploadFile}
+            onAddUrl={handleAddUrl}
           />
           
           {canEdit && (

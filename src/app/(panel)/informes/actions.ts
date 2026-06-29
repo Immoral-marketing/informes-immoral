@@ -471,7 +471,9 @@ export async function deleteReport(reportId: string) {
   ]);
 
   const docPaths = (versions as Array<{ storage_path: string }> ?? []).map((v) => v.storage_path);
-  const attPaths = (attachments as Array<{ storage_path: string }> ?? []).map((a) => a.storage_path);
+  const attPaths = (attachments as Array<{ storage_path: string | null }> ?? [])
+    .map((a) => a.storage_path)
+    .filter((p): p is string => !!p);
 
   // Delete report (cascade deletes versions, attachments, sessions, tokens)
   const { error } = await perm.supabaseAdmin.from("reports").delete().eq("id", reportId);
@@ -573,6 +575,39 @@ export async function addAttachment(reportId: string, formData: FormData) {
   return { success: true, attachment: { ...attData, signed_url } };
 }
 
+export async function addUrlAttachment(reportId: string, url: string, displayName: string) {
+  const perm = await assertCanManageReport(reportId);
+  if (perm.error || !perm.supabaseAdmin) return { error: perm.error ?? "No autorizado" };
+
+  const trimmedUrl = url.trim();
+  const trimmedName = displayName.trim();
+  if (!trimmedUrl) return { error: "La URL es obligatoria" };
+  if (!trimmedName) return { error: "El nombre es obligatorio" };
+
+  try { new URL(trimmedUrl); } catch { return { error: "La URL introducida no es válida" }; }
+
+  const { data: attData, error } = await perm.supabaseAdmin
+    .from("report_attachments")
+    .insert({
+      report_id: reportId,
+      filename: trimmedName,
+      mime_type: "text/uri-list",
+      storage_path: null,
+      url: trimmedUrl,
+      size_bytes: 0,
+      created_by: perm.user.id,
+    })
+    .select("id, filename, mime_type, storage_path, url, size_bytes, created_at")
+    .single();
+
+  if (error || !attData) return { error: "Error al guardar el enlace" };
+
+  return {
+    success: true,
+    attachment: { ...attData, signed_url: trimmedUrl },
+  };
+}
+
 export async function deleteAttachment(attachmentId: string, reportId: string) {
   const perm = await assertCanManageReport(reportId);
   if (perm.error || !perm.supabaseAdmin) return { error: perm.error ?? "No autorizado" };
@@ -583,13 +618,15 @@ export async function deleteAttachment(attachmentId: string, reportId: string) {
     .eq("id", attachmentId)
     .eq("report_id", reportId)
     .single();
-  const a = att as { storage_path: string } | null;
+  const a = att as { storage_path: string | null } | null;
   if (!a) return { error: "Adjunto no encontrado" };
 
   const { error } = await perm.supabaseAdmin.from("report_attachments").delete().eq("id", attachmentId);
   if (error) return { error: "Error al eliminar el adjunto" };
 
-  await perm.supabaseAdmin.storage.from(ATT_BUCKET).remove([a.storage_path]);
+  if (a.storage_path) {
+    await perm.supabaseAdmin.storage.from(ATT_BUCKET).remove([a.storage_path]);
+  }
   return { success: true };
 }
 
