@@ -265,6 +265,17 @@ function VerticalFormModal({
   function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!["image/png", "image/svg+xml"].includes(file.type)) {
+      setError("Solo se aceptan archivos PNG o SVG");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("El logo supera el límite de 5MB. Por favor, comprime la imagen antes de subirla.");
+      e.target.value = "";
+      return;
+    }
+    setError(null);
     setLogoFile(file);
     setLogoPreview(URL.createObjectURL(file));
   }
@@ -350,7 +361,7 @@ function VerticalFormModal({
           {/* Logo */}
           <div className="flex flex-col gap-1.5">
             <Label className="text-xs text-muted-foreground">
-              Logo {isEdit ? "(opcional — reemplaza el actual)" : "*"} — PNG o SVG, máx 2MB
+              Logo {isEdit ? "(opcional — reemplaza el actual)" : "*"} — PNG o SVG, máx 5MB
             </Label>
             <div
               className="border-2 border-dashed border-border rounded-xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-primary transition-colors bg-muted/50 min-h-[140px]"
@@ -361,7 +372,7 @@ function VerticalFormModal({
               ) : (
                 <>
                   <span className="text-muted-foreground text-sm">Arrastra o haz clic para subir</span>
-                  <span className="text-muted-foreground text-xs">PNG o SVG, máx 2MB</span>
+                  <span className="text-muted-foreground text-xs">PNG o SVG, máx 5MB</span>
                 </>
               )}
             </div>

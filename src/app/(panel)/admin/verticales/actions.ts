@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { slugify } from "@/lib/utils/slugify";
 
 const LOGO_BUCKET = "vertical-logos";
-const MAX_LOGO_BYTES = 2 * 1024 * 1024; // 2 MB
+const MAX_LOGO_BYTES = 5 * 1024 * 1024; // 5 MB — matches vertical-logos Supabase bucket
 const ALLOWED_MIME = ["image/png", "image/svg+xml"];
 const COLOR_RE = /^#[0-9A-Fa-f]{6}$/;
 
@@ -24,7 +24,7 @@ async function requireAdmin() {
 
 async function uploadLogo(file: File, oldPath?: string): Promise<{ path: string } | { error: string }> {
   if (!ALLOWED_MIME.includes(file.type)) return { error: "Solo se aceptan archivos PNG o SVG" };
-  if (file.size > MAX_LOGO_BYTES) return { error: "El archivo no puede superar 2MB" };
+  if (file.size > MAX_LOGO_BYTES) return { error: "El archivo no puede superar 5MB" };
 
   const supabaseAdmin = createAdminClient();
 
