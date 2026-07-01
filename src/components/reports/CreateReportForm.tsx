@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import { checkReportSlug, checkReportName } from "@/app/(panel)/informes/actions";
 import { createReportUnified } from "@/app/(panel)/clientes/actions";
 import { slugify } from "@/lib/utils/slugify";
@@ -33,7 +33,14 @@ export function CreateReportForm({
   const [docPreviewUrl, setDocPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isSlowUpload, setIsSlowUpload] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isPending) { setIsSlowUpload(false); return; }
+    const t = setTimeout(() => setIsSlowUpload(true), 4000);
+    return () => clearTimeout(t);
+  }, [isPending]);
 
   async function handleNameChange(val: string) {
     setName(val);
@@ -199,8 +206,24 @@ export function CreateReportForm({
             </Label>
           </div>
 
+          {isPending && (
+            <div className="flex flex-col gap-2 pt-2">
+              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full"
+                  style={{ width: "40%", animation: "indeterminate-progress 1.4s ease-in-out infinite" }}
+                />
+              </div>
+              {isSlowUpload && (
+                <p className="text-xs text-muted-foreground text-center animate-in fade-in duration-500">
+                  El archivo es grande — por favor, espera. No cierres esta ventana.
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="flex gap-2 justify-end pt-4">
-            <Button type="button" variant="ghost" onClick={onClose} className="rounded-xl">
+            <Button type="button" variant="ghost" onClick={onClose} disabled={isPending} className="rounded-xl">
               Cancelar
             </Button>
             <Button
@@ -208,7 +231,7 @@ export function CreateReportForm({
               disabled={isPending || slugTaken || nameTaken || !docFile}
               className="rounded-xl font-semibold"
             >
-              {isPending ? "Guardando…" : "Crear informe"}
+              {isPending ? "Subiendo informe…" : "Crear informe"}
             </Button>
           </div>
         </form>

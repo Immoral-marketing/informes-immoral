@@ -97,6 +97,11 @@
 }
 
 /* Loader de marca */
+@keyframes indeterminate-progress {
+  0%   { transform: translateX(-250%); }
+  100% { transform: translateX(400%); }
+}
+
 @keyframes brandPhraseIn {
   from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
