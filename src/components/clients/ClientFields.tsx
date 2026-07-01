@@ -18,10 +18,22 @@ export function ClientFields({
 }) {
   const [logoPreview, setLogoPreview] = useState<string | null>(client?.logo_signed_url ?? null);
   const [removeLogo, setRemoveLogo] = useState(false);
+  const [logoError, setLogoError] = useState<string | null>(null);
 
   function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    setLogoError(null);
     if (file) {
+      if (!["image/png", "image/svg+xml"].includes(file.type)) {
+        setLogoError("Solo se aceptan archivos PNG o SVG");
+        e.target.value = "";
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        setLogoError("El logo supera el límite de 2MB. Por favor, comprime la imagen antes de subirla.");
+        e.target.value = "";
+        return;
+      }
       setLogoPreview(URL.createObjectURL(file));
       setRemoveLogo(false);
     } else {
@@ -53,7 +65,10 @@ export function ClientFields({
           />
           <input type="hidden" name="remove_logo" value={removeLogo ? "true" : "false"} />
         </div>
-        {logoPreview && (
+        {logoError && (
+          <p className="text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-2">{logoError}</p>
+        )}
+        {logoPreview && !logoError && (
           <div className="mt-2 flex items-center justify-between p-3 rounded-xl border bg-card">
             <div className="h-10 w-24 flex items-center justify-center bg-secondary/50 rounded-lg overflow-hidden p-1">
               {/* eslint-disable-next-line @next/next/no-img-element */}
